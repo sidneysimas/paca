@@ -60,7 +60,7 @@ export interface ViewConfig {
 	slice_by?: string;
 }
 
-export type ViewLayout = "Board" | "List";
+export type ViewLayout = "Board" | "Table" | "Roadmap";
 
 export interface IntegrationView {
 	id: string;
@@ -72,11 +72,15 @@ export interface IntegrationView {
 
 // ── View shape helpers ─────────────────────────────────────────────────────────
 function viewTypeToLayout(vt: ViewType): ViewLayout {
-	return vt === "board" ? "Board" : "List";
+	if (vt === "board") return "Board";
+	if (vt === "roadmap") return "Roadmap";
+	return "Table";
 }
 
 export function layoutToViewType(l: ViewLayout): ViewType {
-	return l === "Board" ? "board" : "table";
+	if (l === "Board") return "board";
+	if (l === "Roadmap") return "roadmap";
+	return "table";
 }
 
 function mapView(raw: Omit<IntegrationView, "layout">): IntegrationView {

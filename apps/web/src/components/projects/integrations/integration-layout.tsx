@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KanbanSquare, List, MoreHorizontal, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, KanbanSquare, List, Map, Plus, Search, Settings, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
 	viewsQueryOptions,
 	type IntegrationView,
 	type Task,
+	type ViewConfig,
 	type ViewLayout,
 } from "@/lib/integration-api";
 import {
@@ -47,6 +48,7 @@ import { cn } from "@/lib/utils";
 
 import { BoardView } from "./board-view";
 import { ListView } from "./list-view";
+import { RoadmapView } from "./roadmap-view";
 import { TaskDetailPanel } from "./task-detail-panel";
 
 interface IntegrationLayoutProps {
@@ -82,20 +84,27 @@ function NewViewPopover({
 		setOpen(false);
 	};
 
+	const layoutIcon = (l: ViewLayout) => {
+		if (l === "Board") return <KanbanSquare className="size-3.5" />;
+		if (l === "Roadmap") return <Map className="size-3.5" />;
+		return <List className="size-3.5" />;
+	};
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger
 				render={
 					<button
 						type="button"
+						aria-label="Add view"
 						className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
 					/>
 				}
 			>
 				<Plus className="size-3.5" />
-				<span className="hidden sm:inline">New view</span>
+				<span className="hidden sm:inline">Add view</span>
 			</PopoverTrigger>
-			<PopoverContent side="bottom" align="end" className="w-60 p-0 gap-0" sideOffset={6}>
+			<PopoverContent side="bottom" align="end" className="w-64 p-0 gap-0" sideOffset={6}>
 				<div className="p-3 border-b border-border/50">
 					<p className="text-xs font-semibold">New view</p>
 				</div>
@@ -113,7 +122,7 @@ function NewViewPopover({
 					<div className="flex flex-col gap-1.5">
 						<label className="text-xs text-muted-foreground">Layout</label>
 						<div className="flex gap-2">
-							{(["Board", "List"] as ViewLayout[]).map((l) => (
+							{(["Board", "Table", "Roadmap"] as ViewLayout[]).map((l) => (
 								<button
 									key={l}
 									type="button"
@@ -125,7 +134,7 @@ function NewViewPopover({
 											: "border-border text-muted-foreground hover:text-foreground",
 									)}
 								>
-									{l === "Board" ? <KanbanSquare className="size-3.5" /> : <List className="size-3.5" />}
+									{layoutIcon(l)}
 									{l}
 								</button>
 							))}
@@ -198,6 +207,143 @@ function RenameViewDialog({
 	);
 }
 
+// ── View Settings Panel ────────────────────────────────────────────────────────
+const SORT_OPTIONS = ["Manual", "Priority", "Title", "Created"];
+const FIELD_SUM_OPTIONS = ["Count", "Story Points"];
+const COLUMN_BY_OPTIONS = ["Status", "Assignee", "Priority"];
+const SWIMLANE_OPTIONS = ["None", "Assignee", "Priority", "Type"];
+const SLICE_BY_OPTIONS = ["None", "Assignee", "Priority", "Type"];
+
+function ViewSettingsPanel({
+	view,
+	open,
+	onOpenChange,
+	onSave,
+	onPreview,
+	isPending,
+}: {
+	view: IntegrationView | null;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onSave: (viewId: string, config: ViewConfig) => Promise<unknown>;
+	onPreview: (config: ViewConfig) => void;
+	isPending?: boolean;
+}) {
+	const [draft, setDraft] = useState<ViewConfig>(() => view?.config ?? {});
+
+	// Reset draft whenever the panel opens (re-sync from saved config)
+	useEffect(() => {
+		if (open) setDraft(view?.config ?? {});
+	}, [open, view?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	// Propagate draft to parent so the view previews immediately
+	useEffect(() => {
+		if (open) onPreview(draft);
+	}, [draft, open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	// On close without Save: revert preview to saved config
+	const handleOpenChange = (newOpen: boolean) => {
+		if (!newOpen && view) onPreview(view.config ?? {});
+		onOpenChange(newOpen);
+	};
+
+	const update = (patch: Partial<ViewConfig>) => {
+		setDraft((prev) => ({ ...prev, ...patch }));
+	};
+
+	const handleSave = async () => {
+		if (!view) return;
+		await onSave(view.id, draft);
+		onOpenChange(false);
+	};
+
+	const handleReset = () => {
+		const saved = view?.config ?? {};
+		setDraft(saved);
+		onPreview(saved);
+	};
+
+	const row = (label: string, children: React.ReactNode) => (
+		<div className="flex items-center justify-between gap-3 py-1.5">
+			<span className="text-xs text-muted-foreground shrink-0 w-20">{label}</span>
+			{children}
+		</div>
+	);
+
+	const select = (
+		value: string | undefined,
+		options: string[],
+		onChange: (v: string) => void,
+		placeholder = "Default",
+	) => (
+		<select
+			value={value ?? ""}
+			onChange={(e) => onChange(e.target.value)}
+			className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30 min-w-0"
+		>
+			<option value="">{placeholder}</option>
+			{options.map((o) => (
+				<option key={o} value={o.toLowerCase()}>{o}</option>
+			))}
+		</select>
+	);
+
+	return (
+		<Popover open={open} onOpenChange={handleOpenChange}>
+			<PopoverTrigger
+				render={
+					<button
+						type="button"
+						aria-label="View settings"
+						className={cn(
+							"flex size-7 items-center justify-center rounded-md transition-colors",
+							open
+								? "bg-primary/10 text-primary"
+								: "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+						)}
+					/>
+				}
+			>
+				<Settings className="size-3.5" />
+			</PopoverTrigger>
+			<PopoverContent side="bottom" align="end" className="w-72 p-0 gap-0" sideOffset={6}>
+				<div className="px-3 py-2.5 border-b border-border/50">
+					<p className="text-xs font-semibold">View settings</p>
+				</div>
+				<div className="p-3 flex flex-col divide-y divide-border/30">
+					{row("Fields", (
+						<span className="text-xs text-foreground flex-1 truncate">
+							{draft.fields?.join(", ") || "Title, Assignees, Status"}
+						</span>
+					))}
+					{row("Column by", select(draft.column_by, COLUMN_BY_OPTIONS, (v) => update({ column_by: v }), "Status"))}
+					{row("Swimlanes", select(draft.swimlanes, SWIMLANE_OPTIONS, (v) => update({ swimlanes: v }), "None"))}
+					{row("Sort by", select(draft.sort_by, SORT_OPTIONS, (v) => update({ sort_by: v }), "Default"))}
+					{row("Field sum", select(draft.field_sum, FIELD_SUM_OPTIONS, (v) => update({ field_sum: v }), "Count"))}
+					{row("Slice by", select(draft.slice_by, SLICE_BY_OPTIONS, (v) => update({ slice_by: v }), "None"))}
+				</div>
+				<div className="flex items-center justify-end gap-2 px-3 py-2.5 border-t border-border/50">
+					<button
+						type="button"
+						onClick={handleReset}
+						className="px-3 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+					>
+						Reset
+					</button>
+					<button
+						type="button"
+						onClick={handleSave}
+						disabled={isPending}
+						className="px-3 py-1 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
+					>
+						{isPending ? "Saving…" : "Save"}
+					</button>
+				</div>
+			</PopoverContent>
+		</Popover>
+	);
+}
+
 // ── Main Layout ────────────────────────────────────────────────────────────────
 export function IntegrationLayout({
 	projectId,
@@ -227,7 +373,7 @@ export function IntegrationLayout({
 
 	const FALLBACK_VIEWS: IntegrationView[] = [
 		{ id: "__default-board__", name: "Board", view_type: "board", layout: "Board" },
-		{ id: "__default-list__", name: "List", view_type: "table", layout: "List" },
+		{ id: "__default-table__", name: "Table", view_type: "table", layout: "Table" },
 	];
 	const serverViews = viewsQuery.data ?? [];
 	const views = serverViews.length > 0 ? serverViews : (viewsQuery.isSuccess ? FALLBACK_VIEWS : []);
@@ -256,6 +402,11 @@ export function IntegrationLayout({
 
 	const [renameTarget, setRenameTarget] = useState<IntegrationView | null>(null);
 	const [renameOpen, setRenameOpen] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	// Previewed view config (updated by the settings panel before Save)
+	const [previewConfig, setPreviewConfig] = useState<ViewConfig | undefined>(undefined);
+	const activeViewConfig = previewConfig ?? activeView?.config;
+	const isManualSort = activeViewConfig?.sort_by?.toLowerCase() === "manual";
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchOpen, setSearchOpen] = useState(false);
 	const searchRef = useRef<HTMLInputElement>(null);
@@ -307,6 +458,18 @@ export function IntegrationLayout({
 		onSuccess: () => qc.invalidateQueries({ queryKey: viewsQueryKey }),
 	});
 
+	const updateViewConfigMutation = useMutation({
+		mutationFn: (payload: { viewId: string; config: ViewConfig }) =>
+			sprintId
+				? updateView(projectId, sprintId, payload.viewId, { config: payload.config })
+				: updateBacklogView(projectId, payload.viewId, { config: payload.config }),
+		onSuccess: () => {
+			// After save, clear preview so the view uses the server-returned config
+			setPreviewConfig(undefined);
+			qc.invalidateQueries({ queryKey: viewsQueryKey });
+		},
+	});
+
 	const deleteViewMutation = useMutation({
 		mutationFn: (viewId: string) =>
 			sprintId
@@ -333,66 +496,80 @@ export function IntegrationLayout({
 
 			{/* View tab bar */}
 			<div className="flex shrink-0 items-center gap-1 border-b border-border/40 px-4">
-				<div className="flex items-end gap-0.5 overflow-x-auto flex-1 min-w-0">
+				<div className="flex items-center gap-0.5 overflow-x-auto overflow-y-hidden flex-1 min-w-0">
 					{views.map((view) => {
 						const isActive = view.id === activeView?.id;
 						return (
-							<div key={view.id} className="relative flex items-center group shrink-0">
+							<div
+								key={view.id}
+								className={cn(
+									"relative flex items-center shrink-0",
+									isActive && "border-b-2 border-primary -mb-px",
+								)}
+							>
 								<button
 									type="button"
 									onClick={() => setPreferredViewId(view.id)}
 									className={cn(
-										"flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-all duration-150 relative",
+										"flex items-center gap-1.5 px-2 py-2.5 text-xs font-medium transition-all duration-150",
 										isActive
-											? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-t"
+											? "text-foreground"
 											: "text-muted-foreground hover:text-foreground",
 									)}
 								>
 									{view.layout === "Board" ? (
 										<KanbanSquare className="size-3.5" />
+									) : view.layout === "Roadmap" ? (
+										<Map className="size-3.5" />
 									) : (
 										<List className="size-3.5" />
 									)}
 									{view.name}
 								</button>
 
-								<DropdownMenu>
-									<DropdownMenuTrigger
-										render={
-											<button
-												type="button"
-												className={cn(
-													"flex size-5 items-center justify-center rounded transition-opacity",
-													"opacity-0 group-hover:opacity-100",
-													"hover:bg-muted/60 text-muted-foreground hover:text-foreground",
-												)}
-											/>
-										}
-									>
-										<MoreHorizontal className="size-3" />
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="start" sideOffset={4}>
-										<DropdownMenuItem
-											onSelect={() => {
-												setRenameTarget(view);
-												setRenameOpen(true);
-											}}
+								{isActive && (
+									<DropdownMenu>
+										<DropdownMenuTrigger
+											render={
+												<button
+													type="button"
+													className="flex size-5 items-center justify-center rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+												/>
+											}
 										>
-											Rename view
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem
-											disabled={views.length <= 1}
-											onSelect={() => deleteViewMutation.mutate(view.id)}
-											className="text-destructive focus:text-destructive"
-										>
-											Delete view
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
+											<ChevronDown className="size-3" />
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="start" sideOffset={4}>
+											<DropdownMenuItem
+												onSelect={() => {
+													setRenameTarget(view);
+													setRenameOpen(true);
+												}}
+											>
+												Rename view
+											</DropdownMenuItem>
+											<DropdownMenuSeparator />
+											<DropdownMenuItem
+												disabled={views.length <= 1}
+												onSelect={() => deleteViewMutation.mutate(view.id)}
+												className="text-destructive focus:text-destructive"
+											>
+												Delete view
+											</DropdownMenuItem>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								)}
 							</div>
 						);
 					})}
+
+					{/* Add view — sits immediately after the last tab */}
+					{canManageViews && (
+						<NewViewPopover
+							onSubmit={(name, layout) => createViewMutation.mutateAsync({ name, layout })}
+							isPending={createViewMutation.isPending}
+						/>
+					)}
 				</div>
 
 				<div className="flex shrink-0 items-center gap-1 pl-2 border-l border-border/30 ml-1">
@@ -498,10 +675,17 @@ export function IntegrationLayout({
 						</PopoverContent>
 					</Popover>
 
-					{canManageViews && (
-						<NewViewPopover
-							onSubmit={(name, layout) => createViewMutation.mutateAsync({ name, layout })}
-							isPending={createViewMutation.isPending}
+					{/* View settings — always visible when at least one view is active */}
+					{activeView && (
+						<ViewSettingsPanel
+							view={activeView}
+							open={settingsOpen}
+							onOpenChange={setSettingsOpen}
+							onSave={(viewId, config) =>
+								updateViewConfigMutation.mutateAsync({ viewId, config })
+							}
+							onPreview={setPreviewConfig}
+							isPending={updateViewConfigMutation.isPending}
 						/>
 					)}
 				</div>
@@ -526,6 +710,16 @@ export function IntegrationLayout({
 						tasksQueryKey={tasksQueryKey}
 						onCreateTask={handleCreateTask}
 						onTaskClick={handleTaskClick}
+						manualSort={isManualSort}
+					/>
+				) : activeView?.layout === "Roadmap" ? (
+					<RoadmapView
+						tasks={tasks}
+						statuses={statuses}
+						taskTypes={taskTypes}
+						searchQuery={searchQuery}
+						assigneeFilter={assigneeFilter}
+						onTaskClick={handleTaskClick}
 					/>
 				) : (
 					<ListView
@@ -537,6 +731,7 @@ export function IntegrationLayout({
 						assigneeFilter={assigneeFilter}
 						onCreateTask={handleCreateTask}
 						onTaskClick={handleTaskClick}
+						manualSort={isManualSort}
 					/>
 				)}
 			</div>
