@@ -30,12 +30,53 @@ func createViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, pro
 	return id
 }
 
+// listViewIDsViaAPI returns all view IDs for a sprint.
+func listViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, sprintID string) []string {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views", env.base, projectID, sprintID)
+	req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusOK)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	items, _ := data["items"].([]any)
+	var ids []string
+	for _, item := range items {
+		if m, ok := item.(map[string]any); ok {
+			if id, ok := m["id"].(string); ok && id != "" {
+				ids = append(ids, id)
+			}
+		}
+	}
+	return ids
+}
+
+// deleteViewViaAPI deletes a view, ignoring 404 (already gone).
+func deleteViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, sprintID, viewID string) {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projectID, sprintID, viewID)
+	req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		t.Errorf("deleteViewViaAPI: unexpected status %d", resp.StatusCode)
+	}
+}
+
 func TestE2EViewManagement_CRUD(t *testing.T) {
 	env := newE2EEnv(t)
 	seedTaskMemberUser(t, env, "view-crud-user", "viewpass1")
 	client, token := taskMemberLogin(t, env, "view-crud-user", "viewpass1")
 	projID := createProjectForTasksViaAPI(t, env, client, token)
 	sprintID := createSprintViaAPI(t, env, client, token, projID, "Sprint for Views")
+
+	// Sprint creation auto-seeds default views; record their IDs so we can
+	// clean them up before testing the "last view" guard.
+	autoSeededViewIDs := listViewIDsViaAPI(t, env, client, token, projID, sprintID)
 
 	var viewID string
 	var view2ID string
@@ -123,12 +164,14 @@ func TestE2EViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("delete_first_view", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projID, sprintID, viewID)
-		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
-		req.Header.Set("Authorization", "Bearer "+token)
-		resp := mustDo(t, client, req)
-		defer func() { _ = resp.Body.Close() }()
-		assertStatus(t, resp, http.StatusNoContent)
+		// Delete the manually created first view.
+		deleteViewViaAPI(t, env, client, token, projID, sprintID, viewID)
+		// Also delete every auto-seeded view (created when the sprint was
+		// opened) so that view2ID becomes the sole remaining view, allowing
+		// the next subtest to exercise the "last view" guard.
+		for _, aid := range autoSeededViewIDs {
+			deleteViewViaAPI(t, env, client, token, projID, sprintID, aid)
+		}
 	})
 
 	t.Run("delete_last_view_rejected", func(t *testing.T) {

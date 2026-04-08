@@ -153,6 +153,13 @@ These routes already exist in the Go API service.
 | `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Update sprint metadata or lifecycle status. |
 | `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Delete a sprint. |
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/tasks` | Access token (fresh) + `tasks.read` | List tasks assigned to a specific sprint (sprint backlog view). |
+| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Access token (fresh) + `sprints.read` | List saved view configurations for a sprint. |
+| `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for a sprint. Sprint creation automatically seeds one Board and one Table view. |
+| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single sprint view configuration. |
+| `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.write` | Update a sprint view's name or config. |
+| `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a sprint view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
+| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a view. |
+| `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a view. |
 | `GET` | `/api/v1/projects/:projectId/product-backlog` | Access token (fresh) + `tasks.read` | List tasks not yet assigned to any sprint (product backlog view). |
 | `GET` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.read` | List tasks with optional filters (`sprint_id`, `status_id`, `assignee_id`). |
 | `POST` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.write` | Create a task. |
@@ -494,6 +501,135 @@ Request body:
 }
 ```
 
+## Sprint View Contracts
+
+### `GET /api/v1/projects/:projectId/sprints/:sprintId/views`
+
+Function:
+
+- list all saved view configurations for the sprint ordered by `position`;
+- sprint creation automatically seeds a Board view (position 0) and a Table view (position 1).
+
+Success response data:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "sprint_id": "uuid",
+      "name": "Board",
+      "view_type": "board",
+      "position": 0,
+      "config": {},
+      "created_at": "2026-03-24T00:00:00Z",
+      "updated_at": "2026-03-24T00:00:00Z"
+    }
+  ]
+}
+```
+
+### `POST /api/v1/projects/:projectId/sprints/:sprintId/views`
+
+Function:
+
+- create a new sprint view;
+- `view_type` must be one of `board`, `table`, or `roadmap`;
+- `position` defaults to the next available slot.
+
+Request body:
+
+```json
+{
+  "name": "My Kanban",
+  "view_type": "board",
+  "position": 2,
+  "config": {
+    "column_by": "status",
+    "sort_by": "manual"
+  }
+}
+```
+
+Success response: `201 Created` with view data.
+
+### `GET /api/v1/projects/:projectId/sprints/:sprintId/views/:viewId`
+
+Function:
+
+- get a sprint view by ID including its full `config` map.
+
+### `PATCH /api/v1/projects/:projectId/sprints/:sprintId/views/:viewId`
+
+Function:
+
+- update a sprint view's `name`, `position`, or `config`;
+- only supplied fields are changed.
+
+Request body:
+
+```json
+{
+  "name": "Renamed Board",
+  "config": {
+    "sort_by": "manual"
+  }
+}
+```
+
+Success response: `200 OK` with updated view data.
+
+### `DELETE /api/v1/projects/:projectId/sprints/:sprintId/views/:viewId`
+
+Function:
+
+- delete a sprint view;
+- returns `409 VIEW_IS_LAST_VIEW` if this is the only remaining view on the sprint.
+
+Success response: `204 No Content`
+
+### `GET /api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions`
+
+Function:
+
+- return the manual task ordering positions stored for this view;
+- positions are scoped per `group_key` (e.g. a status column ID) and ordered by `position`.
+
+Success response data:
+
+```json
+{
+  "items": [
+    {
+      "view_id": "uuid",
+      "task_id": "uuid",
+      "group_key": "status-uuid",
+      "position": 0
+    }
+  ]
+}
+```
+
+### `PUT /api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId`
+
+Function:
+
+- upsert the manual position of a task within a view;
+- used when `sort_by` is `"manual"` and the user reorders tasks via drag-and-drop.
+
+Request body:
+
+```json
+{
+  "group_key": "status-uuid",
+  "position": 2
+}
+```
+
+Success response: `204 No Content`
+
+---
+
 ## Planned Resource API
 
 The following endpoints are not yet implemented. They are the recommended path design for the next API slices based on the domain model.
@@ -530,14 +666,7 @@ Custom field definitions are not yet implemented.
 
 ## Sprint Extras
 
-Saved sprint views (kanban, list, Gantt, burndown configurations) are not yet implemented.
-
-| Method | Path | Function |
-|---|---|---|
-| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | List saved sprint view configurations. |
-| `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Create a saved sprint view configuration. |
-| `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Update a sprint view configuration. |
-| `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Delete a sprint view configuration. |
+No additional sprint sub-resources are planned at this time.
 
 ## Knowledge and Reporting
 
@@ -565,9 +694,9 @@ To keep the API coherent and aligned with the current codebase, implement the ne
 5. ~~Add task configuration endpoints: statuses and types.~~ ✅ Done
 6. ~~Add task CRUD endpoints.~~ ✅ Done
 7. ~~Add sprint CRUD, sprint backlog view (`GET /sprints/:id/tasks`), and product-backlog view (`GET /product-backlog`).~~ ✅ Done
-8. Add task sub-resource endpoints: child tasks, activities, BDD scenarios, and time logs.
-9. Add custom field definitions.
-10. Add sprint saved views (kanban, list, Gantt, burndown).
+8. ~~Add sprint saved views: board, table, roadmap with manual task ordering.~~ ✅ Done
+9. Add task sub-resource endpoints: child tasks, activities, BDD scenarios, and time logs.
+10. Add custom field definitions.
 11. Add knowledge and reporting: documents and dashboards.
 
 ## Known Model Gaps
@@ -618,5 +747,9 @@ The schema and HTTP contract are consistent. Before adding the next slice (proje
 | `SPRINT_NOT_FOUND` | 404 | Sprint with the given ID does not exist. |
 | `SPRINT_NAME_INVALID` | 400 | Sprint name is empty or invalid. |
 | `SPRINT_STATUS_INVALID` | 400 | Sprint status value is not one of the allowed values. |
+| `VIEW_NOT_FOUND` | 404 | Sprint view with the given ID does not exist. |
+| `VIEW_NAME_INVALID` | 400 | View name is empty or invalid. |
+| `VIEW_TYPE_INVALID` | 400 | View type is not one of `board`, `table`, or `roadmap`. |
+| `VIEW_IS_LAST_VIEW` | 409 | View cannot be deleted because it is the only remaining view on the sprint. |
 | `BAD_REQUEST` | 400 | Malformed or invalid request body. |
 | `INTERNAL_ERROR` | 500 | Unexpected server error. |

@@ -12,12 +12,13 @@ import (
 
 // SprintHandler handles sprint management endpoints.
 type SprintHandler struct {
-	svc sprintdom.SprintService
+	svc     sprintdom.SprintService
+	viewSvc sprintdom.ViewService
 }
 
-// NewSprintHandler returns a SprintHandler wired to the sprint service.
-func NewSprintHandler(svc sprintdom.SprintService) *SprintHandler {
-	return &SprintHandler{svc: svc}
+// NewSprintHandler returns a SprintHandler wired to the sprint and view services.
+func NewSprintHandler(svc sprintdom.SprintService, viewSvc sprintdom.ViewService) *SprintHandler {
+	return &SprintHandler{svc: svc, viewSvc: viewSvc}
 }
 
 // ListSprints handles GET /projects/:projectId/sprints.
@@ -64,6 +65,30 @@ func (h *SprintHandler) CreateSprint(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Seed default views for every new sprint.
+	ctx := c.Request.Context()
+	defaultViews := []struct {
+		name     string
+		vt       sprintdom.ViewType
+		position int
+	}{
+		{name: "Board", vt: sprintdom.ViewTypeBoard, position: 0},
+		{name: "Table", vt: sprintdom.ViewTypeTable, position: 1},
+	}
+	for _, dv := range defaultViews {
+		_, err := h.viewSvc.CreateView(ctx, sprintdom.CreateViewInput{
+			SprintID: s.ID,
+			Name:     dv.name,
+			ViewType: dv.vt,
+			Position: dv.position,
+		})
+		if err != nil {
+			// Non-fatal: the sprint was created; log and continue.
+			c.Error(err) //nolint:errcheck
+		}
+	}
+
 	presenter.Created(c, dto.SprintFromEntity(s))
 }
 

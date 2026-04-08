@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { type Task, updateTask } from "@/lib/integration-api";
 import type { TaskStatus, TaskType } from "@/lib/project-api";
@@ -20,6 +20,8 @@ interface BoardViewProps {
 	tasksQueryKey: unknown[];
 	onCreateTask: (statusId: string, title: string) => Promise<void>;
 	onTaskClick: (task: Task) => void;
+	manualSort?: boolean;
+	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
 }
 
 interface ColumnAddProps {
@@ -108,10 +110,16 @@ export function BoardView({
 	tasksQueryKey,
 	onCreateTask,
 	onTaskClick,
+	manualSort,
+	onReorderTask,
 }: BoardViewProps) {
 	const qc = useQueryClient();
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [overStatusId, setOverStatusId] = useState<string | null>(null);
+	const [overCardId, setOverCardId] = useState<string | null>(null);
+	// Per-column manual order (id arrays); reset when parent tasks refresh
+	const [columnOrderMap, setColumnOrderMap] = useState<Record<string, string[]>>({});
+	useEffect(() => { setColumnOrderMap({}); }, [tasks]);
 
 	const updateMutation = useMutation({
 		mutationFn: ({
@@ -133,6 +141,16 @@ export function BoardView({
 			.filter((t) => t.status_id === statusId)
 			.sort((a, b) => a.board_position - b.board_position);
 
+	const getColumnTasks = (statusId: string): Task[] => {
+		const ids = columnOrderMap[statusId];
+		if (ids) {
+			return ids
+				.map((id) => filteredTasks.find((t) => t.id === id))
+				.filter((t): t is Task => t !== undefined);
+		}
+		return tasksByStatus(statusId);
+	};
+
 	const unassignedTasks = filteredTasks.filter((t) => !t.status_id);
 
 	const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -145,6 +163,7 @@ export function BoardView({
 	const handleDragEnd = () => {
 		setDraggingId(null);
 		setOverStatusId(null);
+		setOverCardId(null);
 	};
 
 	const handleDrop = (e: React.DragEvent, statusId: string) => {
@@ -157,6 +176,33 @@ export function BoardView({
 		}
 		setDraggingId(null);
 		setOverStatusId(null);
+		setOverCardId(null);
+	};
+
+	const handleDropOnCard = (e: React.DragEvent, targetStatusId: string, targetTaskId: string, targetIndex: number) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const taskId = e.dataTransfer.getData("text/plain");
+		if (!taskId || !canEdit) { setDraggingId(null); setOverCardId(null); return; }
+		const task = tasks.find((t) => t.id === taskId);
+		if (!task) { setDraggingId(null); setOverCardId(null); return; }
+		if (task.status_id !== targetStatusId) {
+			updateMutation.mutate({ taskId, statusId: targetStatusId });
+		} else if (manualSort && taskId !== targetTaskId) {
+			// Optimistic local reorder within column
+			const current = getColumnTasks(targetStatusId);
+			const srcIdx = current.findIndex((t) => t.id === taskId);
+			if (srcIdx !== -1) {
+				const next = [...current];
+				const [moved] = next.splice(srcIdx, 1);
+				next.splice(targetIndex, 0, moved);
+				setColumnOrderMap((prev) => ({ ...prev, [targetStatusId]: next.map((t) => t.id) }));
+			}
+			onReorderTask?.(targetStatusId, taskId, targetIndex);
+		}
+		setDraggingId(null);
+		setOverStatusId(null);
+		setOverCardId(null);
 	};
 
 	const handleDragOver = (e: React.DragEvent, statusId: string) => {
@@ -170,7 +216,7 @@ export function BoardView({
 	return (
 		<div className="flex gap-3 overflow-x-auto px-6 py-4 pb-6">
 			{sortedStatuses.map((status) => {
-				const columnTasks = tasksByStatus(status.id);
+				const columnTasks = getColumnTasks(status.id);
 				const isOver = overStatusId === status.id;
 
 				return (
@@ -214,33 +260,35 @@ export function BoardView({
 								</div>
 							)}
 
-							{columnTasks.map((task) => (
-								<TaskCard
-									key={task.id}
-									task={task}
-									statuses={statuses}
-									taskTypes={taskTypes}
-									canEdit={canEdit}
-									isDragging={draggingId === task.id}
-									onDragStart={(e) => handleDragStart(e, task.id)}
-									onDragEnd={handleDragEnd}
-									onClick={() => onTaskClick(task)}
-								/>
-							))}
-
-							{/* Add task */}
-							{canCreate && (
-								<div className="mt-auto pt-1">
-									<ColumnAddTask
-										onAdd={(title) => onCreateTask(status.id, title)}
-									/>
-								</div>
+					{columnTasks.map((task, index) => (
+						<div
+							key={task.id}
+							className={cn(
+								"relative",
+								manualSort && overCardId === task.id && draggingId !== task.id && "border-t-2 border-primary/60",
 							)}
+							onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOverStatusId(status.id); if (manualSort) setOverCardId(task.id); }}
+							onDrop={(e) => handleDropOnCard(e, status.id, task.id, index)}
+						>
+							<TaskCard
+								task={task}
+								statuses={statuses}
+								taskTypes={taskTypes}
+								canEdit={canEdit}
+								isDragging={draggingId === task.id}
+								onDragStart={(e) => handleDragStart(e, task.id)}
+								onDragEnd={handleDragEnd}
+								onClick={() => onTaskClick(task)}
+							/>
 						</div>
-					</div>
-				);
-			})}
-
+					))}
+					{canCreate && (
+						<ColumnAddTask onAdd={(title) => onCreateTask(status.id, title)} />
+					)}
+				</div>
+			</div>
+		);
+	})}
 			{/* Catch-all column for unstatused tasks */}
 			{unassignedTasks.length > 0 && (
 			<div className="flex w-72 shrink-0 flex-col gap-2">

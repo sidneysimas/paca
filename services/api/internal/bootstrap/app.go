@@ -124,7 +124,7 @@ func New(cfg *config.Config) (*App, error) {
 		GlobalRole:   handler.NewGlobalRoleHandler(globalRoleService),
 		Project:      handler.NewProjectHandler(projectService, authorizer),
 		Task:         handler.NewTaskHandler(taskService),
-		Sprint:       handler.NewSprintHandler(sprintService),
+		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Log:          log,
 	}

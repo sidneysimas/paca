@@ -48,16 +48,27 @@ export interface TaskListResult {
 	page_size: number;
 }
 
-// ── View storage (client-side, persisted in localStorage) ─────────────────────
-export type ViewLayout = "Board" | "List";
+// ── View types ─────────────────────────────────────────────────────────────────
+export type ViewType = "table" | "board" | "roadmap";
+
+export interface ViewConfig {
+	fields?: string[];
+	column_by?: string;
+	swimlanes?: string;
+	sort_by?: string;
+	field_sum?: string;
+	slice_by?: string;
+}
 
 export interface IntegrationView {
 	id: string;
 	name: string;
-	layout: ViewLayout;
+	view_type: ViewType;
+	config?: ViewConfig;
 }
 
-const VIEWS_STORAGE_KEY = "paca:integration-views";
+// ── Client-side view storage (localStorage, used for backlog) ──────────────────
+const VIEWS_STORAGE_KEY = "paca:integration-views-v2";
 
 function getViewsStorage(): Record<string, IntegrationView[]> {
 	try {
@@ -75,35 +86,35 @@ function saveViewsStorage(data: Record<string, IntegrationView[]>): void {
 export function getIntegrationViews(integrationKey: string): IntegrationView[] {
 	const store = getViewsStorage();
 	if (store[integrationKey]?.length) return store[integrationKey];
-	// Default views
 	const defaults: IntegrationView[] = [
-		{ id: "default-board", name: "Board", layout: "Board" },
-		{ id: "default-list", name: "List", layout: "List" },
+		{ id: "default-board", name: "Board", view_type: "board" },
+		{ id: "default-table", name: "Table", view_type: "table" },
 	];
 	store[integrationKey] = defaults;
 	saveViewsStorage(store);
 	return defaults;
 }
 
-export function createIntegrationView(
+export function createLocalView(
 	integrationKey: string,
 	name: string,
-	layout: ViewLayout,
+	viewType: ViewType,
 ): IntegrationView {
 	const store = getViewsStorage();
 	const views = store[integrationKey] ?? [];
 	const id = `view-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const label = viewType.charAt(0).toUpperCase() + viewType.slice(1);
 	const newView: IntegrationView = {
 		id,
-		name: name || `New ${layout} View`,
-		layout,
+		name: name || `New ${label}`,
+		view_type: viewType,
 	};
 	store[integrationKey] = [...views, newView];
 	saveViewsStorage(store);
 	return newView;
 }
 
-export function renameIntegrationView(
+export function renameLocalView(
 	integrationKey: string,
 	viewId: string,
 	newName: string,
@@ -116,14 +127,86 @@ export function renameIntegrationView(
 	saveViewsStorage(store);
 }
 
-export function deleteIntegrationView(
-	integrationKey: string,
-	viewId: string,
-): void {
+export function deleteLocalView(integrationKey: string, viewId: string): void {
 	const store = getViewsStorage();
 	const views = store[integrationKey] ?? [];
 	store[integrationKey] = views.filter((v) => v.id !== viewId);
 	saveViewsStorage(store);
+}
+
+export function updateLocalViewConfig(
+	integrationKey: string,
+	viewId: string,
+	config: ViewConfig,
+): void {
+	const store = getViewsStorage();
+	const views = store[integrationKey] ?? [];
+	store[integrationKey] = views.map((v) =>
+		v.id === viewId ? { ...v, config: { ...v.config, ...config } } : v,
+	);
+	saveViewsStorage(store);
+}
+
+// ── Server-side view API ──────────────────────────────────────────────────────
+interface ViewListResult {
+	items: IntegrationView[];
+}
+
+export async function listViews(
+	projectId: string,
+	sprintId: string,
+): Promise<IntegrationView[]> {
+	const { data } = await apiClient.instance.get<SuccessEnvelope<ViewListResult>>(
+		`/projects/${projectId}/sprints/${sprintId}/views`,
+	);
+	return data.data.items;
+}
+
+export async function apiCreateView(
+	projectId: string,
+	sprintId: string,
+	payload: { name: string; view_type: ViewType; config?: ViewConfig },
+): Promise<IntegrationView> {
+	const { data } = await apiClient.instance.post<SuccessEnvelope<IntegrationView>>(
+		`/projects/${projectId}/sprints/${sprintId}/views`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function apiUpdateView(
+	projectId: string,
+	sprintId: string,
+	viewId: string,
+	payload: Partial<{ name: string; view_type: ViewType; config: ViewConfig }>,
+): Promise<IntegrationView> {
+	const { data } = await apiClient.instance.patch<SuccessEnvelope<IntegrationView>>(
+		`/projects/${projectId}/sprints/${sprintId}/views/${viewId}`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function apiDeleteView(
+	projectId: string,
+	sprintId: string,
+	viewId: string,
+): Promise<void> {
+	await apiClient.instance.delete(
+		`/projects/${projectId}/sprints/${sprintId}/views/${viewId}`,
+	);
+}
+
+export async function apiMoveTaskPosition(
+	projectId: string,
+	sprintId: string,
+	viewId: string,
+	payload: { task_id: string; position: number; group_key?: string },
+): Promise<void> {
+	await apiClient.instance.put(
+		`/projects/${projectId}/sprints/${sprintId}/views/${viewId}/task-positions`,
+		payload,
+	);
 }
 
 // ── Sprint API ────────────────────────────────────────────────────────────────
@@ -276,4 +359,11 @@ export const sprintTasksQueryOptions = (
 		queryKey: ["projects", projectId, "sprints", sprintId, "tasks"],
 		queryFn: () => listSprintTasks(projectId, sprintId),
 		staleTime: 15_000,
+	});
+
+export const viewsQueryOptions = (projectId: string, sprintId: string) =>
+	queryOptions({
+		queryKey: ["projects", projectId, "sprints", sprintId, "views"],
+		queryFn: () => listViews(projectId, sprintId),
+		staleTime: 30_000,
 	});

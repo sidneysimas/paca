@@ -316,7 +316,7 @@ func buildTaskTestRouterWithSprints(taskRepo *fakeTaskRepo, sprintRepo *fakeSpri
 		GlobalRole:   handler.NewGlobalRoleHandler(&fakeGlobalRoleService{}),
 		Project:      handler.NewProjectHandler(projectService, authz.NewAuthorizer(store)),
 		Task:         handler.NewTaskHandler(taskService),
-		Sprint:       handler.NewSprintHandler(sprintService),
+		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Log:          log,
 	})

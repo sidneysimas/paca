@@ -203,7 +203,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		GlobalRole:   handler.NewGlobalRoleHandler(globalRoleService),
 		Project:      handler.NewProjectHandler(projectService, authz.NewAuthorizer(authzStore)),
 		Task:         handler.NewTaskHandler(taskService),
-		Sprint:       handler.NewSprintHandler(sprintService),
+		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Log:          log,
 	})

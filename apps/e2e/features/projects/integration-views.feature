@@ -430,14 +430,42 @@ Feature: Integration views (board and list layouts)
       And the user changes "Field sum" to "Story Points"
       Then each group heading should display the total story points for tasks in that group
 
-    Scenario: Dismissing the settings panel closes it without saving changes separately
+    Scenario: The settings popup has Save and Reset buttons
       When the user clicks the "View settings" button in the view toolbar
-      And the settings panel is open
-      When the user clicks outside the panel or presses Escape
-      Then the settings panel should close
+      Then a settings popup should appear near the toolbar
+      And the popup should contain a "Save" button
+      And the popup should contain a "Reset" button
+
+    Scenario: Changes in the settings popup preview immediately in the view
+      When the user clicks the "View settings" button in the view toolbar
+      And the user changes "Sort by" to "Manual"
+      Then the view should update immediately to reflect the manual sort order
+      And the change should not yet be persisted to the server
+
+    Scenario: Clicking Save persists the settings and closes the popup
+      When the user clicks the "View settings" button in the view toolbar
+      And the user changes "Sort by" to "Manual"
+      And the user clicks the "Save" button
+      Then the settings popup should close
+      And the view's "Sort by" setting should be saved as "Manual"
+      And the view should still reflect the manual sort order
+
+    Scenario: Clicking Reset reverts the draft to the last saved settings
+      When the user clicks the "View settings" button in the view toolbar
+      And the user changes "Sort by" to "Manual"
+      And the user clicks the "Reset" button
+      Then the "Sort by" field should revert to the previously saved value
+      And the view should revert to reflect the previously saved settings
+
+    Scenario: Closing the popup without saving discards unsaved changes
+      When the user clicks the "View settings" button in the view toolbar
+      And the user changes "Sort by" to "Manual"
+      When the user clicks outside the popup or presses Escape
+      Then the settings popup should close
+      And the view should revert to the settings as they were before the popup was opened
 
     Scenario: View settings are persisted per view
-      Given the user has set "Sort by" to "Priority" on the "Board" view
+      Given the user has set "Sort by" to "Priority" on the "Board" view and saved
       When the user switches to a "Table" view and then returns to the "Board" view
       Then the "Sort by" setting on the "Board" view should still show "Priority"
 

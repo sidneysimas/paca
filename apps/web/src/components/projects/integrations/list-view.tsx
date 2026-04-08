@@ -1,8 +1,9 @@
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Task } from "@/lib/integration-api";
 import type { TaskStatus, TaskType } from "@/lib/project-api";
+import { cn } from "@/lib/utils";
 
 import { TaskRow } from "./task-row";
 
@@ -15,6 +16,8 @@ interface ListViewProps {
 	assigneeFilter: string | null;
 	onCreateTask: (statusId: string, title: string) => Promise<void>;
 	onTaskClick: (task: Task) => void;
+	manualSort?: boolean;
+	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
 }
 
 interface GroupAddRowProps {
@@ -98,6 +101,8 @@ interface StatusGroupProps {
 	defaultCollapsed?: boolean;
 	onCreateTask: (statusId: string, title: string) => Promise<void>;
 	onTaskClick: (task: Task) => void;
+	manualSort?: boolean;
+	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
 }
 
 function StatusGroup({
@@ -109,8 +114,33 @@ function StatusGroup({
 	defaultCollapsed,
 	onCreateTask,
 	onTaskClick,
+	manualSort,
+	onReorderTask,
 }: StatusGroupProps) {
 	const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
+	const [draggingId, setDraggingId] = useState<string | null>(null);
+	const [dragOverId, setDragOverId] = useState<string | null>(null);
+	const [orderedTasks, setOrderedTasks] = useState<Task[]>(tasks);
+
+	// Sync when parent tasks array changes (after API refresh)
+	useEffect(() => {
+		setOrderedTasks(tasks);
+	}, [tasks]);
+
+	const handleDrop = (targetTask: Task, targetIndex: number) => {
+		const currentDraggingId = draggingId;
+		if (!currentDraggingId || currentDraggingId === targetTask.id) return;
+		const sourceIndex = orderedTasks.findIndex((t) => t.id === currentDraggingId);
+		if (sourceIndex === -1) return;
+		// Optimistic local reorder
+		const updated = [...orderedTasks];
+		const [moved] = updated.splice(sourceIndex, 1);
+		updated.splice(targetIndex, 0, moved);
+		setOrderedTasks(updated);
+		onReorderTask?.(status.id, currentDraggingId, targetIndex);
+		setDraggingId(null);
+		setDragOverId(null);
+	};
 
 	return (
 		<div className="border-b border-border/40 last:border-0">
@@ -144,6 +174,7 @@ function StatusGroup({
 				<>
 					{/* Column headers */}
 					<div className="flex items-center gap-3 px-4 py-1.5 bg-muted/20 border-y border-border/30">
+						{manualSort && <div className="w-3 shrink-0" />}
 						<div className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
 							Type
 						</div>
@@ -166,14 +197,32 @@ function StatusGroup({
 							No tasks in this status
 						</div>
 					) : (
-						tasks.map((task) => (
-							<TaskRow
+						orderedTasks.map((task, index) => (
+							<div
 								key={task.id}
-								task={task}
-								statuses={statuses}
-								taskTypes={taskTypes}
-								onClick={() => onTaskClick(task)}
-							/>
+								className={cn(
+									"relative",
+									dragOverId === task.id && draggingId !== task.id && "border-t-2 border-primary/60",
+								)}
+								draggable={manualSort}
+								onDragStart={(e) => {
+									e.dataTransfer.effectAllowed = "move";
+									e.dataTransfer.setData("text/plain", task.id);
+									setDraggingId(task.id);
+								}}
+								onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
+								onDragOver={(e) => { if (manualSort) { e.preventDefault(); setDragOverId(task.id); } }}
+								onDrop={(e) => { e.preventDefault(); handleDrop(task, index); }}
+							>
+								<TaskRow
+									task={task}
+									statuses={statuses}
+									taskTypes={taskTypes}
+									onClick={() => onTaskClick(task)}
+									showDragHandle={manualSort}
+									isDragging={draggingId === task.id}
+								/>
+							</div>
 						))
 					)}
 
@@ -197,6 +246,8 @@ export function ListView({
 	assigneeFilter,
 	onCreateTask,
 	onTaskClick,
+	manualSort,
+	onReorderTask,
 }: ListViewProps) {
 	const filtered = tasks.filter((t) => {
 		if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -221,8 +272,8 @@ export function ListView({
 						canCreate={canCreate}
 						defaultCollapsed={isDone}
 						onCreateTask={onCreateTask}
-						onTaskClick={onTaskClick}
-					/>
+						onTaskClick={onTaskClick}					manualSort={manualSort}
+					onReorderTask={onReorderTask}					/>
 				);
 			})}
 

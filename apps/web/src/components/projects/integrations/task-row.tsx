@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { GripVertical, User } from "lucide-react";
 
 import type { Task } from "@/lib/integration-api";
 import type { TaskStatus, TaskType } from "@/lib/project-api";
@@ -11,9 +11,11 @@ interface TaskRowProps {
 	statuses: TaskStatus[];
 	taskTypes: TaskType[];
 	onClick?: () => void;
+	showDragHandle?: boolean;
+	isDragging?: boolean;
 }
 
-export function TaskRow({ task, statuses, taskTypes, onClick }: TaskRowProps) {
+export function TaskRow({ task, statuses, taskTypes, onClick, showDragHandle, isDragging }: TaskRowProps) {
 	const taskType = taskTypes.find((t) => t.id === task.task_type_id);
 	const status = statuses.find((s) => s.id === task.status_id);
 
@@ -23,8 +25,13 @@ export function TaskRow({ task, statuses, taskTypes, onClick }: TaskRowProps) {
 			className={cn(
 				"group flex items-center gap-3 px-4 py-2.5 cursor-pointer",
 				"hover:bg-muted/40 transition-colors duration-100 border-b border-border/30 last:border-0",
+				isDragging && "opacity-40 bg-muted/20",
 			)}
 		>
+			{/* Drag handle */}
+			{showDragHandle && (
+				<GripVertical className="size-3.5 shrink-0 -ml-1.5 text-muted-foreground/30 group-hover:text-muted-foreground/70 cursor-grab" />
+			)}
 			{/* Task type badge */}
 			<div className="w-16 shrink-0">
 				{taskType ? (
