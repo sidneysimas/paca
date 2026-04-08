@@ -31,17 +31,19 @@ import (
 // ---------------------------------------------------------------------------
 
 type fakeTaskRepo struct {
-	mu       sync.RWMutex
-	types    map[uuid.UUID]*taskdom.TaskType
-	statuses map[uuid.UUID]*taskdom.TaskStatus
-	tasks    map[uuid.UUID]*taskdom.Task
+	mu           sync.RWMutex
+	types        map[uuid.UUID]*taskdom.TaskType
+	statuses     map[uuid.UUID]*taskdom.TaskStatus
+	tasks        map[uuid.UUID]*taskdom.Task
+	customFields map[uuid.UUID]*taskdom.CustomFieldDefinition
 }
 
 func newFakeTaskRepoIT() *fakeTaskRepo {
 	return &fakeTaskRepo{
-		types:    make(map[uuid.UUID]*taskdom.TaskType),
-		statuses: make(map[uuid.UUID]*taskdom.TaskStatus),
-		tasks:    make(map[uuid.UUID]*taskdom.Task),
+		types:        make(map[uuid.UUID]*taskdom.TaskType),
+		statuses:     make(map[uuid.UUID]*taskdom.TaskStatus),
+		tasks:        make(map[uuid.UUID]*taskdom.Task),
+		customFields: make(map[uuid.UUID]*taskdom.CustomFieldDefinition),
 	}
 }
 
@@ -282,6 +284,63 @@ func (r *fakeSprintRepoIT) DeleteSprint(_ context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.sprints, id)
+	return nil
+}
+
+// -- fakeTaskRepo: CustomFieldDefinition methods --
+
+func (r *fakeTaskRepo) ListCustomFieldDefinitions(_ context.Context, projectID uuid.UUID) ([]*taskdom.CustomFieldDefinition, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var out []*taskdom.CustomFieldDefinition
+	for _, f := range r.customFields {
+		if f.ProjectID == projectID {
+			cp := *f
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeTaskRepo) FindCustomFieldDefinitionByID(_ context.Context, id uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	f, ok := r.customFields[id]
+	if !ok {
+		return nil, taskdom.ErrCustomFieldNotFound
+	}
+	cp := *f
+	return &cp, nil
+}
+
+func (r *fakeTaskRepo) CreateCustomFieldDefinition(_ context.Context, f *taskdom.CustomFieldDefinition) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, existing := range r.customFields {
+		if existing.ProjectID == f.ProjectID && existing.FieldKey == f.FieldKey {
+			return taskdom.ErrCustomFieldKeyTaken
+		}
+	}
+	cp := *f
+	r.customFields[f.ID] = &cp
+	return nil
+}
+
+func (r *fakeTaskRepo) UpdateCustomFieldDefinition(_ context.Context, f *taskdom.CustomFieldDefinition) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.customFields[f.ID]; !ok {
+		return taskdom.ErrCustomFieldNotFound
+	}
+	cp := *f
+	r.customFields[f.ID] = &cp
+	return nil
+}
+
+func (r *fakeTaskRepo) DeleteCustomFieldDefinition(_ context.Context, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.customFields, id)
 	return nil
 }
 
@@ -1546,4 +1605,228 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 			t.Errorf("expected VIEW_NOT_FOUND, got %q", code)
 		}
 	})
+}
+
+// ---------------------------------------------------------------------------
+// Custom Field Definition tests
+// ---------------------------------------------------------------------------
+
+func TestIntegrationCustomFields_CRUD(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/custom-fields", projectID)
+
+	// Create
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"field_key":    "story_points",
+		"display_name": "Story Points",
+		"field_type":   "number",
+		"is_required":  false,
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create custom field: expected 201, got %d (%s)", createW.Code, createW.Body.String())
+	}
+	fieldID := taskIDFrom(t, "custom-field", createW.Body.Bytes())
+
+	// List
+	listW := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
+	if listW.Code != http.StatusOK {
+		t.Fatalf("list custom fields: expected 200, got %d (%s)", listW.Code, listW.Body.String())
+	}
+	if count := taskListCount(t, listW.Body.Bytes()); count != 1 {
+		t.Errorf("expected 1 custom field, got %d", count)
+	}
+
+	// Get by ID
+	getW := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"/"+fieldID, tok, nil))
+	if getW.Code != http.StatusOK {
+		t.Fatalf("get custom field: expected 200, got %d (%s)", getW.Code, getW.Body.String())
+	}
+
+	// Update
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+fieldID, tok, map[string]any{
+		"display_name": "SP",
+		"is_required":  true,
+	}))
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("update custom field: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+
+	// Delete
+	delW := serve(r, authedJSONReq(t.Context(), http.MethodDelete, base+"/"+fieldID, tok, nil))
+	if delW.Code != http.StatusOK {
+		t.Fatalf("delete custom field: expected 200, got %d (%s)", delW.Code, delW.Body.String())
+	}
+
+	// Verify deleted
+	listAfterW := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
+	if count := taskListCount(t, listAfterW.Body.Bytes()); count != 0 {
+		t.Errorf("expected 0 custom fields after delete, got %d", count)
+	}
+}
+
+func TestIntegrationCustomFields_SelectTypeWithOptions(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/custom-fields", projectID)
+
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"field_key":    "priority",
+		"display_name": "Priority",
+		"field_type":   "select",
+		"options":      []string{"low", "medium", "high"},
+		"is_required":  true,
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create select field: expected 201, got %d (%s)", createW.Code, createW.Body.String())
+	}
+
+	var env struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(createW.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	opts, _ := env.Data["options"].([]any)
+	if len(opts) != 3 {
+		t.Errorf("expected 3 options, got %d", len(opts))
+	}
+}
+
+func TestIntegrationCustomFields_DuplicateKeyReturns409(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/custom-fields", projectID)
+
+	body := map[string]any{
+		"field_key":    "dup_key",
+		"display_name": "Dup Key",
+		"field_type":   "text",
+	}
+	first := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, body))
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first create: expected 201, got %d (%s)", first.Code, first.Body.String())
+	}
+
+	second := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, body))
+	if second.Code != http.StatusConflict {
+		t.Fatalf("second create: expected 409, got %d (%s)", second.Code, second.Body.String())
+	}
+	if code := decodeErrorCode(t, second); code != "CUSTOM_FIELD_KEY_TAKEN" {
+		t.Errorf("expected CUSTOM_FIELD_KEY_TAKEN, got %q", code)
+	}
+}
+
+func TestIntegrationCustomFields_InvalidTypeReturns400(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/custom-fields", projectID), tok, map[string]any{
+			"field_key":    "bad",
+			"display_name": "Bad",
+			"field_type":   "not_a_type",
+		}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "CUSTOM_FIELD_TYPE_INVALID" {
+		t.Errorf("expected CUSTOM_FIELD_TYPE_INVALID, got %q", code)
+	}
+}
+
+func TestIntegrationCustomFields_GetNotFoundReturns404(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
+		fmt.Sprintf("/api/v1/projects/%s/custom-fields/%s", projectID, uuid.New()), tok, nil))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "CUSTOM_FIELD_NOT_FOUND" {
+		t.Errorf("expected CUSTOM_FIELD_NOT_FOUND, got %q", code)
+	}
+}
+
+func TestIntegrationCustomFields_EmptyKeyReturns400(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/custom-fields", projectID), tok, map[string]any{
+			"field_key":    "   ",
+			"display_name": "Test",
+			"field_type":   "text",
+		}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "CUSTOM_FIELD_KEY_INVALID" {
+		t.Errorf("expected CUSTOM_FIELD_KEY_INVALID, got %q", code)
+	}
+}
+
+func TestIntegrationCustomFields_UnauthorizedReturns403(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/custom-fields", projectID), tok, map[string]any{
+			"field_key":    "sp",
+			"display_name": "SP",
+			"field_type":   "number",
+		}))
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d (%s)", w.Code, w.Body.String())
+	}
 }

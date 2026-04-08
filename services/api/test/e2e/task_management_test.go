@@ -959,3 +959,219 @@ func TestE2ETaskManagement_DatesAndTags(t *testing.T) {
 		}
 	})
 }
+
+// ---------------------------------------------------------------------------
+// Custom field definition helpers
+// ---------------------------------------------------------------------------
+
+func createCustomFieldViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID string, body map[string]any) string {
+	t.Helper()
+	req := mustRequest(env.ctx, t, http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/%s/custom-fields", env.base, projectID),
+		jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusCreated)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	id, _ := data["id"].(string)
+	if id == "" {
+		t.Fatal("expected non-empty custom field id")
+	}
+	return id
+}
+
+// ---------------------------------------------------------------------------
+// Custom field management E2E tests
+// ---------------------------------------------------------------------------
+
+func TestE2ECustomFieldManagement_CRUD(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "cf-crud-user", "cfcrudpass1")
+	client, token := taskMemberLogin(t, env, "cf-crud-user", "cfcrudpass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	var fieldID string
+
+	t.Run("create_custom_field", func(t *testing.T) {
+		fieldID = createCustomFieldViaAPI(t, env, client, token, projID, map[string]any{
+			"field_key":    "priority_level",
+			"display_name": "Priority Level",
+			"field_type":   "text",
+			"is_required":  false,
+		})
+	})
+
+	t.Run("list_custom_fields", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodGet,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields", env.base, projID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		items, ok := data["items"].([]any)
+		if !ok {
+			t.Fatalf("expected items array, got %T", data["items"])
+		}
+		if len(items) < 1 {
+			t.Errorf("expected at least 1 custom field, got %d", len(items))
+		}
+	})
+
+	t.Run("get_custom_field", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodGet,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields/%s", env.base, projID, fieldID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if id, _ := data["id"].(string); id != fieldID {
+			t.Errorf("expected id %q, got %q", fieldID, id)
+		}
+		if key, _ := data["field_key"].(string); key != "priority_level" {
+			t.Errorf("expected field_key 'priority_level', got %q", key)
+		}
+		if ft, _ := data["field_type"].(string); ft != "text" {
+			t.Errorf("expected field_type 'text', got %q", ft)
+		}
+	})
+
+	t.Run("update_custom_field", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"display_name": "Priority Level (Updated)",
+		})
+		req := mustRequest(env.ctx, t, http.MethodPatch,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields/%s", env.base, projID, fieldID), body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if name, _ := data["display_name"].(string); name != "Priority Level (Updated)" {
+			t.Errorf("expected updated display_name, got %q", name)
+		}
+	})
+
+	t.Run("select_type_with_options", func(t *testing.T) {
+		selectFieldID := createCustomFieldViaAPI(t, env, client, token, projID, map[string]any{
+			"field_key":    "status_tag",
+			"display_name": "Status Tag",
+			"field_type":   "select",
+			"options":      []string{"open", "in_progress", "done"},
+			"is_required":  true,
+		})
+		req := mustRequest(env.ctx, t, http.MethodGet,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields/%s", env.base, projID, selectFieldID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		options, ok := data["options"].([]any)
+		if !ok {
+			t.Fatalf("expected options array, got %T", data["options"])
+		}
+		if len(options) != 3 {
+			t.Errorf("expected 3 options, got %d", len(options))
+		}
+		if isRequired, _ := data["is_required"].(bool); !isRequired {
+			t.Error("expected is_required to be true")
+		}
+	})
+
+	t.Run("duplicate_key_returns_409", func(t *testing.T) {
+		createCustomFieldViaAPI(t, env, client, token, projID, map[string]any{
+			"field_key":    "unique_key",
+			"display_name": "First Field",
+			"field_type":   "text",
+		})
+		req := mustRequest(env.ctx, t, http.MethodPost,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields", env.base, projID),
+			jsonBody(t, map[string]any{
+				"field_key":    "unique_key",
+				"display_name": "Duplicate Field",
+				"field_type":   "number",
+			}))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusConflict)
+		assertErrorCode(t, resp, "CUSTOM_FIELD_KEY_TAKEN")
+	})
+
+	t.Run("invalid_type_returns_400", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodPost,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields", env.base, projID),
+			jsonBody(t, map[string]any{
+				"field_key":    "bad_type_field",
+				"display_name": "Bad Type",
+				"field_type":   "not_a_real_type",
+			}))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusBadRequest)
+		assertErrorCode(t, resp, "CUSTOM_FIELD_TYPE_INVALID")
+	})
+
+	t.Run("delete_custom_field", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodDelete,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields/%s", env.base, projID, fieldID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+	})
+
+	t.Run("get_deleted_field_returns_not_found", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodGet,
+			fmt.Sprintf("%s/api/v1/projects/%s/custom-fields/%s", env.base, projID, fieldID), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNotFound)
+		assertErrorCode(t, resp, "CUSTOM_FIELD_NOT_FOUND")
+	})
+}
+
+func TestE2ECustomFieldManagement_Unauthorized(t *testing.T) {
+	env := newE2EEnv(t)
+	seedUser(t, env, "cf-noperm-user", "cfnopermpass1", "No Perm CF")
+	jar, _ := cookiejar.New(nil)
+	noPermClient := &http.Client{Jar: jar, Timeout: 30 * time.Second}
+	resp := login(env.ctx, t, noPermClient, env.base, "cf-noperm-user", "cfnopermpass1")
+	token := cookieValue(resp, "access_token")
+	_ = resp.Body.Close()
+
+	projID := uuid.New().String()
+
+	req := mustRequest(env.ctx, t, http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/%s/custom-fields", env.base, projID),
+		jsonBody(t, map[string]any{
+			"field_key":    "should_fail",
+			"display_name": "Should Fail",
+			"field_type":   "text",
+		}))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp = mustDo(t, noPermClient, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusForbidden)
+	assertErrorCode(t, resp, "FORBIDDEN")
+}

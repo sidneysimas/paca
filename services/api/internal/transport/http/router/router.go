@@ -423,6 +423,37 @@ func New(deps Deps) *gin.Engine {
 						deps.Task.DeleteTask,
 					)
 				}
+
+				// Custom field definitions — project-level schema
+				customFields := project.Group("/custom-fields")
+				{
+					customFields.GET("",
+						httpmw.RequireAnyPermissions(deps.Authorizer,
+							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+						),
+						deps.Task.ListCustomFieldDefinitions,
+					)
+					customFields.POST("",
+						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+						deps.Task.CreateCustomFieldDefinition,
+					)
+					customFields.GET("/:fieldId",
+						httpmw.RequireAnyPermissions(deps.Authorizer,
+							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+						),
+						deps.Task.GetCustomFieldDefinition,
+					)
+					customFields.PATCH("/:fieldId",
+						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+						deps.Task.UpdateCustomFieldDefinition,
+					)
+					customFields.DELETE("/:fieldId",
+						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+						deps.Task.DeleteCustomFieldDefinition,
+					)
+				}
 			}
 		}
 	}

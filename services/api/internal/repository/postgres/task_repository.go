@@ -452,6 +452,153 @@ func toTaskEntity(r *taskRecord) (*taskdom.Task, error) {
 	}, nil
 }
 
+// --- Custom Field Definitions -----------------------------------------------
+
+type customFieldDefinitionRecord struct {
+	ID          string `gorm:"primarykey;type:uuid"`
+	ProjectID   string `gorm:"type:uuid;not null;column:project_id"`
+	FieldKey    string `gorm:"not null;column:field_key"`
+	DisplayName string `gorm:"not null;column:display_name"`
+	FieldType   string `gorm:"not null;column:field_type"`
+	Options     []byte `gorm:"type:jsonb;column:options"`
+	IsRequired  bool   `gorm:"not null;default:false;column:is_required"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func (customFieldDefinitionRecord) TableName() string { return "custom_field_definitions" }
+
+// ListCustomFieldDefinitions returns all custom field definitions for a
+// project ordered by display_name.
+func (r *TaskRepository) ListCustomFieldDefinitions(ctx context.Context, projectID uuid.UUID) ([]*taskdom.CustomFieldDefinition, error) {
+	var records []customFieldDefinitionRecord
+	if err := r.db.WithContext(ctx).
+		Where("project_id = ?", projectID.String()).
+		Order("display_name ASC").
+		Find(&records).Error; err != nil {
+		return nil, fmt.Errorf("custom field repo: list: %w", err)
+	}
+	out := make([]*taskdom.CustomFieldDefinition, 0, len(records))
+	for i := range records {
+		f, err := toCustomFieldEntity(&records[i])
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	return out, nil
+}
+
+// FindCustomFieldDefinitionByID returns the custom field definition with the
+// given ID.
+func (r *TaskRepository) FindCustomFieldDefinitionByID(ctx context.Context, id uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
+	var rec customFieldDefinitionRecord
+	err := r.db.WithContext(ctx).Where("id = ?", id.String()).First(&rec).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, taskdom.ErrCustomFieldNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("custom field repo: find by id: %w", err)
+	}
+	return toCustomFieldEntity(&rec)
+}
+
+// CreateCustomFieldDefinition persists a new custom field definition.
+func (r *TaskRepository) CreateCustomFieldDefinition(ctx context.Context, f *taskdom.CustomFieldDefinition) error {
+	opts, err := marshalOptions(f.Options)
+	if err != nil {
+		return err
+	}
+	rec := &customFieldDefinitionRecord{
+		ID:          f.ID.String(),
+		ProjectID:   f.ProjectID.String(),
+		FieldKey:    f.FieldKey,
+		DisplayName: f.DisplayName,
+		FieldType:   string(f.FieldType),
+		Options:     opts,
+		IsRequired:  f.IsRequired,
+		CreatedAt:   f.CreatedAt,
+		UpdatedAt:   f.UpdatedAt,
+	}
+	if err := r.db.WithContext(ctx).Create(rec).Error; err != nil {
+		if isUniqueViolation(err) {
+			return taskdom.ErrCustomFieldKeyTaken
+		}
+		return fmt.Errorf("custom field repo: create: %w", err)
+	}
+	return nil
+}
+
+// UpdateCustomFieldDefinition persists changes to an existing custom field
+// definition.
+func (r *TaskRepository) UpdateCustomFieldDefinition(ctx context.Context, f *taskdom.CustomFieldDefinition) error {
+	opts, err := marshalOptions(f.Options)
+	if err != nil {
+		return err
+	}
+	updates := map[string]any{
+		"display_name": f.DisplayName,
+		"field_type":   string(f.FieldType),
+		"options":      opts,
+		"is_required":  f.IsRequired,
+		"updated_at":   f.UpdatedAt,
+	}
+	res := r.db.WithContext(ctx).Model(&customFieldDefinitionRecord{}).
+		Where("id = ?", f.ID.String()).
+		Updates(updates)
+	if res.Error != nil {
+		return fmt.Errorf("custom field repo: update: %w", res.Error)
+	}
+	return nil
+}
+
+// DeleteCustomFieldDefinition removes a custom field definition by ID.
+func (r *TaskRepository) DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&customFieldDefinitionRecord{}, "id = ?", id.String())
+	if res.Error != nil {
+		return fmt.Errorf("custom field repo: delete: %w", res.Error)
+	}
+	return nil
+}
+
+func toCustomFieldEntity(r *customFieldDefinitionRecord) (*taskdom.CustomFieldDefinition, error) {
+	id, _ := uuid.Parse(r.ID)
+	pid, _ := uuid.Parse(r.ProjectID)
+
+	var opts []string
+	if len(r.Options) > 0 {
+		if err := json.Unmarshal(r.Options, &opts); err != nil {
+			return nil, fmt.Errorf("custom field repo: unmarshal options: %w", err)
+		}
+	}
+	if opts == nil {
+		opts = []string{}
+	}
+
+	return &taskdom.CustomFieldDefinition{
+		ID:          id,
+		ProjectID:   pid,
+		FieldKey:    r.FieldKey,
+		DisplayName: r.DisplayName,
+		FieldType:   taskdom.FieldType(r.FieldType),
+		Options:     opts,
+		IsRequired:  r.IsRequired,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
+	}, nil
+}
+
+func marshalOptions(opts []string) ([]byte, error) {
+	if opts == nil {
+		opts = []string{}
+	}
+	b, err := json.Marshal(opts)
+	if err != nil {
+		return nil, fmt.Errorf("custom field repo: marshal options: %w", err)
+	}
+	return b, nil
+}
+
 // --- helpers ----------------------------------------------------------------
 
 func uuidPtrToStrPtr(u *uuid.UUID) *string {

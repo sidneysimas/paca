@@ -146,6 +146,16 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeViewTypeInvalid
 	case errors.Is(err, sprintdom.ErrViewIsLastView):
 		return http.StatusConflict, apierr.CodeViewIsLastView
+	case errors.Is(err, taskdom.ErrCustomFieldNotFound):
+		return http.StatusNotFound, apierr.CodeCustomFieldNotFound
+	case errors.Is(err, taskdom.ErrCustomFieldKeyInvalid):
+		return http.StatusBadRequest, apierr.CodeCustomFieldKeyInvalid
+	case errors.Is(err, taskdom.ErrCustomFieldKeyTaken):
+		return http.StatusConflict, apierr.CodeCustomFieldKeyTaken
+	case errors.Is(err, taskdom.ErrCustomFieldTypeInvalid):
+		return http.StatusBadRequest, apierr.CodeCustomFieldTypeInvalid
+	case errors.Is(err, taskdom.ErrCustomFieldNameInvalid):
+		return http.StatusBadRequest, apierr.CodeCustomFieldNameInvalid
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -195,7 +205,8 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeTaskTypeNotFound,
 		apierr.CodeTaskStatusNotFound,
 		apierr.CodeSprintNotFound,
-		apierr.CodeViewNotFound:
+		apierr.CodeViewNotFound,
+		apierr.CodeCustomFieldNotFound:
 		return http.StatusNotFound
 	case apierr.CodeTaskTitleInvalid,
 		apierr.CodeTaskTypeNameInvalid,
@@ -204,9 +215,13 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeSprintNameInvalid,
 		apierr.CodeSprintStatusInvalid,
 		apierr.CodeViewNameInvalid,
-		apierr.CodeViewTypeInvalid:
+		apierr.CodeViewTypeInvalid,
+		apierr.CodeCustomFieldKeyInvalid,
+		apierr.CodeCustomFieldTypeInvalid,
+		apierr.CodeCustomFieldNameInvalid:
 		return http.StatusBadRequest
-	case apierr.CodeViewIsLastView:
+	case apierr.CodeViewIsLastView,
+		apierr.CodeCustomFieldKeyTaken:
 		return http.StatusConflict
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest

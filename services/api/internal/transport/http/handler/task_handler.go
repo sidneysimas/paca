@@ -448,16 +448,128 @@ func (h *TaskHandler) GetSprintTasks(c *gin.Context) {
 		return
 	}
 
-	resp := make([]dto.TaskResponse, 0, len(tasks))
+	resp2 := make([]dto.TaskResponse, 0, len(tasks))
 	for _, t := range tasks {
 		r := dto.TaskFromEntity(t)
 		if pos, ok := posMap[t.ID]; ok {
 			r.ViewPosition = &pos.Position
 			r.ViewGroupKey = pos.GroupKey
 		}
-		resp = append(resp, r)
+		resp2 = append(resp2, r)
 	}
-	presenter.OK(c, gin.H{"items": resp, "total": total, "page": page, "page_size": pageSize})
+	presenter.OK(c, gin.H{"items": resp2, "total": total, "page": page, "page_size": pageSize})
+}
+
+// --- Custom Field Definitions -----------------------------------------------
+
+// ListCustomFieldDefinitions handles GET /projects/:projectId/custom-fields.
+func (h *TaskHandler) ListCustomFieldDefinitions(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	fields, err := h.svc.ListCustomFieldDefinitions(c.Request.Context(), projectID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	resp := make([]dto.CustomFieldDefinitionResponse, 0, len(fields))
+	for _, f := range fields {
+		resp = append(resp, dto.CustomFieldDefinitionFromEntity(f))
+	}
+	presenter.OK(c, gin.H{"items": resp})
+}
+
+// GetCustomFieldDefinition handles GET /projects/:projectId/custom-fields/:fieldId.
+func (h *TaskHandler) GetCustomFieldDefinition(c *gin.Context) {
+	fieldID, err := parseCustomFieldID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	f, err := h.svc.GetCustomFieldDefinition(c.Request.Context(), fieldID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.CustomFieldDefinitionFromEntity(f))
+}
+
+// CreateCustomFieldDefinition handles POST /projects/:projectId/custom-fields.
+func (h *TaskHandler) CreateCustomFieldDefinition(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var req dto.CreateCustomFieldDefinitionRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	f, err := h.svc.CreateCustomFieldDefinition(c.Request.Context(), taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    req.FieldKey,
+		DisplayName: req.DisplayName,
+		FieldType:   req.FieldType,
+		Options:     req.Options,
+		IsRequired:  req.IsRequired,
+	})
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.Created(c, dto.CustomFieldDefinitionFromEntity(f))
+}
+
+// UpdateCustomFieldDefinition handles PATCH /projects/:projectId/custom-fields/:fieldId.
+func (h *TaskHandler) UpdateCustomFieldDefinition(c *gin.Context) {
+	fieldID, err := parseCustomFieldID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var req dto.UpdateCustomFieldDefinitionRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	f, err := h.svc.UpdateCustomFieldDefinition(c.Request.Context(), fieldID, taskdom.UpdateCustomFieldDefinitionInput{
+		DisplayName: req.DisplayName,
+		FieldType:   req.FieldType,
+		Options:     req.Options,
+		IsRequired:  req.IsRequired,
+	})
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.CustomFieldDefinitionFromEntity(f))
+}
+
+// DeleteCustomFieldDefinition handles DELETE /projects/:projectId/custom-fields/:fieldId.
+func (h *TaskHandler) DeleteCustomFieldDefinition(c *gin.Context) {
+	fieldID, err := parseCustomFieldID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	if err := h.svc.DeleteCustomFieldDefinition(c.Request.Context(), fieldID); err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, gin.H{"message": "custom field deleted"})
+}
+
+func parseCustomFieldID(c *gin.Context) (uuid.UUID, error) {
+	id, err := uuid.Parse(c.Param("fieldId"))
+	if err != nil {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid custom field id")
+	}
+	return id, nil
 }
 
 // ListBacklogTasks handles GET /projects/:projectId/product-backlog.

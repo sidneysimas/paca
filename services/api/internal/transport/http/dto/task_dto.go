@@ -187,3 +187,57 @@ func TaskFromEntity(t *taskdom.Task) TaskResponse {
 		UpdatedAt:    t.UpdatedAt,
 	}
 }
+
+// --- Custom Field Definition DTOs ------------------------------------------
+
+// CreateCustomFieldDefinitionRequest is the body for
+// POST /projects/:projectId/custom-fields.
+type CreateCustomFieldDefinitionRequest struct {
+	FieldKey    string            `json:"field_key" binding:"required"`
+	DisplayName string            `json:"display_name" binding:"required"`
+	FieldType   taskdom.FieldType `json:"field_type" binding:"required"`
+	Options     []string          `json:"options"`
+	IsRequired  bool              `json:"is_required"`
+}
+
+// UpdateCustomFieldDefinitionRequest is the body for
+// PATCH /projects/:projectId/custom-fields/:fieldId.
+type UpdateCustomFieldDefinitionRequest struct {
+	DisplayName string             `json:"display_name"`
+	FieldType   *taskdom.FieldType `json:"field_type"`
+	Options     []string           `json:"options"`
+	IsRequired  *bool              `json:"is_required"`
+}
+
+// CustomFieldDefinitionResponse is the public representation of a custom
+// field definition.
+type CustomFieldDefinitionResponse struct {
+	ID          uuid.UUID         `json:"id"`
+	ProjectID   uuid.UUID         `json:"project_id"`
+	FieldKey    string            `json:"field_key"`
+	DisplayName string            `json:"display_name"`
+	FieldType   taskdom.FieldType `json:"field_type"`
+	Options     []string          `json:"options"`
+	IsRequired  bool              `json:"is_required"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+// CustomFieldDefinitionFromEntity maps a domain CustomFieldDefinition to a DTO.
+func CustomFieldDefinitionFromEntity(f *taskdom.CustomFieldDefinition) CustomFieldDefinitionResponse {
+	opts := f.Options
+	if opts == nil {
+		opts = []string{}
+	}
+	return CustomFieldDefinitionResponse{
+		ID:          f.ID,
+		ProjectID:   f.ProjectID,
+		FieldKey:    f.FieldKey,
+		DisplayName: f.DisplayName,
+		FieldType:   f.FieldType,
+		Options:     opts,
+		IsRequired:  f.IsRequired,
+		CreatedAt:   f.CreatedAt,
+		UpdatedAt:   f.UpdatedAt,
+	}
+}

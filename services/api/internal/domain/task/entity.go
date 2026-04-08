@@ -54,6 +54,45 @@ type TaskStatus struct {
 	UpdatedAt time.Time
 }
 
+// FieldType describes the kind of value a CustomFieldDefinition accepts.
+type FieldType string
+
+// FieldType constants.
+const (
+	FieldTypeText        FieldType = "text"
+	FieldTypeNumber      FieldType = "number"
+	FieldTypeDate        FieldType = "date"
+	FieldTypeSelect      FieldType = "select"
+	FieldTypeMultiSelect FieldType = "multi_select"
+	FieldTypeBoolean     FieldType = "boolean"
+	FieldTypeURL         FieldType = "url"
+)
+
+// ValidFieldTypes is the set of allowed field type values.
+var ValidFieldTypes = map[FieldType]bool{
+	FieldTypeText:        true,
+	FieldTypeNumber:      true,
+	FieldTypeDate:        true,
+	FieldTypeSelect:      true,
+	FieldTypeMultiSelect: true,
+	FieldTypeBoolean:     true,
+	FieldTypeURL:         true,
+}
+
+// CustomFieldDefinition is a project-level schema entry that describes one
+// extra field that can be stored in Task.CustomFields under FieldKey.
+type CustomFieldDefinition struct {
+	ID          uuid.UUID
+	ProjectID   uuid.UUID
+	FieldKey    string
+	DisplayName string
+	FieldType   FieldType
+	Options     []string // populated for select / multi_select types
+	IsRequired  bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 // Task is the core work item aggregate.
 type Task struct {
 	ID           uuid.UUID

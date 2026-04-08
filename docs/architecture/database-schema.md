@@ -105,12 +105,18 @@ Table tasks {
 
 Table custom_field_definitions {
   id uuid [primary key]
-  project_id uuid
-  field_key varchar
-  display_name varchar
-  field_type varchar
-  options jsonb [null]
-  is_required boolean [default: false]
+  project_id uuid [not null, ref: > projects.id]
+  field_key varchar [not null, note: 'Unique per project; immutable after creation']
+  display_name varchar [not null]
+  field_type varchar [not null, note: 'text | number | date | select | multi_select | boolean | url']
+  options jsonb [null, note: 'Ordered list of option labels for select / multi_select types']
+  is_required boolean [not null, default: false]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (project_id, field_key) [unique]
+  }
 }
 
 // --- SPRINTS & VIEWS ---

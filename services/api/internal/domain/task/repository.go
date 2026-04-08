@@ -11,6 +11,7 @@ type Repository interface {
 	TaskTypeRepository
 	TaskStatusRepository
 	TaskRepository
+	CustomFieldDefinitionRepository
 }
 
 // TaskTypeRepository defines persistence operations for task types.
@@ -46,4 +47,14 @@ type TaskFilter struct {
 	StatusID    *uuid.UUID
 	AssigneeID  *uuid.UUID
 	BacklogOnly bool // true → only tasks where sprint_id IS NULL
+}
+
+// CustomFieldDefinitionRepository defines persistence operations for custom
+// field definitions.
+type CustomFieldDefinitionRepository interface {
+	ListCustomFieldDefinitions(ctx context.Context, projectID uuid.UUID) ([]*CustomFieldDefinition, error)
+	FindCustomFieldDefinitionByID(ctx context.Context, id uuid.UUID) (*CustomFieldDefinition, error)
+	CreateCustomFieldDefinition(ctx context.Context, f *CustomFieldDefinition) error
+	UpdateCustomFieldDefinition(ctx context.Context, f *CustomFieldDefinition) error
+	DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error
 }

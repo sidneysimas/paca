@@ -173,6 +173,11 @@ These routes already exist in the Go API service.
 | `GET` | `/api/v1/projects/:projectId/tasks/:taskId` | Access token (fresh) + `tasks.read` | Get task detail. |
 | `PATCH` | `/api/v1/projects/:projectId/tasks/:taskId` | Access token (fresh) + `tasks.write` | Update a task. |
 | `DELETE` | `/api/v1/projects/:projectId/tasks/:taskId` | Access token (fresh) + `tasks.write` | Soft-delete a task. |
+| `GET` | `/api/v1/projects/:projectId/custom-fields` | Access token (fresh) + `tasks.read` | List custom field definitions for a project. |
+| `POST` | `/api/v1/projects/:projectId/custom-fields` | Access token (fresh) + `tasks.write` | Create a custom field definition. |
+| `GET` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Access token (fresh) + `tasks.read` | Get a custom field definition by ID. |
+| `PATCH` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Access token (fresh) + `tasks.write` | Update a custom field definition. |
+| `DELETE` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Access token (fresh) + `tasks.write` | Delete a custom field definition. |
 
 > **"fresh" access token**: an access token whose `must_change_password` claim is `false`. If the claim is `true`, the request is rejected with `403 AUTH_PASSWORD_CHANGE_REQUIRED` and the user must call `PATCH /api/v1/users/me/password` first.
 
@@ -839,6 +844,127 @@ Notes:
 
 ---
 
+## Custom Field Definition Contracts
+
+Custom field definitions describe extra metadata fields that can be attached to tasks within a project. Each definition is scoped to a project and has an immutable `field_key` that uniquely identifies it within the project.
+
+**Supported `field_type` values:** `text`, `number`, `date`, `select`, `multi_select`, `boolean`, `url`
+
+### `GET /api/v1/projects/:projectId/custom-fields`
+
+Function:
+
+- list all custom field definitions for the project in creation order.
+
+Success response data:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "project_id": "uuid",
+      "field_key": "priority_level",
+      "display_name": "Priority Level",
+      "field_type": "text",
+      "options": [],
+      "is_required": false,
+      "created_at": "2026-04-01T00:00:00Z",
+      "updated_at": "2026-04-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### `POST /api/v1/projects/:projectId/custom-fields`
+
+Function:
+
+- create a new custom field definition;
+- `field_key` must be unique within the project and is immutable after creation;
+- `options` is required (and used) only for `select` and `multi_select` types.
+
+Request body:
+
+```json
+{
+  "field_key": "priority_level",
+  "display_name": "Priority Level",
+  "field_type": "select",
+  "options": ["low", "medium", "high"],
+  "is_required": false
+}
+```
+
+Success response: `201 Created` with the created custom field definition.
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `CUSTOM_FIELD_KEY_INVALID` | 400 | `field_key` is empty or invalid. |
+| `CUSTOM_FIELD_NAME_INVALID` | 400 | `display_name` is empty or invalid. |
+| `CUSTOM_FIELD_TYPE_INVALID` | 400 | `field_type` is not one of the allowed values. |
+| `CUSTOM_FIELD_KEY_TAKEN` | 409 | A field with that `field_key` already exists in this project. |
+
+### `GET /api/v1/projects/:projectId/custom-fields/:fieldId`
+
+Function:
+
+- return a single custom field definition by ID.
+
+Success response data: same shape as a single item in `GET /custom-fields`.
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `CUSTOM_FIELD_NOT_FOUND` | 404 | No custom field with the given ID exists. |
+
+### `PATCH /api/v1/projects/:projectId/custom-fields/:fieldId`
+
+Function:
+
+- update mutable fields: `display_name`, `field_type`, `options`, `is_required`;
+- `field_key` is **immutable** and cannot be changed after creation;
+- only supplied fields are updated (partial update).
+
+Request body:
+
+```json
+{
+  "display_name": "Priority Level (Updated)",
+  "options": ["low", "medium", "high", "critical"]
+}
+```
+
+Success response: `200 OK` with the updated custom field definition.
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `CUSTOM_FIELD_NOT_FOUND` | 404 | No custom field with the given ID exists. |
+| `CUSTOM_FIELD_NAME_INVALID` | 400 | `display_name` is empty or invalid. |
+| `CUSTOM_FIELD_TYPE_INVALID` | 400 | `field_type` is not one of the allowed values. |
+
+### `DELETE /api/v1/projects/:projectId/custom-fields/:fieldId`
+
+Function:
+
+- permanently delete a custom field definition;
+- existing task data referencing this field key in `tasks.custom_fields` is not automatically cleaned up.
+
+Success response: `200 OK`
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `CUSTOM_FIELD_NOT_FOUND` | 404 | No custom field with the given ID exists. |
+
+---
+
 ## Planned Resource API
 
 The following endpoints are not yet implemented. They are the recommended path design for the next API slices based on the domain model.
@@ -864,14 +990,7 @@ Sub-resources of tasks that are not yet implemented.
 
 ## Project Configuration Extras
 
-Custom field definitions are not yet implemented.
-
-| Method | Path | Function |
-|---|---|---|
-| `GET` | `/api/v1/projects/:projectId/custom-fields` | List custom field definitions. |
-| `POST` | `/api/v1/projects/:projectId/custom-fields` | Create a custom field definition. |
-| `PATCH` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Update a custom field definition. |
-| `DELETE` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Delete a custom field definition. |
+Custom field definition endpoints are implemented. See [Custom Field Definition Contracts](#custom-field-definition-contracts) below.
 
 ## Sprint Extras
 
@@ -905,7 +1024,7 @@ To keep the API coherent and aligned with the current codebase, implement the ne
 7. ~~Add sprint CRUD, sprint backlog view (`GET /sprints/:id/tasks`), and product-backlog view (`GET /product-backlog`).~~ ✅ Done
 8. ~~Add sprint saved views: board, table, roadmap with manual task ordering.~~ ✅ Done
 9. Add task sub-resource endpoints: child tasks, activities, BDD scenarios, and time logs.
-10. Add custom field definitions.
+10. ~~Add custom field definitions.~~ ✅ Done
 11. Add knowledge and reporting: documents and dashboards.
 
 ## Known Model Gaps
@@ -960,5 +1079,10 @@ The schema and HTTP contract are consistent. Before adding the next slice (proje
 | `VIEW_NAME_INVALID` | 400 | View name is empty or invalid. |
 | `VIEW_TYPE_INVALID` | 400 | View type is not one of `board`, `table`, or `roadmap`. |
 | `VIEW_IS_LAST_VIEW` | 409 | View cannot be deleted because it is the only remaining view on the sprint. |
+| `CUSTOM_FIELD_NOT_FOUND` | 404 | Custom field definition with the given ID does not exist. |
+| `CUSTOM_FIELD_KEY_INVALID` | 400 | `field_key` is empty or contains invalid characters. |
+| `CUSTOM_FIELD_KEY_TAKEN` | 409 | A field with that `field_key` already exists within the project. |
+| `CUSTOM_FIELD_TYPE_INVALID` | 400 | `field_type` is not one of the allowed values. |
+| `CUSTOM_FIELD_NAME_INVALID` | 400 | `display_name` is empty or invalid. |
 | `BAD_REQUEST` | 400 | Malformed or invalid request body. |
 | `INTERNAL_ERROR` | 500 | Unexpected server error. |

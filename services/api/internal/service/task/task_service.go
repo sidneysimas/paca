@@ -265,3 +265,92 @@ func (s *Service) UpdateTask(ctx context.Context, id uuid.UUID, in taskdom.Updat
 func (s *Service) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	return s.repo.DeleteTask(ctx, id)
 }
+
+// --- Custom Field Definitions -----------------------------------------------
+
+// ListCustomFieldDefinitions returns all custom field definitions for a project.
+func (s *Service) ListCustomFieldDefinitions(ctx context.Context, projectID uuid.UUID) ([]*taskdom.CustomFieldDefinition, error) {
+	return s.repo.ListCustomFieldDefinitions(ctx, projectID)
+}
+
+// GetCustomFieldDefinition returns the custom field definition with the given ID.
+func (s *Service) GetCustomFieldDefinition(ctx context.Context, id uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
+	return s.repo.FindCustomFieldDefinitionByID(ctx, id)
+}
+
+// CreateCustomFieldDefinition creates a new custom field definition.
+func (s *Service) CreateCustomFieldDefinition(ctx context.Context, in taskdom.CreateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error) {
+	fieldKey := strings.TrimSpace(in.FieldKey)
+	if fieldKey == "" {
+		return nil, taskdom.ErrCustomFieldKeyInvalid
+	}
+	displayName := strings.TrimSpace(in.DisplayName)
+	if displayName == "" {
+		return nil, taskdom.ErrCustomFieldNameInvalid
+	}
+	if !taskdom.ValidFieldTypes[in.FieldType] {
+		return nil, taskdom.ErrCustomFieldTypeInvalid
+	}
+
+	opts := in.Options
+	if opts == nil {
+		opts = []string{}
+	}
+
+	now := time.Now()
+	f := &taskdom.CustomFieldDefinition{
+		ID:          uuid.New(),
+		ProjectID:   in.ProjectID,
+		FieldKey:    fieldKey,
+		DisplayName: displayName,
+		FieldType:   in.FieldType,
+		Options:     opts,
+		IsRequired:  in.IsRequired,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	if err := s.repo.CreateCustomFieldDefinition(ctx, f); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// UpdateCustomFieldDefinition updates the mutable fields of a custom field
+// definition. The field_key is immutable after creation.
+func (s *Service) UpdateCustomFieldDefinition(ctx context.Context, id uuid.UUID, in taskdom.UpdateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error) {
+	f, err := s.repo.FindCustomFieldDefinitionByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if displayName := strings.TrimSpace(in.DisplayName); displayName != "" {
+		f.DisplayName = displayName
+	}
+	if in.FieldType != nil {
+		if !taskdom.ValidFieldTypes[*in.FieldType] {
+			return nil, taskdom.ErrCustomFieldTypeInvalid
+		}
+		f.FieldType = *in.FieldType
+	}
+	if in.Options != nil {
+		f.Options = in.Options
+	}
+	if in.IsRequired != nil {
+		f.IsRequired = *in.IsRequired
+	}
+	f.UpdatedAt = time.Now()
+
+	if err := s.repo.UpdateCustomFieldDefinition(ctx, f); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// DeleteCustomFieldDefinition removes a custom field definition by ID.
+func (s *Service) DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error {
+	if _, err := s.repo.FindCustomFieldDefinitionByID(ctx, id); err != nil {
+		return err
+	}
+	return s.repo.DeleteCustomFieldDefinition(ctx, id)
+}

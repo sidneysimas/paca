@@ -12,6 +12,7 @@ type Service interface {
 	TaskTypeService
 	TaskStatusService
 	TaskService
+	CustomFieldDefinitionService
 }
 
 // --- Task Type Service -----------------------------------------------------
@@ -116,4 +117,35 @@ type UpdateTaskInput struct {
 	StartDate    *time.Time
 	DueDate      *time.Time
 	Tags         []string
+}
+
+// --- Custom Field Definition Service --------------------------------------
+
+// CustomFieldDefinitionService defines custom field definition use cases.
+type CustomFieldDefinitionService interface {
+	ListCustomFieldDefinitions(ctx context.Context, projectID uuid.UUID) ([]*CustomFieldDefinition, error)
+	GetCustomFieldDefinition(ctx context.Context, id uuid.UUID) (*CustomFieldDefinition, error)
+	CreateCustomFieldDefinition(ctx context.Context, in CreateCustomFieldDefinitionInput) (*CustomFieldDefinition, error)
+	UpdateCustomFieldDefinition(ctx context.Context, id uuid.UUID, in UpdateCustomFieldDefinitionInput) (*CustomFieldDefinition, error)
+	DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error
+}
+
+// CreateCustomFieldDefinitionInput carries fields required to create a custom
+// field definition.
+type CreateCustomFieldDefinitionInput struct {
+	ProjectID   uuid.UUID
+	FieldKey    string
+	DisplayName string
+	FieldType   FieldType
+	Options     []string
+	IsRequired  bool
+}
+
+// UpdateCustomFieldDefinitionInput carries mutable custom field definition
+// fields.
+type UpdateCustomFieldDefinitionInput struct {
+	DisplayName string
+	FieldType   *FieldType
+	Options     []string
+	IsRequired  *bool
 }

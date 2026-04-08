@@ -96,6 +96,17 @@ const (
 	CodeViewTypeInvalid Code = "VIEW_TYPE_INVALID"
 	// CodeViewIsLastView indicates the view cannot be deleted because it is the last remaining view.
 	CodeViewIsLastView Code = "VIEW_IS_LAST_VIEW"
+
+	// CodeCustomFieldNotFound indicates the requested custom field definition does not exist.
+	CodeCustomFieldNotFound Code = "CUSTOM_FIELD_NOT_FOUND"
+	// CodeCustomFieldKeyInvalid indicates an empty or invalid field key.
+	CodeCustomFieldKeyInvalid Code = "CUSTOM_FIELD_KEY_INVALID"
+	// CodeCustomFieldKeyTaken indicates the field key is already in use within the project.
+	CodeCustomFieldKeyTaken Code = "CUSTOM_FIELD_KEY_TAKEN"
+	// CodeCustomFieldTypeInvalid indicates an invalid field type value.
+	CodeCustomFieldTypeInvalid Code = "CUSTOM_FIELD_TYPE_INVALID"
+	// CodeCustomFieldNameInvalid indicates an empty or invalid display name.
+	CodeCustomFieldNameInvalid Code = "CUSTOM_FIELD_NAME_INVALID"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

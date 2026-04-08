@@ -18,17 +18,19 @@ import (
 // ---------------------------------------------------------------------------
 
 type fakeTaskRepo struct {
-	mu       sync.RWMutex
-	types    map[uuid.UUID]*taskdom.TaskType
-	statuses map[uuid.UUID]*taskdom.TaskStatus
-	tasks    map[uuid.UUID]*taskdom.Task
+	mu           sync.RWMutex
+	types        map[uuid.UUID]*taskdom.TaskType
+	statuses     map[uuid.UUID]*taskdom.TaskStatus
+	tasks        map[uuid.UUID]*taskdom.Task
+	customFields map[uuid.UUID]*taskdom.CustomFieldDefinition
 }
 
 func newFakeTaskRepo() *fakeTaskRepo {
 	return &fakeTaskRepo{
-		types:    make(map[uuid.UUID]*taskdom.TaskType),
-		statuses: make(map[uuid.UUID]*taskdom.TaskStatus),
-		tasks:    make(map[uuid.UUID]*taskdom.Task),
+		types:        make(map[uuid.UUID]*taskdom.TaskType),
+		statuses:     make(map[uuid.UUID]*taskdom.TaskStatus),
+		tasks:        make(map[uuid.UUID]*taskdom.Task),
+		customFields: make(map[uuid.UUID]*taskdom.CustomFieldDefinition),
 	}
 }
 
@@ -566,5 +568,304 @@ func TestListTasks_Pagination(t *testing.T) {
 	}
 	if total != 5 {
 		t.Errorf("expected total=5, got %d", total)
+	}
+}
+
+// -- CustomFieldDefinition fake repo methods --
+
+func (r *fakeTaskRepo) ListCustomFieldDefinitions(_ context.Context, projectID uuid.UUID) ([]*taskdom.CustomFieldDefinition, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]*taskdom.CustomFieldDefinition, 0)
+	for _, f := range r.customFields {
+		if f.ProjectID == projectID {
+			cp := *f
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeTaskRepo) FindCustomFieldDefinitionByID(_ context.Context, id uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	f, ok := r.customFields[id]
+	if !ok {
+		return nil, taskdom.ErrCustomFieldNotFound
+	}
+	cp := *f
+	return &cp, nil
+}
+
+func (r *fakeTaskRepo) CreateCustomFieldDefinition(_ context.Context, f *taskdom.CustomFieldDefinition) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, existing := range r.customFields {
+		if existing.ProjectID == f.ProjectID && existing.FieldKey == f.FieldKey {
+			return taskdom.ErrCustomFieldKeyTaken
+		}
+	}
+	cp := *f
+	r.customFields[f.ID] = &cp
+	return nil
+}
+
+func (r *fakeTaskRepo) UpdateCustomFieldDefinition(_ context.Context, f *taskdom.CustomFieldDefinition) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.customFields[f.ID]; !ok {
+		return taskdom.ErrCustomFieldNotFound
+	}
+	cp := *f
+	r.customFields[f.ID] = &cp
+	return nil
+}
+
+func (r *fakeTaskRepo) DeleteCustomFieldDefinition(_ context.Context, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.customFields, id)
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// Custom Field Definition tests
+// ---------------------------------------------------------------------------
+
+func TestCreateCustomFieldDefinition_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	got, err := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    "priority",
+		DisplayName: "Priority",
+		FieldType:   taskdom.FieldTypeSelect,
+		Options:     []string{"low", "medium", "high"},
+		IsRequired:  true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.FieldKey != "priority" {
+		t.Errorf("expected FieldKey=priority, got %q", got.FieldKey)
+	}
+	if got.FieldType != taskdom.FieldTypeSelect {
+		t.Errorf("expected FieldType=select, got %q", got.FieldType)
+	}
+	if len(got.Options) != 3 {
+		t.Errorf("expected 3 options, got %d", len(got.Options))
+	}
+	if !got.IsRequired {
+		t.Error("expected IsRequired=true")
+	}
+}
+
+func TestCreateCustomFieldDefinition_EmptyKey(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   uuid.New(),
+		FieldKey:    "   ",
+		DisplayName: "Priority",
+		FieldType:   taskdom.FieldTypeText,
+	})
+	if err != taskdom.ErrCustomFieldKeyInvalid {
+		t.Errorf("expected ErrCustomFieldKeyInvalid, got %v", err)
+	}
+}
+
+func TestCreateCustomFieldDefinition_EmptyDisplayName(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   uuid.New(),
+		FieldKey:    "cost",
+		DisplayName: "",
+		FieldType:   taskdom.FieldTypeNumber,
+	})
+	if err != taskdom.ErrCustomFieldNameInvalid {
+		t.Errorf("expected ErrCustomFieldNameInvalid, got %v", err)
+	}
+}
+
+func TestCreateCustomFieldDefinition_InvalidType(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   uuid.New(),
+		FieldKey:    "x",
+		DisplayName: "X",
+		FieldType:   "not_valid",
+	})
+	if err != taskdom.ErrCustomFieldTypeInvalid {
+		t.Errorf("expected ErrCustomFieldTypeInvalid, got %v", err)
+	}
+}
+
+func TestCreateCustomFieldDefinition_DuplicateKey(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	_, err := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    "story_points",
+		DisplayName: "Story Points",
+		FieldType:   taskdom.FieldTypeNumber,
+	})
+	if err != nil {
+		t.Fatalf("first create failed: %v", err)
+	}
+
+	_, err = svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    "story_points",
+		DisplayName: "Story Points Again",
+		FieldType:   taskdom.FieldTypeNumber,
+	})
+	if err != taskdom.ErrCustomFieldKeyTaken {
+		t.Errorf("expected ErrCustomFieldKeyTaken, got %v", err)
+	}
+}
+
+func TestUpdateCustomFieldDefinition_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	f, _ := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    "status_reason",
+		DisplayName: "Status Reason",
+		FieldType:   taskdom.FieldTypeText,
+	})
+
+	newType := taskdom.FieldTypeSelect
+	required := true
+	updated, err := svc.UpdateCustomFieldDefinition(ctx, f.ID, taskdom.UpdateCustomFieldDefinitionInput{
+		DisplayName: "Reason",
+		FieldType:   &newType,
+		Options:     []string{"blocked", "waiting"},
+		IsRequired:  &required,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.DisplayName != "Reason" {
+		t.Errorf("expected DisplayName=Reason, got %q", updated.DisplayName)
+	}
+	if updated.FieldType != taskdom.FieldTypeSelect {
+		t.Errorf("expected FieldType=select, got %q", updated.FieldType)
+	}
+	if len(updated.Options) != 2 {
+		t.Errorf("expected 2 options, got %d", len(updated.Options))
+	}
+	if !updated.IsRequired {
+		t.Error("expected IsRequired=true")
+	}
+}
+
+func TestUpdateCustomFieldDefinition_InvalidType(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	f, _ := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    "notes",
+		DisplayName: "Notes",
+		FieldType:   taskdom.FieldTypeText,
+	})
+
+	bad := taskdom.FieldType("bad_type")
+	_, err := svc.UpdateCustomFieldDefinition(ctx, f.ID, taskdom.UpdateCustomFieldDefinitionInput{
+		FieldType: &bad,
+	})
+	if err != taskdom.ErrCustomFieldTypeInvalid {
+		t.Errorf("expected ErrCustomFieldTypeInvalid, got %v", err)
+	}
+}
+
+func TestUpdateCustomFieldDefinition_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.UpdateCustomFieldDefinition(ctx, uuid.New(), taskdom.UpdateCustomFieldDefinitionInput{
+		DisplayName: "X",
+	})
+	if err != taskdom.ErrCustomFieldNotFound {
+		t.Errorf("expected ErrCustomFieldNotFound, got %v", err)
+	}
+}
+
+func TestDeleteCustomFieldDefinition_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	f, _ := svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID:   projectID,
+		FieldKey:    "to_delete",
+		DisplayName: "To Delete",
+		FieldType:   taskdom.FieldTypeBoolean,
+	})
+
+	if err := svc.DeleteCustomFieldDefinition(ctx, f.ID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, err := svc.GetCustomFieldDefinition(ctx, f.ID)
+	if err != taskdom.ErrCustomFieldNotFound {
+		t.Errorf("expected ErrCustomFieldNotFound after delete, got %v", err)
+	}
+}
+
+func TestDeleteCustomFieldDefinition_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	err := svc.DeleteCustomFieldDefinition(ctx, uuid.New())
+	if err != taskdom.ErrCustomFieldNotFound {
+		t.Errorf("expected ErrCustomFieldNotFound, got %v", err)
+	}
+}
+
+func TestListCustomFieldDefinitions_MultiProject(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projA := uuid.New()
+	projB := uuid.New()
+
+	_, _ = svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID: projA, FieldKey: "field_a", DisplayName: "Field A", FieldType: taskdom.FieldTypeText,
+	})
+	_, _ = svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID: projA, FieldKey: "field_b", DisplayName: "Field B", FieldType: taskdom.FieldTypeNumber,
+	})
+	_, _ = svc.CreateCustomFieldDefinition(ctx, taskdom.CreateCustomFieldDefinitionInput{
+		ProjectID: projB, FieldKey: "other", DisplayName: "Other", FieldType: taskdom.FieldTypeDate,
+	})
+
+	fields, err := svc.ListCustomFieldDefinitions(ctx, projA)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fields) != 2 {
+		t.Errorf("expected 2 fields for projA, got %d", len(fields))
 	}
 }
