@@ -102,13 +102,15 @@ export function ViewSettingsPanel({
 }: ViewSettingsPanelProps) {
 	const [draft, setDraft] = useState<ViewConfig>(() => view?.config ?? {});
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally keyed on view?.id so config is re-read only when the view itself changes, not on every config mutation
 	useEffect(() => {
 		if (open) setDraft(view?.config ?? {});
-	}, [open, view?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [open, view?.id]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: onPreview is a stable callback; adding it would cause infinite re-renders
 	useEffect(() => {
 		if (open) onPreview(draft);
-	}, [draft, open]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [draft, open]);
 
 	const handleOpenChange = (newOpen: boolean) => {
 		if (!newOpen && view) onPreview(view.config ?? {});

@@ -55,6 +55,8 @@ export function AddFieldDialog({
 	};
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop closes on click; keyboard handled by inner close button
+		// biome-ignore lint/a11y/useKeyWithClickEvents: modal backdrop; Escape key handled by inner elements
 		<div
 			className="fixed inset-0 z-60 flex items-center justify-center"
 			onClick={() => {
@@ -63,6 +65,8 @@ export function AddFieldDialog({
 			}}
 		>
 			<div className="fixed inset-0 bg-black/20 backdrop-blur-[2px]" />
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation on modal content prevents backdrop close */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only; no action triggered */}
 			<div
 				className="relative z-10 w-full max-w-sm rounded-2xl border border-border/60 bg-popover p-6 shadow-2xl"
 				onClick={(e) => e.stopPropagation()}
@@ -87,27 +91,34 @@ export function AddFieldDialog({
 				<div className="space-y-4">
 					{/* Display name */}
 					<div className="space-y-1.5">
-						<label className="text-sm font-medium text-foreground/70">
+						<label
+							htmlFor="add-field-display-name"
+							className="text-sm font-medium text-foreground/70"
+						>
 							Display name <span className="text-destructive">*</span>
 						</label>
 						<input
+							id="add-field-display-name"
 							value={displayName}
 							onChange={(e) => {
 								setDisplayName(e.target.value);
 								if (!keyManual) setFieldKey(slugify(e.target.value));
 							}}
 							placeholder="e.g. Release Tag"
-							autoFocus
 							className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm outline-none focus:border-primary/60 placeholder:text-muted-foreground/40"
 						/>
 					</div>
 
 					{/* Field key */}
 					<div className="space-y-1.5">
-						<label className="text-sm font-medium text-foreground/70">
+						<label
+							htmlFor="add-field-key"
+							className="text-sm font-medium text-foreground/70"
+						>
 							Field key
 						</label>
 						<input
+							id="add-field-key"
 							value={fieldKey}
 							onChange={(e) => {
 								setKeyManual(true);
@@ -120,9 +131,7 @@ export function AddFieldDialog({
 
 					{/* Field type */}
 					<div className="space-y-2">
-						<label className="text-sm font-medium text-foreground/70">
-							Field type
-						</label>
+						<p className="text-sm font-medium text-foreground/70">Field type</p>
 						<div className="flex flex-wrap gap-1.5">
 							{FIELD_TYPES.map((ft) => (
 								<button

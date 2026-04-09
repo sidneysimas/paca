@@ -234,22 +234,39 @@ func (s *Service) UpdateTask(ctx context.Context, id uuid.UUID, in taskdom.Updat
 	if title := strings.TrimSpace(in.Title); title != "" {
 		t.Title = title
 	}
-	t.TaskTypeID = in.TaskTypeID
-	t.StatusID = in.StatusID
-	t.SprintID = in.SprintID
-	t.ParentTaskID = in.ParentTaskID
-	t.Description = in.Description
+	if in.TaskTypeID != nil {
+		t.TaskTypeID = *in.TaskTypeID
+	}
+	if in.StatusID != nil {
+		t.StatusID = *in.StatusID
+	}
+	if in.SprintID != nil {
+		t.SprintID = *in.SprintID
+	}
+	if in.ParentTaskID != nil {
+		t.ParentTaskID = *in.ParentTaskID
+	}
+	if in.Description != nil {
+		t.Description = *in.Description
+	}
 	if in.Importance != nil {
 		t.Importance = *in.Importance
 	}
-
-	t.AssigneeID = in.AssigneeID
-	t.ReporterID = in.ReporterID
+	if in.AssigneeID != nil {
+		t.AssigneeID = *in.AssigneeID
+	}
+	if in.ReporterID != nil {
+		t.ReporterID = *in.ReporterID
+	}
 	if in.CustomFields != nil {
 		t.CustomFields = in.CustomFields
 	}
-	t.StartDate = in.StartDate
-	t.DueDate = in.DueDate
+	if in.StartDate != nil {
+		t.StartDate = *in.StartDate
+	}
+	if in.DueDate != nil {
+		t.DueDate = *in.DueDate
+	}
 	if in.Tags != nil {
 		t.Tags = in.Tags
 	}

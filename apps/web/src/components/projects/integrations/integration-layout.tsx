@@ -3,7 +3,7 @@ import {
 	ChevronDown,
 	KanbanSquare,
 	List,
-	Map,
+	Map as MapIcon,
 	Search,
 	SlidersHorizontal,
 	X,
@@ -37,6 +37,7 @@ import {
 	sprintTasksQueryOptions,
 	type Task,
 	updateBacklogView,
+	updateTask,
 	updateView,
 	type ViewConfig,
 	type ViewLayout,
@@ -239,6 +240,36 @@ export function IntegrationLayout({
 		}
 	};
 
+	// ── Task status change (from list view drag) ─────────────────────────────
+	const updateStatusMutation = useMutation({
+		mutationFn: ({
+			taskId,
+			statusId,
+			taskSprintId,
+		}: {
+			taskId: string;
+			statusId: string;
+			taskSprintId: string | null | undefined;
+		}) =>
+			updateTask(projectId, taskId, {
+				status_id: statusId,
+				sprint_id: taskSprintId ?? null,
+			}),
+		onSuccess: () => qc.invalidateQueries({ queryKey: tasksBaseQueryKey }),
+	});
+
+	const handleStatusChange = useCallback(
+		(taskId: string, newStatusId: string) => {
+			const task = sortedTasks.find((t) => t.id === taskId);
+			updateStatusMutation.mutate({
+				taskId,
+				statusId: newStatusId,
+				taskSprintId: task?.sprint_id,
+			});
+		},
+		[updateStatusMutation, sortedTasks],
+	);
+
 	// ── Task mutation ─────────────────────────────────────────────────────────
 	const createTaskMutation = useMutation({
 		mutationFn: (payload: { title: string; statusId: string }) =>
@@ -388,7 +419,7 @@ export function IntegrationLayout({
 									{view.layout === "Board" ? (
 										<KanbanSquare className="size-3.5" />
 									) : view.layout === "Roadmap" ? (
-										<Map className="size-3.5" />
+										<MapIcon className="size-3.5" />
 									) : (
 										<List className="size-3.5" />
 									)}
@@ -451,7 +482,6 @@ export function IntegrationLayout({
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								placeholder="Search tasks…"
-								autoFocus
 								className="w-32 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
 								onKeyDown={(e) => {
 									if (e.key === "Escape") {
@@ -626,6 +656,8 @@ export function IntegrationLayout({
 						onTaskClick={handleTaskClick}
 						manualSort={isManualSort}
 						onReorderTask={effectiveViewId ? handleReorderTask : undefined}
+						onStatusChange={canEdit ? handleStatusChange : undefined}
+						canEdit={canEdit}
 					/>
 				)}
 			</div>

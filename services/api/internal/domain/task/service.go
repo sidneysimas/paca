@@ -100,22 +100,25 @@ type CreateTaskInput struct {
 	Tags         []string
 }
 
-// UpdateTaskInput carries mutable task fields.
-// String fields are applied when non-empty; pointer fields always replace the
-// current value (use nil to clear a nullable reference).
+// UpdateTaskInput carries mutable task fields for a PATCH operation.
+// Title is applied when non-empty.
+// For nullable reference fields, the double-pointer encodes three states:
+//   - nil outer pointer  → field was absent in the request; do NOT overwrite
+//   - non-nil outer pointer, inner pointer nil  → explicitly set to null (clear)
+//   - non-nil outer pointer, inner pointer non-nil  → set to the given value
 type UpdateTaskInput struct {
-	TaskTypeID   *uuid.UUID
-	StatusID     *uuid.UUID
-	SprintID     *uuid.UUID
-	ParentTaskID *uuid.UUID
+	TaskTypeID   **uuid.UUID
+	StatusID     **uuid.UUID
+	SprintID     **uuid.UUID
+	ParentTaskID **uuid.UUID
 	Title        string
-	Description  *string
+	Description  **string
 	Importance   *int
-	AssigneeID   *uuid.UUID
-	ReporterID   *uuid.UUID
+	AssigneeID   **uuid.UUID
+	ReporterID   **uuid.UUID
 	CustomFields map[string]any
-	StartDate    *time.Time
-	DueDate      *time.Time
+	StartDate    **time.Time
+	DueDate      **time.Time
 	Tags         []string
 }
 

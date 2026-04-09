@@ -121,13 +121,25 @@ export function BoardView({
 	const [columnOrderMap, setColumnOrderMap] = useState<
 		Record<string, string[]>
 	>({});
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset local order whenever the task list is refreshed from the server
 	useEffect(() => {
 		setColumnOrderMap({});
 	}, [tasks]);
 
 	const updateMutation = useMutation({
-		mutationFn: ({ taskId, statusId }: { taskId: string; statusId: string }) =>
-			updateTask(projectId, taskId, { status_id: statusId }),
+		mutationFn: ({
+			taskId,
+			statusId,
+			sprintId,
+		}: {
+			taskId: string;
+			statusId: string;
+			sprintId: string | null | undefined;
+		}) =>
+			updateTask(projectId, taskId, {
+				status_id: statusId,
+				sprint_id: sprintId ?? null,
+			}),
 		onSuccess: () => qc.invalidateQueries({ queryKey: tasksQueryKey }),
 	});
 
@@ -177,7 +189,7 @@ export function BoardView({
 		if (!taskId || !canEdit) return;
 		const task = tasks.find((t) => t.id === taskId);
 		if (task && task.status_id !== statusId) {
-			updateMutation.mutate({ taskId, statusId });
+			updateMutation.mutate({ taskId, statusId, sprintId: task.sprint_id });
 		}
 		setDraggingId(null);
 		setOverStatusId(null);
@@ -205,7 +217,11 @@ export function BoardView({
 			return;
 		}
 		if (task.status_id !== targetStatusId) {
-			updateMutation.mutate({ taskId, statusId: targetStatusId });
+			updateMutation.mutate({
+				taskId,
+				statusId: targetStatusId,
+				sprintId: task.sprint_id,
+			});
 		} else if (manualSort && taskId !== targetTaskId) {
 			// Optimistic local reorder within column
 			const current = getColumnTasks(targetStatusId);
@@ -241,6 +257,7 @@ export function BoardView({
 				const isOver = overStatusId === status.id;
 
 				return (
+					// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop column requires pointer events; keyboard reorder is handled separately
 					<div
 						key={status.id}
 						className="flex w-72 shrink-0 flex-col gap-2"
@@ -277,6 +294,7 @@ export function BoardView({
 							)}
 
 							{columnTasks.map((task, index) => (
+								// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop card slot; pointer events only
 								<div
 									key={task.id}
 									className={cn(

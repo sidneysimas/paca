@@ -18,6 +18,8 @@ interface ListViewProps {
 	onTaskClick: (task: Task) => void;
 	manualSort?: boolean;
 	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
+	onStatusChange?: (taskId: string, newStatusId: string) => void;
+	canEdit?: boolean;
 }
 
 interface GroupAddRowProps {
@@ -103,6 +105,8 @@ interface StatusGroupProps {
 	onTaskClick: (task: Task) => void;
 	manualSort?: boolean;
 	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
+	onStatusChange?: (taskId: string, newStatusId: string) => void;
+	canEdit?: boolean;
 }
 
 function StatusGroup({
@@ -116,10 +120,13 @@ function StatusGroup({
 	onTaskClick,
 	manualSort,
 	onReorderTask,
+	onStatusChange,
+	canEdit,
 }: StatusGroupProps) {
 	const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [dragOverId, setDragOverId] = useState<string | null>(null);
+	const [isDropTarget, setIsDropTarget] = useState(false);
 	const [orderedTasks, setOrderedTasks] = useState<Task[]>(tasks);
 
 	// Sync when parent tasks array changes (after API refresh)
@@ -127,14 +134,34 @@ function StatusGroup({
 		setOrderedTasks(tasks);
 	}, [tasks]);
 
-	const handleDrop = (targetTask: Task, targetIndex: number) => {
+	const isDraggable = canEdit || manualSort;
+
+	const handleIntraGroupDrop = (
+		e: React.DragEvent,
+		targetTask: Task,
+		targetIndex: number,
+	) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const taskId = e.dataTransfer.getData("text/plain");
+		const sourceStatusId = e.dataTransfer.getData(
+			"application/x-source-status-id",
+		);
+		// Cross-group drop landing on a task row — delegate to group-level handler
+		if (sourceStatusId && sourceStatusId !== status.id) {
+			if (canEdit) onStatusChange?.(taskId, status.id);
+			setDraggingId(null);
+			setDragOverId(null);
+			setIsDropTarget(false);
+			return;
+		}
+		// Same-group reorder
 		const currentDraggingId = draggingId;
 		if (!currentDraggingId || currentDraggingId === targetTask.id) return;
 		const sourceIndex = orderedTasks.findIndex(
 			(t) => t.id === currentDraggingId,
 		);
 		if (sourceIndex === -1) return;
-		// Optimistic local reorder
 		const updated = [...orderedTasks];
 		const [moved] = updated.splice(sourceIndex, 1);
 		updated.splice(targetIndex, 0, moved);
@@ -144,8 +171,39 @@ function StatusGroup({
 		setDragOverId(null);
 	};
 
+	const handleGroupDragOver = (e: React.DragEvent) => {
+		if (!canEdit && !manualSort) return;
+		e.preventDefault();
+		e.dataTransfer.dropEffect = "move";
+		setIsDropTarget(true);
+	};
+
+	const handleGroupDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		const taskId = e.dataTransfer.getData("text/plain");
+		const sourceStatusId = e.dataTransfer.getData(
+			"application/x-source-status-id",
+		);
+		setIsDropTarget(false);
+		setDraggingId(null);
+		setDragOverId(null);
+		if (!taskId || !canEdit) return;
+		if (sourceStatusId && sourceStatusId !== status.id) {
+			onStatusChange?.(taskId, status.id);
+		}
+	};
+
 	return (
-		<div className="border-b border-border/40 last:border-0">
+		// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop group container; pointer events only
+		<div
+			className={cn(
+				"border-b border-border/40 last:border-0 transition-colors duration-150",
+				isDropTarget && "bg-primary/5 ring-inset ring-2 ring-primary/20",
+			)}
+			onDragOver={handleGroupDragOver}
+			onDragLeave={() => setIsDropTarget(false)}
+			onDrop={handleGroupDrop}
+		>
 			{/* Group header */}
 			<button
 				type="button"
@@ -176,7 +234,7 @@ function StatusGroup({
 				<>
 					{/* Column headers */}
 					<div className="flex items-center gap-3 px-4 py-1.5 bg-muted/20 border-y border-border/30">
-						{manualSort && <div className="w-3 shrink-0" />}
+						{isDraggable && <div className="w-3 shrink-0" />}
 						<div className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
 							Type
 						</div>
@@ -200,6 +258,7 @@ function StatusGroup({
 						</div>
 					) : (
 						orderedTasks.map((task, index) => (
+							// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop row slot; pointer events only
 							<div
 								key={task.id}
 								className={cn(
@@ -208,33 +267,33 @@ function StatusGroup({
 										draggingId !== task.id &&
 										"border-t-2 border-primary/60",
 								)}
-								draggable={manualSort}
+								draggable={isDraggable}
 								onDragStart={(e) => {
 									e.dataTransfer.effectAllowed = "move";
 									e.dataTransfer.setData("text/plain", task.id);
+									e.dataTransfer.setData(
+										"application/x-source-status-id",
+										status.id,
+									);
 									setDraggingId(task.id);
 								}}
 								onDragEnd={() => {
 									setDraggingId(null);
 									setDragOverId(null);
+									setIsDropTarget(false);
 								}}
 								onDragOver={(e) => {
-									if (manualSort) {
-										e.preventDefault();
-										setDragOverId(task.id);
-									}
-								}}
-								onDrop={(e) => {
 									e.preventDefault();
-									handleDrop(task, index);
+									if (manualSort) setDragOverId(task.id);
 								}}
+								onDrop={(e) => handleIntraGroupDrop(e, task, index)}
 							>
 								<TaskRow
 									task={task}
 									statuses={statuses}
 									taskTypes={taskTypes}
 									onClick={() => onTaskClick(task)}
-									showDragHandle={manualSort}
+									showDragHandle={isDraggable}
 									isDragging={draggingId === task.id}
 								/>
 							</div>
@@ -261,6 +320,8 @@ export function ListView({
 	onTaskClick,
 	manualSort,
 	onReorderTask,
+	onStatusChange,
+	canEdit,
 }: ListViewProps) {
 	const filtered = tasks.filter((t) => {
 		if (
@@ -292,6 +353,8 @@ export function ListView({
 						onTaskClick={onTaskClick}
 						manualSort={manualSort}
 						onReorderTask={onReorderTask}
+						onStatusChange={onStatusChange}
+						canEdit={canEdit}
 					/>
 				);
 			})}

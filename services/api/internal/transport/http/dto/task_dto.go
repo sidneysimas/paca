@@ -1,11 +1,112 @@
 package dto
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	taskdom "github.com/paca/api/internal/domain/task"
 )
+
+// --- Optional JSON field types ----------------------------------------------
+// These types distinguish three states in a JSON PATCH body:
+//   - field absent  → Set=false (do not overwrite the stored value)
+//   - field = null  → Set=true, Value=nil  (explicitly clear the stored value)
+//   - field = value → Set=true, Value=non-nil (set the stored value)
+
+// OptionalUUID is a JSON-decodable field for nullable UUID columns.
+type OptionalUUID struct {
+	Set   bool
+	Value *uuid.UUID
+}
+
+// UnmarshalJSON implements json.Unmarshaler. It marks the field as Set and
+// decodes the value, treating JSON null as a nil pointer.
+func (o *OptionalUUID) UnmarshalJSON(data []byte) error {
+	o.Set = true
+	if string(data) == "null" {
+		o.Value = nil
+		return nil
+	}
+	var id uuid.UUID
+	if err := json.Unmarshal(data, &id); err != nil {
+		return fmt.Errorf("invalid uuid value: %w", err)
+	}
+	o.Value = &id
+	return nil
+}
+
+// Ptr returns a **uuid.UUID suitable for UpdateTaskInput:
+// nil when the field was absent, &nil when explicitly null, &&id when set.
+func (o OptionalUUID) Ptr() **uuid.UUID {
+	if !o.Set {
+		return nil
+	}
+	return &o.Value
+}
+
+// OptionalString is a JSON-decodable field for nullable string columns.
+type OptionalString struct {
+	Set   bool
+	Value *string
+}
+
+// UnmarshalJSON implements json.Unmarshaler. It marks the field as Set and
+// decodes the value, treating JSON null as a nil pointer.
+func (o *OptionalString) UnmarshalJSON(data []byte) error {
+	o.Set = true
+	if string(data) == "null" {
+		o.Value = nil
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return fmt.Errorf("invalid string value: %w", err)
+	}
+	o.Value = &s
+	return nil
+}
+
+// Ptr returns a **string for use in patch inputs: nil when absent, &nil when
+// explicitly null, or a pointer-to-pointer when set to a value.
+func (o OptionalString) Ptr() **string {
+	if !o.Set {
+		return nil
+	}
+	return &o.Value
+}
+
+// OptionalTime is a JSON-decodable field for nullable time columns.
+type OptionalTime struct {
+	Set   bool
+	Value *time.Time
+}
+
+// UnmarshalJSON implements json.Unmarshaler. It marks the field as Set and
+// decodes the value, treating JSON null as a nil pointer.
+func (o *OptionalTime) UnmarshalJSON(data []byte) error {
+	o.Set = true
+	if string(data) == "null" {
+		o.Value = nil
+		return nil
+	}
+	var t time.Time
+	if err := json.Unmarshal(data, &t); err != nil {
+		return fmt.Errorf("invalid time value: %w", err)
+	}
+	o.Value = &t
+	return nil
+}
+
+// Ptr returns a **time.Time for use in patch inputs: nil when absent, &nil
+// when explicitly null, or a pointer-to-pointer when set to a value.
+func (o OptionalTime) Ptr() **time.Time {
+	if !o.Set {
+		return nil
+	}
+	return &o.Value
+}
 
 // --- Task Type DTOs ---------------------------------------------------------
 
@@ -115,19 +216,20 @@ type CreateTaskRequest struct {
 }
 
 // UpdateTaskRequest is the body for PATCH /projects/:projectId/tasks/:taskId.
+// Only fields present in the JSON body are applied; absent fields are left unchanged.
 type UpdateTaskRequest struct {
 	Title        string         `json:"title"`
-	TaskTypeID   *uuid.UUID     `json:"task_type_id"`
-	StatusID     *uuid.UUID     `json:"status_id"`
-	SprintID     *uuid.UUID     `json:"sprint_id"`
-	ParentTaskID *uuid.UUID     `json:"parent_task_id"`
-	Description  *string        `json:"description"`
+	TaskTypeID   OptionalUUID   `json:"task_type_id"`
+	StatusID     OptionalUUID   `json:"status_id"`
+	SprintID     OptionalUUID   `json:"sprint_id"`
+	ParentTaskID OptionalUUID   `json:"parent_task_id"`
+	Description  OptionalString `json:"description"`
 	Importance   *int           `json:"importance"`
-	AssigneeID   *uuid.UUID     `json:"assignee_id"`
-	ReporterID   *uuid.UUID     `json:"reporter_id"`
+	AssigneeID   OptionalUUID   `json:"assignee_id"`
+	ReporterID   OptionalUUID   `json:"reporter_id"`
 	CustomFields map[string]any `json:"custom_fields"`
-	StartDate    *time.Time     `json:"start_date"`
-	DueDate      *time.Time     `json:"due_date"`
+	StartDate    OptionalTime   `json:"start_date"`
+	DueDate      OptionalTime   `json:"due_date"`
 	Tags         []string       `json:"tags"`
 }
 

@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/table";
 import { ApiErrorCode, getApiErrorCode } from "@/lib/api-error";
 import {
+	type CustomFieldDefinition,
 	createCustomFieldDefinition,
 	customFieldsQueryOptions,
-	type CustomFieldDefinition,
 	deleteCustomFieldDefinition,
 	type FieldType,
 	updateCustomFieldDefinition,
@@ -35,7 +35,13 @@ import { cn } from "@/lib/utils";
 
 // ── Field type utilities ──────────────────────────────────────────────────────
 
-const UI_FIELD_TYPES = ["Text", "Number", "Date", "Checkbox", "Select"] as const;
+const UI_FIELD_TYPES = [
+	"Text",
+	"Number",
+	"Date",
+	"Checkbox",
+	"Select",
+] as const;
 type UIFieldType = (typeof UI_FIELD_TYPES)[number];
 
 const UI_TO_API_FIELD_TYPE: Record<UIFieldType, FieldType> = {
@@ -367,7 +373,8 @@ function EditCustomFieldDialog({
 
 	const mutation = useMutation({
 		mutationFn: () => {
-			if (!field) return Promise.resolve(field as unknown as CustomFieldDefinition);
+			if (!field)
+				return Promise.resolve(field as unknown as CustomFieldDefinition);
 			return updateCustomFieldDefinition(projectId, field.id, {
 				display_name: displayName.trim(),
 				options: field.field_type === "select" ? options : undefined,
@@ -629,8 +636,8 @@ function DeleteCustomFieldDialog({
 						<span className="font-semibold text-foreground">
 							&ldquo;{field.display_name}&rdquo;
 						</span>
-						? Task data stored in this field will be lost. This action cannot
-						be undone.
+						? Task data stored in this field will be lost. This action cannot be
+						undone.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -682,7 +689,9 @@ export function CustomFieldsSettings({
 		customFieldsQueryOptions(projectId),
 	);
 	const [createOpen, setCreateOpen] = useState(false);
-	const [editField, setEditField] = useState<CustomFieldDefinition | null>(null);
+	const [editField, setEditField] = useState<CustomFieldDefinition | null>(
+		null,
+	);
 	const [deleteField, setDeleteField] = useState<CustomFieldDefinition | null>(
 		null,
 	);

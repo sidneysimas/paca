@@ -1830,3 +1830,162 @@ func TestIntegrationCustomFields_UnauthorizedReturns403(t *testing.T) {
 		t.Fatalf("expected 403, got %d (%s)", w.Code, w.Body.String())
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Partial-update (PATCH) semantics tests
+// ---------------------------------------------------------------------------
+
+// TestIntegrationTasks_PatchStatusPreservesSprintID is the regression test for
+// the bug where dragging a task to a new status in the sprint board caused it
+// to move to the product backlog.  Only status_id is sent in the body; the
+// sprint_id must remain unchanged.
+func TestIntegrationTasks_PatchStatusPreservesSprintID(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	statusID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)
+
+	// Create task with a sprint assignment.
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"title":     "Sprint Task",
+		"sprint_id": sprintID.String(),
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d (%s)", createW.Code, createW.Body.String())
+	}
+	taskID := taskIDFrom(t, "task", createW.Body.Bytes())
+
+	// PATCH with only status_id.
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+taskID, tok, map[string]any{
+		"status_id": statusID.String(),
+	}))
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("patch: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+
+	var patchEnv struct {
+		Data struct {
+			SprintID *string `json:"sprint_id"`
+			StatusID *string `json:"status_id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(patchW.Body.Bytes(), &patchEnv); err != nil {
+		t.Fatalf("decode patch response: %v", err)
+	}
+	if patchEnv.Data.SprintID == nil || *patchEnv.Data.SprintID != sprintID.String() {
+		t.Errorf("expected sprint_id=%s to be preserved, got %v", sprintID, patchEnv.Data.SprintID)
+	}
+	if patchEnv.Data.StatusID == nil || *patchEnv.Data.StatusID != statusID.String() {
+		t.Errorf("expected status_id=%s to be set, got %v", statusID, patchEnv.Data.StatusID)
+	}
+}
+
+// TestIntegrationTasks_PatchExplicitNullSprintIDClearsField verifies that
+// sending sprint_id=null explicitly moves the task to the backlog.
+func TestIntegrationTasks_PatchExplicitNullSprintIDClearsField(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)
+
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"title":     "Sprint Task",
+		"sprint_id": sprintID.String(),
+	}))
+	taskID := taskIDFrom(t, "task", createW.Body.Bytes())
+
+	// Explicitly clear sprint_id.
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+taskID, tok, map[string]any{
+		"sprint_id": nil,
+	}))
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("patch: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+
+	var patchEnv struct {
+		Data struct {
+			SprintID *string `json:"sprint_id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(patchW.Body.Bytes(), &patchEnv); err != nil {
+		t.Fatalf("decode patch response: %v", err)
+	}
+	if patchEnv.Data.SprintID != nil {
+		t.Errorf("expected sprint_id=null after explicit clear, got %v", *patchEnv.Data.SprintID)
+	}
+}
+
+// TestIntegrationTasks_PatchTitleOnlyPreservesAllFields verifies that updating
+// only the title leaves status_id, sprint_id, and description unchanged.
+func TestIntegrationTasks_PatchTitleOnlyPreservesAllFields(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	statusID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)
+
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"title":       "Original title",
+		"sprint_id":   sprintID.String(),
+		"status_id":   statusID.String(),
+		"description": "keep me",
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d (%s)", createW.Code, createW.Body.String())
+	}
+	taskID := taskIDFrom(t, "task", createW.Body.Bytes())
+
+	// PATCH title only.
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+taskID, tok, map[string]any{
+		"title": "Updated title",
+	}))
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("patch: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+
+	var env struct {
+		Data struct {
+			Title       string  `json:"title"`
+			SprintID    *string `json:"sprint_id"`
+			StatusID    *string `json:"status_id"`
+			Description *string `json:"description"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(patchW.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode patch response: %v", err)
+	}
+	if env.Data.Title != "Updated title" {
+		t.Errorf("expected Title=Updated title, got %q", env.Data.Title)
+	}
+	if env.Data.SprintID == nil || *env.Data.SprintID != sprintID.String() {
+		t.Errorf("expected sprint_id=%s preserved, got %v", sprintID, env.Data.SprintID)
+	}
+	if env.Data.StatusID == nil || *env.Data.StatusID != statusID.String() {
+		t.Errorf("expected status_id=%s preserved, got %v", statusID, env.Data.StatusID)
+	}
+	if env.Data.Description == nil || *env.Data.Description != "keep me" {
+		t.Errorf("expected description preserved, got %v", env.Data.Description)
+	}
+}

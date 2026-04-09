@@ -27,6 +27,8 @@ export function TaskRow({
 	const status = statuses.find((s) => s.id === task.status_id);
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: draggable list row with click; converting to button breaks drag-and-drop
+		// biome-ignore lint/a11y/useKeyWithClickEvents: drag-and-drop row; keyboard nav handled by parent
 		<div
 			onClick={onClick}
 			className={cn(

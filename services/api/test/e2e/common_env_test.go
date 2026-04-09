@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -48,6 +49,18 @@ const (
 	e2eRefreshSessionTTL = 24 * time.Hour
 )
 
+// sharedPGDSN and sharedRedisURL are populated once by TestMain so that every
+// newE2EEnv call reuses the same containers instead of spinning up new ones.
+var (
+	sharedPGDSN    string
+	sharedRedisURL string
+
+	// testDBSeq is incremented for each newE2EEnv call to generate a unique
+	// per-test Postgres database name. This ensures seed data (e.g. users)
+	// created in one test cannot conflict with another.
+	testDBSeq atomic.Int64
+)
+
 type e2eEnv struct {
 	ctx         context.Context
 	base        string
@@ -73,62 +86,34 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 
 	ctx := t.Context()
 
-	pgC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image: "postgres:16-alpine",
-			Env: map[string]string{
-				"POSTGRES_USER":     "test",
-				"POSTGRES_PASSWORD": "test",
-				"POSTGRES_DB":       "testdb",
-			},
-			ExposedPorts: []string{"5432/tcp"},
-			WaitingFor:   wait.ForLog("database system is ready to accept connections").WithStartupTimeout(60 * time.Second),
-		},
-		Started: true,
+	redisURL := sharedRedisURL
+
+	// Provision a per-test Postgres database so that seed data from one test
+	// (e.g. a user with a hardcoded username) cannot conflict with another.
+	seq := testDBSeq.Add(1)
+	testDBName := fmt.Sprintf("e2e_%04d", seq)
+	adminLog := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	adminGORM, adminErr := database.Open(sharedPGDSN, adminLog)
+	if adminErr != nil {
+		t.Fatalf("open admin db for test isolation: %v", adminErr)
+	}
+	if createErr := adminGORM.Exec(fmt.Sprintf(`CREATE DATABASE %q`, testDBName)).Error; createErr != nil {
+		if rawDB, _ := adminGORM.DB(); rawDB != nil {
+			_ = rawDB.Close()
+		}
+		t.Fatalf("create per-test database %q: %v", testDBName, createErr)
+	}
+	t.Cleanup(func() {
+		_ = adminGORM.Exec(
+			"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ? AND pid <> pg_backend_pid()",
+			testDBName,
+		).Error
+		_ = adminGORM.Exec(fmt.Sprintf(`DROP DATABASE IF EXISTS %q`, testDBName)).Error
+		if rawDB, _ := adminGORM.DB(); rawDB != nil {
+			_ = rawDB.Close()
+		}
 	})
-	if err != nil {
-		t.Fatalf("start postgres container: %v", err)
-	}
-	t.Cleanup(func() { _ = pgC.Terminate(context.Background()) })
-
-	redisC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "valkey/valkey:8-alpine",
-			ExposedPorts: []string{"6379/tcp"},
-			WaitingFor:   wait.ForListeningPort("6379/tcp").WithStartupTimeout(30 * time.Second),
-		},
-		Started: true,
-	})
-	if err != nil {
-		t.Fatalf("start redis container: %v", err)
-	}
-	t.Cleanup(func() { _ = redisC.Terminate(context.Background()) })
-
-	pgHost, err := pgC.Host(ctx)
-	if err != nil {
-		t.Fatalf("get postgres host: %v", err)
-	}
-	pgPort, err := pgC.MappedPort(ctx, "5432/tcp")
-	if err != nil {
-		t.Fatalf("get postgres port: %v", err)
-	}
-	if pgHost == "localhost" {
-		pgHost = "127.0.0.1"
-	}
-	pgDSN := fmt.Sprintf("postgresql://test:test@%s:%s/testdb?sslmode=disable", pgHost, pgPort.Port())
-
-	redisHost, err := redisC.Host(ctx)
-	if err != nil {
-		t.Fatalf("get redis host: %v", err)
-	}
-	redisPort, err := redisC.MappedPort(ctx, "6379/tcp")
-	if err != nil {
-		t.Fatalf("get redis port: %v", err)
-	}
-	if redisHost == "localhost" {
-		redisHost = "127.0.0.1"
-	}
-	redisURL := fmt.Sprintf("redis://%s:%s/0", redisHost, redisPort.Port())
+	pgDSN := strings.Replace(sharedPGDSN, "/testdb?", "/"+testDBName+"?", 1)
 
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -235,6 +220,118 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		viewRepo:    viewRepo,
 		viewSvc:     viewService,
 	}
+}
+
+// TestMain starts a single Postgres and Valkey container pair for the whole
+// E2E suite rather than once per test function. This keeps total container
+// startup time proportional to O(1) instead of O(N tests).
+func TestMain(m *testing.M) {
+	if os.Getenv("PACA_E2E") != "1" {
+		// Guard not set – individual tests will self-skip; just run them.
+		os.Exit(m.Run())
+	}
+
+	if !setupDockerEnvForMain() {
+		// Docker unavailable – individual tests will skip via checkDockerAvailable.
+		os.Exit(m.Run())
+	}
+
+	bgCtx := context.Background()
+
+	pgC, err := testcontainers.GenericContainer(bgCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image: "postgres:16-alpine",
+			Env: map[string]string{
+				"POSTGRES_USER":     "test",
+				"POSTGRES_PASSWORD": "test",
+				"POSTGRES_DB":       "testdb",
+			},
+			ExposedPorts: []string{"5432/tcp"},
+			WaitingFor:   wait.ForLog("database system is ready to accept connections").WithStartupTimeout(60 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FATAL: start postgres container: %v\n", err)
+		os.Exit(1)
+	}
+
+	redisC, err := testcontainers.GenericContainer(bgCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "valkey/valkey:8-alpine",
+			ExposedPorts: []string{"6379/tcp"},
+			WaitingFor:   wait.ForListeningPort("6379/tcp").WithStartupTimeout(30 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		_ = pgC.Terminate(bgCtx)
+		fmt.Fprintf(os.Stderr, "FATAL: start valkey container: %v\n", err)
+		os.Exit(1)
+	}
+
+	pgHost, _ := pgC.Host(bgCtx)
+	pgPort, _ := pgC.MappedPort(bgCtx, "5432/tcp")
+	if pgHost == "localhost" {
+		pgHost = "127.0.0.1"
+	}
+	sharedPGDSN = fmt.Sprintf("postgresql://test:test@%s:%s/testdb?sslmode=disable", pgHost, pgPort.Port())
+
+	redisHost, _ := redisC.Host(bgCtx)
+	redisPort, _ := redisC.MappedPort(bgCtx, "6379/tcp")
+	if redisHost == "localhost" {
+		redisHost = "127.0.0.1"
+	}
+	sharedRedisURL = fmt.Sprintf("redis://%s:%s/0", redisHost, redisPort.Port())
+
+	code := m.Run()
+
+	_ = pgC.Terminate(bgCtx)
+	_ = redisC.Terminate(bgCtx)
+
+	os.Exit(code)
+}
+
+// setupDockerEnvForMain mirrors checkDockerAvailable but operates outside a
+// *testing.T context, using os.Setenv instead of t.Setenv.
+// Returns false when no Docker socket can be found.
+func setupDockerEnvForMain() bool {
+	if dh := os.Getenv("DOCKER_HOST"); dh != "" {
+		if !strings.Contains(dh, "://") || strings.HasPrefix(dh, "unix://") {
+			socket := strings.TrimPrefix(dh, "unix://")
+			if _, err := os.Stat(socket); err == nil {
+				_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
+				return true
+			}
+			return false
+		}
+		return true
+	}
+
+	if socket := socketFromDockerContext(); socket != "" {
+		if _, err := os.Stat(socket); err == nil {
+			_ = os.Setenv("DOCKER_HOST", "unix://"+socket)
+			_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
+			return true
+		}
+	}
+
+	home, _ := os.UserHomeDir()
+	candidates := []string{
+		"/var/run/docker.sock",
+		filepath.Join(home, ".docker/run/docker.sock"),
+		filepath.Join(home, ".docker/desktop/docker.sock"),
+		filepath.Join(home, ".colima/default/docker.sock"),
+		filepath.Join(home, ".colima/docker.sock"),
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			_ = os.Setenv("DOCKER_HOST", "unix://"+p)
+			_ = os.Setenv("TESTCONTAINERS_RYUK_DISABLED", "true")
+			return true
+		}
+	}
+	return false
 }
 
 func checkDockerAvailable(t *testing.T) {

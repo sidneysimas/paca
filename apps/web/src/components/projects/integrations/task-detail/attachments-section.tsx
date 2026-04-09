@@ -78,6 +78,8 @@ export function AttachmentsSection({
 			)}
 
 			{/* Drop zone */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone with click to open picker; drag events are primary interaction */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: drag-and-drop file upload zone; keyboard via hidden file input */}
 			<div
 				onDragOver={(e) => {
 					e.preventDefault();

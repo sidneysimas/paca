@@ -335,18 +335,18 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	}
 
 	t, err := h.svc.UpdateTask(c.Request.Context(), taskID, taskdom.UpdateTaskInput{
-		TaskTypeID:   req.TaskTypeID,
-		StatusID:     req.StatusID,
-		SprintID:     req.SprintID,
-		ParentTaskID: req.ParentTaskID,
+		TaskTypeID:   req.TaskTypeID.Ptr(),
+		StatusID:     req.StatusID.Ptr(),
+		SprintID:     req.SprintID.Ptr(),
+		ParentTaskID: req.ParentTaskID.Ptr(),
 		Title:        req.Title,
-		Description:  req.Description,
+		Description:  req.Description.Ptr(),
 		Importance:   req.Importance,
-		AssigneeID:   req.AssigneeID,
-		ReporterID:   req.ReporterID,
+		AssigneeID:   req.AssigneeID.Ptr(),
+		ReporterID:   req.ReporterID.Ptr(),
 		CustomFields: req.CustomFields,
-		StartDate:    req.StartDate,
-		DueDate:      req.DueDate,
+		StartDate:    req.StartDate.Ptr(),
+		DueDate:      req.DueDate.Ptr(),
 		Tags:         req.Tags,
 	})
 	if err != nil {

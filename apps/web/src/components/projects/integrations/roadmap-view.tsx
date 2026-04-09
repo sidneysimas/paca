@@ -140,14 +140,12 @@ export function RoadmapView({
 										? taskTypes.find((t) => t.id === task.task_type_id)
 										: null;
 									return (
-										<div
+										<button
+											type="button"
 											key={task.id}
-											className="grid border-b border-border/20 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
+											className="grid w-full border-b border-border/20 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer text-left"
 											style={{ gridTemplateColumns: "minmax(220px, 35%) 1fr" }}
 											onClick={() => onTaskClick(task)}
-											onKeyDown={(e) => e.key === "Enter" && onTaskClick(task)}
-											role="button"
-											tabIndex={0}
 										>
 											{/* Left: task summary */}
 											<div className="flex items-center gap-2 px-4 py-2.5 border-r border-border/30 min-w-0">
@@ -174,7 +172,7 @@ export function RoadmapView({
 													style={barStyle}
 												/>
 											</div>
-										</div>
+										</button>
 									);
 								})}
 							</div>

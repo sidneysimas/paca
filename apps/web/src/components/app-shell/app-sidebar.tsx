@@ -457,10 +457,14 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 						<div className="flex flex-col gap-4 py-2">
 							{/* Name */}
 							<div className="flex flex-col gap-1.5">
-								<label className="text-sm font-medium">
+								<label
+									htmlFor="sprint-create-name"
+									className="text-sm font-medium"
+								>
 									Name <span className="text-destructive">*</span>
 								</label>
 								<input
+									id="sprint-create-name"
 									ref={nameRef}
 									value={sprintName}
 									onChange={(e) => setSprintName(e.target.value)}
@@ -475,10 +479,14 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 
 							{/* Goal */}
 							<div className="flex flex-col gap-1.5">
-								<label className="text-sm font-medium text-muted-foreground">
+								<label
+									htmlFor="sprint-create-goal"
+									className="text-sm font-medium text-muted-foreground"
+								>
 									Goal <span className="text-xs font-normal">(optional)</span>
 								</label>
 								<textarea
+									id="sprint-create-goal"
 									value={sprintGoal}
 									onChange={(e) => setSprintGoal(e.target.value)}
 									placeholder="What should this sprint achieve?"
@@ -490,11 +498,15 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 							{/* Dates */}
 							<div className="grid grid-cols-2 gap-3">
 								<div className="flex flex-col gap-1.5">
-									<label className="text-sm font-medium text-muted-foreground">
+									<label
+										htmlFor="sprint-create-start"
+										className="text-sm font-medium text-muted-foreground"
+									>
 										Start date{" "}
 										<span className="text-xs font-normal">(optional)</span>
 									</label>
 									<input
+										id="sprint-create-start"
 										type="date"
 										value={startDate}
 										onChange={(e) => setStartDate(e.target.value)}
@@ -502,11 +514,15 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 									/>
 								</div>
 								<div className="flex flex-col gap-1.5">
-									<label className="text-sm font-medium text-muted-foreground">
+									<label
+										htmlFor="sprint-create-end"
+										className="text-sm font-medium text-muted-foreground"
+									>
 										End date{" "}
 										<span className="text-xs font-normal">(optional)</span>
 									</label>
 									<input
+										id="sprint-create-end"
 										type="date"
 										value={endDate}
 										onChange={(e) => setEndDate(e.target.value)}

@@ -27,6 +27,8 @@ export function TaskCard({
 	const taskType = taskTypes.find((t) => t.id === task.task_type_id);
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: draggable card with click; converted to button would break drag-and-drop
+		// biome-ignore lint/a11y/useKeyWithClickEvents: drag-and-drop card; keyboard nav handled by parent
 		<div
 			data-task-id={task.id}
 			draggable={canEdit}

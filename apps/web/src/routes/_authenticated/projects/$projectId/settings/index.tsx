@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, LayoutList, Plus, Settings, Shield, Tag } from "lucide-react";
+import {
+	AlertTriangle,
+	LayoutList,
+	Plus,
+	Settings,
+	Shield,
+	Tag,
+} from "lucide-react";
 import { useState } from "react";
 import { CustomFieldsSettings } from "@/components/projects/settings/CustomFieldsSettings";
 import { DangerZone } from "@/components/projects/settings/DangerZone";

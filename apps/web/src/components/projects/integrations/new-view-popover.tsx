@@ -1,4 +1,4 @@
-import { KanbanSquare, List, Map, Plus } from "lucide-react";
+import { KanbanSquare, List, Map as MapIcon, Plus } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -16,7 +16,7 @@ interface NewViewPopoverProps {
 
 const layoutIcon = (l: ViewLayout) => {
 	if (l === "Board") return <KanbanSquare className="size-3.5" />;
-	if (l === "Roadmap") return <Map className="size-3.5" />;
+	if (l === "Roadmap") return <MapIcon className="size-3.5" />;
 	return <List className="size-3.5" />;
 };
 
@@ -56,8 +56,14 @@ export function NewViewPopover({ onSubmit, isPending }: NewViewPopoverProps) {
 				</div>
 				<div className="p-3 flex flex-col gap-3">
 					<div className="flex flex-col gap-1.5">
-						<label className="text-xs text-muted-foreground">View name</label>
+						<label
+							htmlFor="new-view-name"
+							className="text-xs text-muted-foreground"
+						>
+							View name
+						</label>
 						<input
+							id="new-view-name"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							onKeyDown={(e) => e.key === "Enter" && submit()}
@@ -66,7 +72,7 @@ export function NewViewPopover({ onSubmit, isPending }: NewViewPopoverProps) {
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<label className="text-xs text-muted-foreground">Layout</label>
+						<p className="text-xs text-muted-foreground">Layout</p>
 						<div className="flex gap-2">
 							{(["Board", "Table", "Roadmap"] as ViewLayout[]).map((l) => (
 								<button

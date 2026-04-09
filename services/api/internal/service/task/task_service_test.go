@@ -571,7 +571,278 @@ func TestListTasks_Pagination(t *testing.T) {
 	}
 }
 
-// -- CustomFieldDefinition fake repo methods --
+func TestGetTask_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	created, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID: projectID,
+		Title:     "Fetch me",
+	})
+
+	got, err := svc.GetTask(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.ID != created.ID {
+		t.Errorf("expected ID=%v, got %v", created.ID, got.ID)
+	}
+	if got.Title != "Fetch me" {
+		t.Errorf("expected Title=Fetch me, got %q", got.Title)
+	}
+}
+
+func TestGetTask_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.GetTask(ctx, uuid.New())
+	if err != taskdom.ErrTaskNotFound {
+		t.Errorf("expected ErrTaskNotFound, got %v", err)
+	}
+}
+
+func TestUpdateTask_AbsentFieldsPreserveValues(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	desc := "original desc"
+
+	task, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID:   projectID,
+		Title:       "My Task",
+		SprintID:    &sprintID,
+		Description: &desc,
+		Importance:  2,
+		Tags:        []string{"alpha"},
+	})
+
+	// Only update Title — all other fields must remain unchanged.
+	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+		Title: "My Updated Task",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Title != "My Updated Task" {
+		t.Errorf("expected updated title, got %q", updated.Title)
+	}
+	if updated.SprintID == nil || *updated.SprintID != sprintID {
+		t.Errorf("expected SprintID=%v to be preserved, got %v", sprintID, updated.SprintID)
+	}
+	if updated.Description == nil || *updated.Description != desc {
+		t.Errorf("expected Description to be preserved, got %v", updated.Description)
+	}
+	if updated.Importance != 2 {
+		t.Errorf("expected Importance=2 to be preserved, got %d", updated.Importance)
+	}
+	if len(updated.Tags) != 1 || updated.Tags[0] != "alpha" {
+		t.Errorf("expected Tags to be preserved, got %v", updated.Tags)
+	}
+}
+
+func TestUpdateTask_NullSprintIDClearsField(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+	sprintID := uuid.New()
+
+	task, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID: projectID,
+		Title:     "Sprint Task",
+		SprintID:  &sprintID,
+	})
+
+	// Explicitly set sprint_id to nil (remove from sprint → backlog).
+	nilPtr := (*uuid.UUID)(nil)
+	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+		SprintID: &nilPtr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.SprintID != nil {
+		t.Errorf("expected SprintID=nil after explicit clear, got %v", updated.SprintID)
+	}
+}
+
+func TestUpdateTask_StatusChangePreservesSprintID(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	statusID := uuid.New()
+
+	task, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID: projectID,
+		Title:     "Sprint Task",
+		SprintID:  &sprintID,
+	})
+
+	// Simulate a drag-to-change-status: only StatusID is supplied.
+	statusIDPtr := &statusID
+	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+		StatusID: &statusIDPtr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.StatusID == nil || *updated.StatusID != statusID {
+		t.Errorf("expected StatusID=%v, got %v", statusID, updated.StatusID)
+	}
+	if updated.SprintID == nil || *updated.SprintID != sprintID {
+		t.Errorf("expected SprintID=%v to be preserved, got %v", sprintID, updated.SprintID)
+	}
+}
+
+func TestUpdateTaskStatus_NameUpdate(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "To Do",
+		Position:  0,
+		Category:  taskdom.StatusCategoryTodo,
+	})
+
+	updated, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+		Name: "Backlog",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Name != "Backlog" {
+		t.Errorf("expected Name=Backlog, got %q", updated.Name)
+	}
+}
+
+func TestUpdateTaskStatus_CategoryUpdate(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Todo",
+		Position:  0,
+		Category:  taskdom.StatusCategoryTodo,
+	})
+
+	newCat := taskdom.StatusCategoryInProgress
+	updated, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+		Category: &newCat,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Category != taskdom.StatusCategoryInProgress {
+		t.Errorf("expected category inprogress, got %q", updated.Category)
+	}
+}
+
+func TestUpdateTaskStatus_InvalidCategoryReturnsError(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Todo",
+		Position:  0,
+		Category:  taskdom.StatusCategoryTodo,
+	})
+
+	badCat := taskdom.StatusCategory("not-real")
+	_, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+		Category: &badCat,
+	})
+	if err != taskdom.ErrStatusCategoryInvalid {
+		t.Errorf("expected ErrStatusCategoryInvalid, got %v", err)
+	}
+}
+
+func TestUpdateTaskStatus_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	newPos := 1
+	_, err := svc.UpdateTaskStatus(ctx, uuid.New(), taskdom.UpdateTaskStatusInput{Position: &newPos})
+	if err != taskdom.ErrStatusNotFound {
+		t.Errorf("expected ErrStatusNotFound, got %v", err)
+	}
+}
+
+func TestDeleteTaskStatus_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Done",
+		Position:  10,
+		Category:  taskdom.StatusCategoryDone,
+	})
+
+	if err := svc.DeleteTaskStatus(ctx, st.ID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err := svc.GetTaskStatus(ctx, st.ID)
+	if err != taskdom.ErrStatusNotFound {
+		t.Errorf("expected ErrStatusNotFound after delete, got %v", err)
+	}
+}
+
+func TestDeleteTaskStatus_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	err := svc.DeleteTaskStatus(ctx, uuid.New())
+	if err != taskdom.ErrStatusNotFound {
+		t.Errorf("expected ErrStatusNotFound, got %v", err)
+	}
+}
+
+func TestListTaskStatuses_MultiProject(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	p1 := uuid.New()
+	p2 := uuid.New()
+
+	_, _ = svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: p1, Name: "A", Category: taskdom.StatusCategoryTodo})
+	_, _ = svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: p1, Name: "B", Category: taskdom.StatusCategoryDone})
+	_, _ = svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: p2, Name: "C", Category: taskdom.StatusCategoryTodo})
+
+	p1Statuses, err := svc.ListTaskStatuses(ctx, p1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(p1Statuses) != 2 {
+		t.Errorf("expected 2 statuses for p1, got %d", len(p1Statuses))
+	}
+
+	p2Statuses, _ := svc.ListTaskStatuses(ctx, p2)
+	if len(p2Statuses) != 1 {
+		t.Errorf("expected 1 status for p2, got %d", len(p2Statuses))
+	}
+}
 
 func (r *fakeTaskRepo) ListCustomFieldDefinitions(_ context.Context, projectID uuid.UUID) ([]*taskdom.CustomFieldDefinition, error) {
 	r.mu.RLock()

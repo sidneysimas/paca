@@ -13,10 +13,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	type ProjectRole,
-	projectRolesQueryOptions,
-} from "@/lib/project-api";
+import { type ProjectRole, projectRolesQueryOptions } from "@/lib/project-api";
 
 function activePermissions(perms: Record<string, unknown>): string[] {
 	return Object.entries(perms)
