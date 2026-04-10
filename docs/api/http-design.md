@@ -158,6 +158,7 @@ These routes already exist in the Go API service.
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single sprint view configuration. |
 | `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.write` | Update a sprint view's name or config. |
 | `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a sprint view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
+| `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/positions` | Access token (fresh) + `sprints.write` | Reorder all views for a sprint. Body: `{ "view_ids": ["<uuid>", ...] }` — must include every view ID in the desired tab order. Returns `400 VIEW_REORDER_INVALID` if the list is missing or contains unknown IDs. |
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a view. |
 | `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a view. |
 | `GET` | `/api/v1/projects/:projectId/product-backlog` | Access token (fresh) + `tasks.read` | List tasks not yet assigned to any sprint (product backlog view). |
@@ -166,6 +167,7 @@ These routes already exist in the Go API service.
 | `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single product-backlog view configuration. |
 | `PATCH` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Update a product-backlog view's name or config. |
 | `DELETE` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a product-backlog view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
+| `PUT` | `/api/v1/projects/:projectId/product-backlog/views/positions` | Access token (fresh) + `sprints.write` | Reorder all product-backlog views for a project. Body: `{ "view_ids": ["<uuid>", ...] }` — must include every view ID in the desired tab order. Returns `400 VIEW_REORDER_INVALID` if the list is missing or contains unknown IDs. |
 | `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a product-backlog view. |
 | `PUT` | `/api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a product-backlog view. |
 | `GET` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.read` | List tasks with optional filters (`sprint_id`, `status_id`, `assignee_id`). Pass `view_id` to include `view_position` and `view_group_key` in each task item. |

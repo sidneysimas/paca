@@ -161,3 +161,11 @@ func (r UpdateViewRequest) ToUpdateInput() sprintdom.UpdateViewInput {
 		Position: r.Position,
 	}
 }
+
+// --- Reorder DTOs -----------------------------------------------------------
+
+// ReorderViewsRequest is the body for PUT /views/positions.
+// ViewIDs must list every view for the integration in the desired tab order.
+type ReorderViewsRequest struct {
+	ViewIDs []uuid.UUID `json:"view_ids" binding:"required,min=1"`
+}

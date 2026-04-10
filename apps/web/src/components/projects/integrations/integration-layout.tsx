@@ -34,6 +34,8 @@ import {
 	layoutToViewType,
 	moveBacklogTaskPosition,
 	moveTaskPosition,
+	reorderBacklogViews,
+	reorderViews,
 	sprintTasksQueryOptions,
 	type Task,
 	updateBacklogView,
@@ -385,6 +387,43 @@ export function IntegrationLayout({
 		},
 	});
 
+	const reorderViewMutation = useMutation({
+		mutationFn: (orderedIds: string[]) =>
+			sprintId
+				? reorderViews(projectId, sprintId, orderedIds)
+				: reorderBacklogViews(projectId, orderedIds),
+		onSuccess: () => qc.invalidateQueries({ queryKey: viewsQueryKey }),
+	});
+
+	// ── View tab drag-to-reorder ──────────────────────────────────────────────
+	const [tabDragId, setTabDragId] = useState<string | null>(null);
+	const [tabDragOverId, setTabDragOverId] = useState<string | null>(null);
+	const [localViews, setLocalViews] = useState<IntegrationView[] | null>(null);
+
+	// Reset optimistic order whenever the server list refreshes and we're not mid-drag
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset local order when server views refresh
+	useEffect(() => {
+		if (!tabDragId) setLocalViews(null);
+	}, [views]);
+
+	const displayViews = localViews ?? views;
+
+	const handleTabDrop = (targetId: string, draggedId: string) => {
+		if (!draggedId || draggedId === targetId) return;
+		const current = localViews ?? views;
+		const srcIdx = current.findIndex((v) => v.id === draggedId);
+		const tgtIdx = current.findIndex((v) => v.id === targetId);
+		if (srcIdx === -1 || tgtIdx === -1) return;
+		const next = [...current];
+		const [moved] = next.splice(srcIdx, 1);
+		next.splice(tgtIdx, 0, moved);
+		// Assign fresh sequential positions so the list renders in the new order
+		const withPositions = next.map((v, i) => ({ ...v, position: i }));
+		setLocalViews(withPositions);
+		// Single atomic API call with the full ordered ID list
+		reorderViewMutation.mutate(withPositions.map((v) => v.id));
+	};
+
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
 			{/* Header */}
@@ -400,15 +439,47 @@ export function IntegrationLayout({
 			{/* View tab bar */}
 			<div className="flex shrink-0 items-center gap-1 border-b border-border/40 px-4">
 				<div className="flex items-center gap-0.5 overflow-x-auto overflow-y-hidden flex-1 min-w-0">
-					{views.map((view) => {
+					{displayViews.map((view) => {
 						const isActive = view.id === activeView?.id;
+						const isDragOver =
+							tabDragOverId === view.id && tabDragId !== view.id;
 						return (
+							// biome-ignore lint/a11y/noStaticElementInteractions: draggable tab; pointer events only
 							<div
 								key={view.id}
+								draggable={canManageViews}
 								className={cn(
-									"relative flex items-center shrink-0",
+									"relative flex items-center shrink-0 transition-all duration-100",
 									isActive && "border-b-2 border-primary -mb-px",
+									isDragOver && "border-l-2 border-primary/60",
+									tabDragId === view.id && "opacity-40",
+									canManageViews && "cursor-grab active:cursor-grabbing",
 								)}
+								onDragStart={(e) => {
+									setTabDragId(view.id);
+									e.dataTransfer.effectAllowed = "move";
+									e.dataTransfer.setData("text/plain", view.id);
+								}}
+								onDragEnd={() => {
+									setTabDragId(null);
+									setTabDragOverId(null);
+								}}
+								onDragOver={(e) => {
+									if (!canManageViews) return;
+									e.preventDefault();
+									e.dataTransfer.dropEffect = "move";
+									setTabDragOverId(view.id);
+								}}
+								onDragLeave={() => {
+									if (tabDragOverId === view.id) setTabDragOverId(null);
+								}}
+								onDrop={(e) => {
+									e.preventDefault();
+									const draggedId = e.dataTransfer.getData("text/plain");
+									setTabDragId(null);
+									setTabDragOverId(null);
+									handleTabDrop(view.id, draggedId);
+								}}
 							>
 								<button
 									type="button"

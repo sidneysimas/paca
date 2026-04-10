@@ -143,6 +143,19 @@ func (r *fakeViewRepo) ListTaskPositions(_ context.Context, viewID uuid.UUID) ([
 	return out, nil
 }
 
+func (r *fakeViewRepo) ReorderViews(_ context.Context, items []sprintdom.ViewReorderItem) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, item := range items {
+		if v, ok := r.views[item.ID]; ok {
+			cp := *v
+			cp.Position = item.Position
+			r.views[item.ID] = &cp
+		}
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -553,5 +566,101 @@ func TestViewService_BacklogAndSprintViewsDontInterfere(t *testing.T) {
 	// Deleting backlog view (1 backlog view) → ErrViewIsLastView
 	if err := svc.DeleteView(ctx, bv.ID); err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView for sole backlog view, got %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ReorderViews tests
+// ---------------------------------------------------------------------------
+
+func TestViewService_ReorderViews_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	sprintID := uuid.New()
+	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: uuidPtr(sprintID), Name: "A", ViewType: sprintdom.ViewTypeTable})
+	v2, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: uuidPtr(sprintID), Name: "B", ViewType: sprintdom.ViewTypeBoard})
+	v3, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: uuidPtr(sprintID), Name: "C", ViewType: sprintdom.ViewTypeRoadmap})
+
+	// Reorder: C, A, B
+	if err := svc.ReorderViews(ctx, sprintID, []uuid.UUID{v3.ID, v1.ID, v2.ID}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	updated1, _ := svc.GetView(ctx, v1.ID)
+	updated2, _ := svc.GetView(ctx, v2.ID)
+	updated3, _ := svc.GetView(ctx, v3.ID)
+
+	if updated3.Position != 0 {
+		t.Errorf("C: expected position=0, got %d", updated3.Position)
+	}
+	if updated1.Position != 1 {
+		t.Errorf("A: expected position=1, got %d", updated1.Position)
+	}
+	if updated2.Position != 2 {
+		t.Errorf("B: expected position=2, got %d", updated2.Position)
+	}
+}
+
+func TestViewService_ReorderViews_CountMismatch(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.NewViewService(newFakeViewRepo())
+
+	sprintID := uuid.New()
+	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: uuidPtr(sprintID), Name: "A", ViewType: sprintdom.ViewTypeTable})
+	svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: uuidPtr(sprintID), Name: "B", ViewType: sprintdom.ViewTypeBoard})
+
+	// Only one ID provided for two views
+	err := svc.ReorderViews(ctx, sprintID, []uuid.UUID{v1.ID})
+	if err != sprintdom.ErrViewReorderInvalid {
+		t.Errorf("expected ErrViewReorderInvalid, got %v", err)
+	}
+}
+
+func TestViewService_ReorderViews_UnknownID(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.NewViewService(newFakeViewRepo())
+
+	sprintID := uuid.New()
+	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: uuidPtr(sprintID), Name: "A", ViewType: sprintdom.ViewTypeTable})
+
+	err := svc.ReorderViews(ctx, sprintID, []uuid.UUID{v1.ID, uuid.New()})
+	if err != sprintdom.ErrViewReorderInvalid {
+		t.Errorf("expected ErrViewReorderInvalid, got %v", err)
+	}
+}
+
+func TestViewService_ReorderViews_EmptyList(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.NewViewService(newFakeViewRepo())
+
+	sprintID := uuid.New()
+	// No views exist; empty list should succeed (0 == 0)
+	if err := svc.ReorderViews(ctx, sprintID, []uuid.UUID{}); err != nil {
+		t.Errorf("expected nil for empty+empty, got %v", err)
+	}
+}
+
+func TestViewService_ReorderBacklogViews_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	projectID := uuid.New()
+	b1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "X", ViewType: sprintdom.ViewTypeTable})
+	b2, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "Y", ViewType: sprintdom.ViewTypeBoard})
+
+	if err := svc.ReorderBacklogViews(ctx, projectID, []uuid.UUID{b2.ID, b1.ID}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	updB1, _ := svc.GetView(ctx, b1.ID)
+	updB2, _ := svc.GetView(ctx, b2.ID)
+	if updB2.Position != 0 {
+		t.Errorf("Y: expected position=0, got %d", updB2.Position)
+	}
+	if updB1.Position != 1 {
+		t.Errorf("X: expected position=1, got %d", updB1.Position)
 	}
 }

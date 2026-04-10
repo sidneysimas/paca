@@ -216,6 +216,14 @@ func (f *fakeViewSvcTask) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*
 	return nil, nil
 }
 
+func (f *fakeViewSvcTask) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeViewSvcTask) ReorderBacklogViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Router helper
 // ---------------------------------------------------------------------------

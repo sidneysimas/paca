@@ -69,6 +69,7 @@ export interface IntegrationView {
 	view_type: ViewType;
 	layout: ViewLayout;
 	config?: ViewConfig;
+	position: number;
 }
 
 // ── View shape helpers ─────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ export async function updateView(
 	projectId: string,
 	sprintId: string,
 	viewId: string,
-	payload: Partial<{ name: string; view_type: ViewType; config: ViewConfig }>,
+	payload: Partial<{ name: string; view_type: ViewType; config: ViewConfig; position: number }>,
 ): Promise<IntegrationView> {
 	const { data } = await apiClient.instance.patch<
 		SuccessEnvelope<Omit<IntegrationView, "layout">>
@@ -160,7 +161,7 @@ export async function createBacklogView(
 export async function updateBacklogView(
 	projectId: string,
 	viewId: string,
-	payload: Partial<{ name: string; view_type: ViewType; config: ViewConfig }>,
+	payload: Partial<{ name: string; view_type: ViewType; config: ViewConfig; position: number }>,
 ): Promise<IntegrationView> {
 	const { data } = await apiClient.instance.patch<
 		SuccessEnvelope<Omit<IntegrationView, "layout">>
@@ -199,6 +200,27 @@ export async function moveBacklogTaskPosition(
 	await apiClient.instance.put(
 		`/projects/${projectId}/product-backlog/views/${viewId}/task-positions/${taskId}`,
 		payload,
+	);
+}
+
+export async function reorderViews(
+	projectId: string,
+	sprintId: string,
+	viewIds: string[],
+): Promise<void> {
+	await apiClient.instance.put(
+		`/projects/${projectId}/sprints/${sprintId}/views/positions`,
+		{ view_ids: viewIds },
+	);
+}
+
+export async function reorderBacklogViews(
+	projectId: string,
+	viewIds: string[],
+): Promise<void> {
+	await apiClient.instance.put(
+		`/projects/${projectId}/product-backlog/views/positions`,
+		{ view_ids: viewIds },
 	);
 }
 

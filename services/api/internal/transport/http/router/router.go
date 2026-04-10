@@ -308,6 +308,12 @@ func New(deps Deps) *gin.Engine {
 							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
 							deps.View.CreateView,
 						)
+						// Static path /positions must be registered before /:viewId so
+						// Gin's radix tree resolves it as a fixed segment.
+						views.PUT("/positions",
+							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
+							deps.View.ReorderViews,
+						)
 						views.GET("/:viewId",
 							httpmw.RequireAnyPermissions(deps.Authorizer,
 								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
@@ -362,6 +368,11 @@ func New(deps Deps) *gin.Engine {
 						backlogViews.POST("",
 							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
 							deps.View.CreateBacklogView,
+						)
+						// Static path /positions must be registered before /:viewId.
+						backlogViews.PUT("/positions",
+							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
+							deps.View.ReorderBacklogViews,
 						)
 						backlogViews.GET("/:viewId",
 							httpmw.RequireAnyPermissions(deps.Authorizer,

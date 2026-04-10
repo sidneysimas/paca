@@ -91,6 +91,12 @@ func (f *fakeViewSvcH) MoveTask(_ context.Context, _ uuid.UUID, _ sprintdom.Move
 func (f *fakeViewSvcH) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
 	return nil, nil
 }
+func (f *fakeViewSvcH) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+func (f *fakeViewSvcH) ReorderBacklogViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
 
 // ---------------------------------------------------------------------------
 // Tests

@@ -49,6 +49,14 @@ type ViewService interface {
 
 	// ListTaskPositions returns the manual ordering for all tasks in a view.
 	ListTaskPositions(ctx context.Context, viewID uuid.UUID) ([]*ViewTaskPosition, error)
+
+	// ReorderViews reorders all views belonging to a sprint.  viewIDs must
+	// contain every view ID for that sprint in the desired order.
+	ReorderViews(ctx context.Context, sprintID uuid.UUID, viewIDs []uuid.UUID) error
+
+	// ReorderBacklogViews reorders all product-backlog views for a project.
+	// viewIDs must contain every view ID for that project in the desired order.
+	ReorderBacklogViews(ctx context.Context, projectID uuid.UUID, viewIDs []uuid.UUID) error
 }
 
 // CreateViewInput carries fields required to create a sprint view.

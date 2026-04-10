@@ -154,6 +154,19 @@ func (r *fakeViewRepoIT) ListTaskPositions(_ context.Context, viewID uuid.UUID) 
 	return out, nil
 }
 
+func (r *fakeViewRepoIT) ReorderViews(_ context.Context, items []sprintdom.ViewReorderItem) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, item := range items {
+		if v, ok := r.views[item.ID]; ok {
+			cp := *v
+			cp.Position = item.Position
+			r.views[item.ID] = &cp
+		}
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Router builder
 // ---------------------------------------------------------------------------
@@ -717,5 +730,186 @@ func TestIntegrationBacklogViews_AuthzGuard(t *testing.T) {
 	}))
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", w.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Reorder sprint views
+// ---------------------------------------------------------------------------
+
+func TestIntegrationViews_Reorder(t *testing.T) {
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsRead, authz.PermissionSprintsWrite},
+		},
+	}
+	sprintRepo := newFakeSprintRepoIT()
+	viewRepo := newFakeViewRepoIT()
+	r := buildViewTestRouter(viewRepo, sprintRepo, store)
+	tok := issueViewToken(t, uuid.NewString())
+	sprintID := seedSprintIT(t, sprintRepo, projectID)
+
+	base := fmt.Sprintf("/api/v1/projects/%s/sprints/%s/views", projectID, sprintID)
+
+	// Create three views
+	w1 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Alpha", "view_type": "table"}))
+	if w1.Code != http.StatusCreated {
+		t.Fatalf("create v1: expected 201, got %d", w1.Code)
+	}
+	id1 := viewIDFrom(t, w1.Body.Bytes())
+
+	w2 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Beta", "view_type": "board"}))
+	if w2.Code != http.StatusCreated {
+		t.Fatalf("create v2: expected 201, got %d", w2.Code)
+	}
+	id2 := viewIDFrom(t, w2.Body.Bytes())
+
+	w3 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Gamma", "view_type": "roadmap"}))
+	if w3.Code != http.StatusCreated {
+		t.Fatalf("create v3: expected 201, got %d", w3.Code)
+	}
+	id3 := viewIDFrom(t, w3.Body.Bytes())
+
+	// Reorder: Gamma(id3), Alpha(id1), Beta(id2)
+	reorderW := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/positions", tok, map[string]any{
+		"view_ids": []string{id3, id1, id2},
+	}))
+	if reorderW.Code != http.StatusNoContent {
+		t.Fatalf("reorder: expected 204, got %d (%s)", reorderW.Code, reorderW.Body.String())
+	}
+
+	// Verify positions via individual GETs
+	decodePosition := func(body []byte) int {
+		var env struct {
+			Data map[string]any `json:"data"`
+		}
+		json.Unmarshal(body, &env)
+		pos, _ := env.Data["position"].(float64)
+		return int(pos)
+	}
+
+	g1 := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"/"+id1, tok, nil))
+	g2 := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"/"+id2, tok, nil))
+	g3 := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"/"+id3, tok, nil))
+
+	if p := decodePosition(g3.Body.Bytes()); p != 0 {
+		t.Errorf("Gamma: expected position=0, got %d", p)
+	}
+	if p := decodePosition(g1.Body.Bytes()); p != 1 {
+		t.Errorf("Alpha: expected position=1, got %d", p)
+	}
+	if p := decodePosition(g2.Body.Bytes()); p != 2 {
+		t.Errorf("Beta: expected position=2, got %d", p)
+	}
+}
+
+func TestIntegrationViews_Reorder_MismatchReturns400(t *testing.T) {
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsRead, authz.PermissionSprintsWrite},
+		},
+	}
+	sprintRepo := newFakeSprintRepoIT()
+	viewRepo := newFakeViewRepoIT()
+	r := buildViewTestRouter(viewRepo, sprintRepo, store)
+	tok := issueViewToken(t, uuid.NewString())
+	sprintID := seedSprintIT(t, sprintRepo, projectID)
+	base := fmt.Sprintf("/api/v1/projects/%s/sprints/%s/views", projectID, sprintID)
+
+	w1 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Only", "view_type": "table"}))
+	id1 := viewIDFrom(t, w1.Body.Bytes())
+
+	// Send two IDs when only one exists
+	reorderW := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/positions", tok, map[string]any{
+		"view_ids": []string{id1, uuid.NewString()},
+	}))
+	if reorderW.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d (%s)", reorderW.Code, reorderW.Body.String())
+	}
+	if code := decodeErrorCode(t, reorderW); code != "VIEW_REORDER_INVALID" {
+		t.Errorf("expected VIEW_REORDER_INVALID, got %q", code)
+	}
+}
+
+func TestIntegrationViews_Reorder_AuthzGuard(t *testing.T) {
+	projectID := uuid.New()
+	// SprintsRead only — no SprintsWrite
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsRead},
+		},
+	}
+	sprintRepo := newFakeSprintRepoIT()
+	viewRepo := newFakeViewRepoIT()
+	r := buildViewTestRouter(viewRepo, sprintRepo, store)
+	tok := issueViewToken(t, uuid.NewString())
+	sprintID := seedSprintIT(t, sprintRepo, projectID)
+	base := fmt.Sprintf("/api/v1/projects/%s/sprints/%s/views", projectID, sprintID)
+
+	reorderW := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/positions", tok, map[string]any{
+		"view_ids": []string{uuid.NewString()},
+	}))
+	if reorderW.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", reorderW.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Reorder backlog views
+// ---------------------------------------------------------------------------
+
+func TestIntegrationBacklogViews_Reorder(t *testing.T) {
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsRead, authz.PermissionSprintsWrite},
+		},
+	}
+	sprintRepo := newFakeSprintRepoIT()
+	viewRepo := newFakeViewRepoIT()
+	r := buildViewTestRouter(viewRepo, sprintRepo, store)
+	tok := issueViewToken(t, uuid.NewString())
+
+	base := fmt.Sprintf("/api/v1/projects/%s/product-backlog/views", projectID)
+
+	w1 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "P", "view_type": "table"}))
+	if w1.Code != http.StatusCreated {
+		t.Fatalf("create backlog v1: expected 201, got %d", w1.Code)
+	}
+	bid1 := viewIDFrom(t, w1.Body.Bytes())
+
+	w2 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Q", "view_type": "board"}))
+	if w2.Code != http.StatusCreated {
+		t.Fatalf("create backlog v2: expected 201, got %d", w2.Code)
+	}
+	bid2 := viewIDFrom(t, w2.Body.Bytes())
+
+	// Reorder: Q before P
+	reorderW := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/positions", tok, map[string]any{
+		"view_ids": []string{bid2, bid1},
+	}))
+	if reorderW.Code != http.StatusNoContent {
+		t.Fatalf("reorder backlog: expected 204, got %d (%s)", reorderW.Code, reorderW.Body.String())
+	}
+
+	decodePosition := func(body []byte) int {
+		var env struct {
+			Data map[string]any `json:"data"`
+		}
+		json.Unmarshal(body, &env)
+		pos, _ := env.Data["position"].(float64)
+		return int(pos)
+	}
+
+	gP := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"/"+bid1, tok, nil))
+	gQ := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"/"+bid2, tok, nil))
+
+	if p := decodePosition(gQ.Body.Bytes()); p != 0 {
+		t.Errorf("Q: expected position=0, got %d", p)
+	}
+	if p := decodePosition(gP.Body.Bytes()); p != 1 {
+		t.Errorf("P: expected position=1, got %d", p)
 	}
 }

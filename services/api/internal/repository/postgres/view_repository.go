@@ -207,6 +207,22 @@ func (r *ViewRepository) UpsertTaskPosition(ctx context.Context, pos *sprintdom.
 	return nil
 }
 
+// ReorderViews bulk-updates the position column for multiple views inside a
+// single transaction.  Each item maps a view ID to its new position value.
+func (r *ViewRepository) ReorderViews(ctx context.Context, items []sprintdom.ViewReorderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			res := tx.Model(&sprintViewRecord{}).
+				Where("id = ?", item.ID.String()).
+				Update("position", item.Position)
+			if res.Error != nil {
+				return fmt.Errorf("view repo: reorder view %s: %w", item.ID, res.Error)
+			}
+		}
+		return nil
+	})
+}
+
 // ListTaskPositions returns all manual positions for a view ordered by position ASC.
 func (r *ViewRepository) ListTaskPositions(ctx context.Context, viewID uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
 	var records []viewTaskPositionRecord

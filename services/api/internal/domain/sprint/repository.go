@@ -39,4 +39,14 @@ type ViewRepository interface {
 	// ListTaskPositions returns all manual positions for a view, ordered by
 	// position ASC.
 	ListTaskPositions(ctx context.Context, viewID uuid.UUID) ([]*ViewTaskPosition, error)
+
+	// ReorderViews bulk-updates the position of multiple views in a single
+	// transaction.  items must contain one entry per view being repositioned.
+	ReorderViews(ctx context.Context, items []ViewReorderItem) error
+}
+
+// ViewReorderItem carries the new position for a single view.
+type ViewReorderItem struct {
+	ID       uuid.UUID
+	Position int
 }

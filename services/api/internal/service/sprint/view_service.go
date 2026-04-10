@@ -149,3 +149,43 @@ func (s *ViewService) ListTaskPositions(ctx context.Context, viewID uuid.UUID) (
 	}
 	return s.repo.ListTaskPositions(ctx, viewID)
 }
+
+// ReorderViews reorders all views belonging to a sprint.  viewIDs must contain
+// exactly the IDs of all views for that sprint in the desired display order.
+func (s *ViewService) ReorderViews(ctx context.Context, sprintID uuid.UUID, viewIDs []uuid.UUID) error {
+	existing, err := s.repo.ListViews(ctx, sprintID)
+	if err != nil {
+		return err
+	}
+	return s.validateAndReorder(ctx, existing, viewIDs)
+}
+
+// ReorderBacklogViews reorders all product-backlog views for a project.
+// viewIDs must contain exactly the IDs of all backlog views in the desired order.
+func (s *ViewService) ReorderBacklogViews(ctx context.Context, projectID uuid.UUID, viewIDs []uuid.UUID) error {
+	existing, err := s.repo.ListBacklogViews(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	return s.validateAndReorder(ctx, existing, viewIDs)
+}
+
+// validateAndReorder checks that viewIDs exactly matches the IDs of existing
+// views (same count, no unknowns) then persists the new positions.
+func (s *ViewService) validateAndReorder(ctx context.Context, existing []*sprintdom.SprintView, viewIDs []uuid.UUID) error {
+	if len(viewIDs) != len(existing) {
+		return sprintdom.ErrViewReorderInvalid
+	}
+	existingSet := make(map[uuid.UUID]struct{}, len(existing))
+	for _, v := range existing {
+		existingSet[v.ID] = struct{}{}
+	}
+	items := make([]sprintdom.ViewReorderItem, 0, len(viewIDs))
+	for i, id := range viewIDs {
+		if _, ok := existingSet[id]; !ok {
+			return sprintdom.ErrViewReorderInvalid
+		}
+		items = append(items, sprintdom.ViewReorderItem{ID: id, Position: i})
+	}
+	return s.repo.ReorderViews(ctx, items)
+}

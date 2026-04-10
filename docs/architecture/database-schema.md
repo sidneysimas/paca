@@ -132,9 +132,11 @@ Table sprints {
 
 Table sprint_views {
   id uuid [primary key]
-  sprint_id uuid
+  sprint_id uuid [null, note: 'null for product-backlog (project-level) views; set for sprint views']
+  project_id uuid [not null, ref: > projects.id]
   name varchar
   view_type varchar [not null, note: 'Layout: table | board | roadmap']
+  position integer [not null, default: 0, note: 'Zero-based tab order within the integration; lower = further left in the tab bar. Updated on drag-to-reorder.']
   config jsonb [note: '''
     View display settings.  All keys are optional; unset keys fall back to
     per-project or system defaults.
@@ -240,7 +242,6 @@ Ref: projects.id < tasks.project_id
 Ref: projects.id < sprints.project_id
 Ref: sprints.id < tasks.sprint_id
 Ref: tasks.id < tasks.parent_task_id
-Ref: projects.id < custom_field_definitions.project_id
 Ref: tasks.id < bdd_scenarios.task_id
 Ref: tasks.id < time_logs.task_id
 Ref: tasks.id < task_activities.task_id

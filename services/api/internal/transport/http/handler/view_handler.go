@@ -220,3 +220,45 @@ func parseTaskIDParam(c *gin.Context, param string) (uuid.UUID, error) {
 	}
 	return id, nil
 }
+
+// ReorderViews handles PUT /sprints/:sprintId/views/positions.
+// The body must contain all view IDs for the sprint in the desired order.
+func (h *ViewHandler) ReorderViews(c *gin.Context) {
+	sprintID, err := parseSprintID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var req dto.ReorderViewsRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	if err := h.svc.ReorderViews(c.Request.Context(), sprintID, req.ViewIDs); err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.NoContent(c)
+}
+
+// ReorderBacklogViews handles PUT /product-backlog/views/positions.
+// The body must contain all backlog view IDs for the project in the desired order.
+func (h *ViewHandler) ReorderBacklogViews(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var req dto.ReorderViewsRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	if err := h.svc.ReorderBacklogViews(c.Request.Context(), projectID, req.ViewIDs); err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.NoContent(c)
+}

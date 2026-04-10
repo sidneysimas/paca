@@ -470,6 +470,46 @@ Feature: Integration views (board and list layouts)
       Then the "Sort by" setting on the "Board" view should still show "Priority"
 
   @authenticated
+  Rule: Reordering view tabs by dragging
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_REORDER_PROJECT" exists
+      And the project has a "Product Backlog" integration with views "Board", "Table", and "Roadmap" (in that order)
+      And the user has the "Manage Views" project permission in "E2E_REORDER_PROJECT"
+      And the user has navigated to the "Product Backlog" integration inside "E2E_REORDER_PROJECT"
+
+    Scenario: View tabs show a draggable indicator on hover
+      When the user hovers over the "Table" view tab
+      Then the tab should indicate it is draggable (e.g. a grab cursor or visible drag handle)
+
+    Scenario: Dragging a view tab to a new position reorders the tab bar
+      Given the view tabs are ordered "Board", "Table", "Roadmap"
+      When the user drags the "Roadmap" tab and drops it before the "Board" tab
+      Then the view tabs should be reordered to "Roadmap", "Board", "Table"
+
+    Scenario: Dropping a view tab on its original position leaves the order unchanged
+      Given the view tabs are ordered "Board", "Table", "Roadmap"
+      When the user drags the "Table" tab and drops it back in the same position
+      Then the view tabs should remain in the order "Board", "Table", "Roadmap"
+
+    Scenario: The reordered tab order persists after a page refresh
+      Given the user has dragged the "Roadmap" tab to the first position
+      When the user refreshes the page
+      Then the view tabs should still appear with "Roadmap" as the first tab
+
+    Scenario: The first tab after reordering becomes the default view for the integration
+      Given the user has dragged the "Table" tab to the first position and refreshed the page
+      When the user navigates away from the integration and returns to it
+      Then the "Table" view tab should be active by default
+
+    Scenario: User without "Manage Views" permission cannot drag view tabs
+      Given the user does not have the "Manage Views" project permission
+      When the user attempts to drag the "Table" view tab to a different position
+      Then the drag operation should not be permitted
+      And the view tab order should remain unchanged
+
+  @authenticated
   Rule: Manual task sort order within a view
 
     Background:
