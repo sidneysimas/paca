@@ -16,6 +16,7 @@ export function AttachmentsSection({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const addFiles = (files: File[]) => {
+		if (!canEdit) return;
 		const newAttachments: Attachment[] = files.map((f) => ({
 			id: crypto.randomUUID(),
 			name: f.name,
@@ -28,6 +29,7 @@ export function AttachmentsSection({
 	const handleFileDrop = (e: React.DragEvent) => {
 		e.preventDefault();
 		setIsDragOver(false);
+		if (!canEdit) return;
 		addFiles(Array.from(e.dataTransfer.files));
 	};
 
@@ -46,21 +48,25 @@ export function AttachmentsSection({
 				<span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
 					Attachments
 				</span>
-				<button
-					type="button"
-					onClick={() => fileInputRef.current?.click()}
-					className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-					aria-label="Upload attachment"
-				>
-					<Upload className="size-4" />
-				</button>
-				<input
-					ref={fileInputRef}
-					type="file"
-					multiple
-					className="sr-only"
-					onChange={handleFileInput}
-				/>
+				{canEdit && (
+					<>
+						<button
+							type="button"
+							onClick={() => fileInputRef.current?.click()}
+							className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+							aria-label="Upload attachment"
+						>
+							<Upload className="size-4" />
+						</button>
+						<input
+							ref={fileInputRef}
+							type="file"
+							multiple
+							className="sr-only"
+							onChange={handleFileInput}
+						/>
+					</>
+				)}
 			</div>
 
 			{/* Attachment list */}
@@ -80,25 +86,27 @@ export function AttachmentsSection({
 			{/* Drop zone */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone with click to open picker; drag events are primary interaction */}
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: drag-and-drop file upload zone; keyboard via hidden file input */}
-			<div
-				onDragOver={(e) => {
-					e.preventDefault();
-					setIsDragOver(true);
-				}}
-				onDragLeave={() => setIsDragOver(false)}
-				onDrop={handleFileDrop}
-				onClick={() => fileInputRef.current?.click()}
-				className={cn(
-					"rounded-xl border-2 border-dashed p-8 text-center transition-all duration-150 cursor-pointer",
-					isDragOver
-						? "border-primary/50 bg-primary/5 text-primary"
-						: "border-border/40 bg-muted/20 text-muted-foreground/50 hover:border-border/60 hover:bg-muted/30",
-				)}
-			>
-				<Paperclip className="size-6 mx-auto mb-2.5 opacity-60" />
-				<p className="text-sm font-medium">Drop your files here to upload</p>
-				<p className="text-xs mt-1 opacity-70">or click to browse</p>
-			</div>
+			{canEdit && (
+				<div
+					onDragOver={(e) => {
+						e.preventDefault();
+						setIsDragOver(true);
+					}}
+					onDragLeave={() => setIsDragOver(false)}
+					onDrop={handleFileDrop}
+					onClick={() => fileInputRef.current?.click()}
+					className={cn(
+						"rounded-xl border-2 border-dashed p-8 text-center transition-all duration-150 cursor-pointer",
+						isDragOver
+							? "border-primary/50 bg-primary/5 text-primary"
+							: "border-border/40 bg-muted/20 text-muted-foreground/50 hover:border-border/60 hover:bg-muted/30",
+					)}
+				>
+					<Paperclip className="size-6 mx-auto mb-2.5 opacity-60" />
+					<p className="text-sm font-medium">Drop your files here to upload</p>
+					<p className="text-xs mt-1 opacity-70">or click to browse</p>
+				</div>
+			)}
 		</div>
 	);
 }
