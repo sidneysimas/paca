@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import type { Sprint, Task } from "@/lib/integration-api";
 import type { ProjectMember, TaskStatus, TaskType } from "@/lib/project-api";
+import { getTaskTypeIconComponent } from "../../task-types/task-type-icons";
 import type { PriorityMeta } from "../priority";
 import { AddFieldDialog } from "./add-field-dialog";
 import { FieldRow, FieldValue } from "./primitives";
@@ -110,33 +111,43 @@ export function PropertiesPanel({
 
 	return (
 		<>
-			<div className="divide-y divide-border/30 rounded-xl border border-border/40 bg-card px-4 py-1">
+			<div className="divide-y divide-border/20 rounded-xl border border-border/30 bg-card/50 px-4 py-0.5">
 				{/* Status */}
 				<FieldRow label="Status">
 					{canEdit && statuses.length > 0 ? (
 						<Popover>
 							<PopoverTrigger
 								type="button"
-								className={status
-									? "inline-flex items-center gap-2 rounded-full border border-border/50 px-3 py-1 text-sm font-medium text-muted-foreground hover:border-border transition-colors"
-									: "inline-flex items-center gap-1.5 text-sm text-muted-foreground/40 italic hover:text-muted-foreground transition-colors"}
+								className={
+									status
+										? "inline-flex items-center gap-2 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-[12px] font-semibold text-muted-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-150"
+										: "inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
+								}
 							>
 								{status ? (
 									<>
 										<span
-											className="size-2 rounded-full shrink-0"
-											style={{ background: status.color ?? "var(--muted-foreground)" }}
+											className="size-[7px] rounded-full shrink-0"
+											style={{
+												background: status.color ?? "var(--muted-foreground)",
+												boxShadow: `0 0 6px ${status.color ?? "var(--muted-foreground)"}30`,
+											}}
 										/>
 										{status.name}
 									</>
-								) : "No status"}
+								) : (
+									"No status"
+								)}
 							</PopoverTrigger>
-							<PopoverContent className="w-52 p-1" align="start">
+							<PopoverContent
+								className="w-52 p-1 rounded-xl border border-border/40 shadow-lg"
+								align="start"
+							>
 								{statuses.map((s) => (
 									<button
 										key={s.id}
 										type="button"
-										className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
 										onClick={() => onUpdate?.({ status_id: s.id })}
 									>
 										<span
@@ -145,9 +156,9 @@ export function PropertiesPanel({
 												background: s.color ?? "var(--muted-foreground)",
 											}}
 										/>
-										{s.name}
+										<span className="flex-1 text-left">{s.name}</span>
 										{s.id === status?.id && (
-											<Check className="size-3.5 ml-auto text-primary" />
+											<Check className="size-3.5 text-primary" />
 										)}
 									</button>
 								))}
@@ -156,10 +167,10 @@ export function PropertiesPanel({
 					) : status ? (
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-full border border-border/50 px-3 py-1 text-sm font-medium text-muted-foreground"
+							className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-[12px] font-semibold text-muted-foreground"
 						>
 							<span
-								className="size-2 rounded-full shrink-0"
+								className="size-[7px] rounded-full shrink-0"
 								style={{
 									background: status.color ?? "var(--muted-foreground)",
 								}}
@@ -176,8 +187,8 @@ export function PropertiesPanel({
 					<div className="flex items-center gap-2 flex-wrap">
 						{canEdit ? (
 							<>
-								<label className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border/70 hover:bg-muted/60 transition-colors cursor-pointer">
-									<CalendarDays className="size-3.5 shrink-0" />
+								<label className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground hover:border-border/50 hover:bg-muted/40 transition-all duration-150 cursor-pointer font-medium">
+									<CalendarDays className="size-3 shrink-0 opacity-70" />
 									<span>{displayDate(task.start_date) ?? "Start date"}</span>
 									<input
 										type="date"
@@ -188,9 +199,9 @@ export function PropertiesPanel({
 										}
 									/>
 								</label>
-								<Minus className="size-3 text-border/60 shrink-0" />
-								<label className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border/70 hover:bg-muted/60 transition-colors cursor-pointer">
-									<CalendarDays className="size-3.5 shrink-0" />
+								<Minus className="size-3 text-border/40 shrink-0" />
+								<label className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground hover:border-border/50 hover:bg-muted/40 transition-all duration-150 cursor-pointer font-medium">
+									<CalendarDays className="size-3 shrink-0 opacity-70" />
 									<span>{displayDate(task.due_date) ?? "Due date"}</span>
 									<input
 										type="date"
@@ -204,13 +215,13 @@ export function PropertiesPanel({
 							</>
 						) : (
 							<>
-								<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-									<CalendarDays className="size-3.5 shrink-0" />
+								<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground font-medium">
+									<CalendarDays className="size-3 shrink-0 opacity-70" />
 									{displayDate(task.start_date) ?? "Start date"}
 								</span>
-								<Minus className="size-3 text-border/60 shrink-0" />
-								<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-									<CalendarDays className="size-3.5 shrink-0" />
+								<Minus className="size-3 text-border/40 shrink-0" />
+								<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground font-medium">
+									<CalendarDays className="size-3 shrink-0 opacity-70" />
 									{displayDate(task.due_date) ?? "Due date"}
 								</span>
 							</>
@@ -222,9 +233,9 @@ export function PropertiesPanel({
 				<FieldRow label="Track Time">
 					<button
 						type="button"
-						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+						className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
 					>
-						<Clock className="size-3.5" />
+						<Clock className="size-3.5 opacity-70" />
 						Add time
 					</button>
 				</FieldRow>
@@ -236,24 +247,43 @@ export function PropertiesPanel({
 							<Popover>
 								<PopoverTrigger
 									type="button"
-									className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border/70 hover:bg-muted/60 transition-colors"
+									className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground hover:border-border/50 hover:bg-muted/40 transition-all duration-150 font-medium"
 								>
+									{(() => {
+										const Ic = taskType
+											? getTaskTypeIconComponent(taskType.icon)
+											: null;
+										return Ic ? (
+											<span className="text-muted-foreground/80">
+												<Ic className="size-3.5" />
+											</span>
+										) : null;
+									})()}
 									{taskType?.name ?? "No type"}
 								</PopoverTrigger>
-								<PopoverContent className="w-48 p-1" align="start">
-									{taskTypes.map((tt) => (
-										<button
-											key={tt.id}
-											type="button"
-											className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
-											onClick={() => onUpdate?.({ task_type_id: tt.id })}
-										>
-											{tt.name}
-											{tt.id === taskType?.id && (
-												<Check className="size-3.5 ml-auto text-primary" />
-											)}
-										</button>
-									))}
+								<PopoverContent
+									className="w-48 p-1 rounded-xl border border-border/40 shadow-lg"
+									align="start"
+								>
+									{taskTypes.map((tt) => {
+										const TtIcon = getTaskTypeIconComponent(tt.icon);
+										return (
+											<button
+												key={tt.id}
+												type="button"
+												className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+												onClick={() => onUpdate?.({ task_type_id: tt.id })}
+											>
+												{TtIcon && (
+													<TtIcon className="size-3.5 text-muted-foreground/80 shrink-0" />
+												)}
+												<span className="flex-1 text-left">{tt.name}</span>
+												{tt.id === taskType?.id && (
+													<Check className="size-3.5 text-primary" />
+												)}
+											</button>
+										);
+									})}
 								</PopoverContent>
 							</Popover>
 						) : (
@@ -266,9 +296,9 @@ export function PropertiesPanel({
 				<FieldRow label="Relationships">
 					<button
 						type="button"
-						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+						className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
 					>
-						<Link2 className="size-3.5" />
+						<Link2 className="size-3.5 opacity-70" />
 						<FieldValue empty />
 					</button>
 				</FieldRow>
@@ -279,78 +309,81 @@ export function PropertiesPanel({
 						<Popover>
 							<PopoverTrigger
 								type="button"
-								className={assignee
-									? "flex items-center gap-2 hover:opacity-80 transition-opacity"
-									: "inline-flex items-center gap-1.5 text-sm text-muted-foreground/40 italic hover:text-muted-foreground transition-colors"}
+								className={
+									assignee
+										? "flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-150"
+										: "inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
+								}
 							>
 								{assignee ? (
 									<>
-										<div className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold ring-1 ring-border/40">
+										<div className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
 											{(assignee.full_name || assignee.username)
 												.slice(0, 1)
 												.toUpperCase()}
 										</div>
-										<span className="text-sm text-foreground/80">
+										<span className="text-[13px] font-medium text-foreground">
 											{assignee.full_name || assignee.username}
 										</span>
 									</>
 								) : (
 									<>
-										<User className="size-3.5" />
-										Empty
+										<User className="size-3.5 opacity-60" />
+										Unassigned
 									</>
 								)}
 							</PopoverTrigger>
-							<PopoverContent className="w-56 p-1" align="start">
+							<PopoverContent
+								className="w-56 p-1 rounded-xl border border-border/40 shadow-lg"
+								align="start"
+							>
 								<button
 									type="button"
-									className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
+									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 									onClick={() => onUpdate?.({ assignee_id: null })}
 								>
-									<User className="size-3.5" />
-									Unassigned
-									{!assignee && (
-										<Check className="size-3.5 ml-auto text-primary" />
-									)}
+									<User className="size-3.5 opacity-60" />
+									<span className="flex-1 text-left">Unassigned</span>
+									{!assignee && <Check className="size-3.5 text-primary" />}
 								</button>
 								{members.map((m) => (
 									<button
 										key={m.user_id}
 										type="button"
-										className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
 										onClick={() => onUpdate?.({ assignee_id: m.user_id })}
 									>
-										<div className="flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold">
+										<div className="flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-[9px] font-bold">
 											{(m.full_name || m.username).slice(0, 1).toUpperCase()}
 										</div>
-										<span className="truncate">
+										<span className="flex-1 text-left truncate">
 											{m.full_name || m.username}
 										</span>
 										{m.user_id === assignee?.user_id && (
-											<Check className="size-3.5 ml-auto text-primary" />
+											<Check className="size-3.5 text-primary" />
 										)}
 									</button>
 								))}
 							</PopoverContent>
 						</Popover>
 					) : assignee ? (
-						<div className="flex items-center gap-2">
-							<div className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold ring-1 ring-border/40">
+						<div className="flex items-center gap-2.5">
+							<div className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
 								{(assignee.full_name || assignee.username)
 									.slice(0, 1)
 									.toUpperCase()}
 							</div>
-							<span className="text-sm text-foreground/80">
+							<span className="text-[13px] font-medium text-foreground">
 								{assignee.full_name || assignee.username}
 							</span>
 						</div>
 					) : (
 						<button
 							type="button"
-							className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/40 italic hover:text-muted-foreground transition-colors"
+							className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
 						>
-							<User className="size-3.5" />
-							Empty
+							<User className="size-3.5 opacity-60" />
+							Unassigned
 						</button>
 					)}
 				</FieldRow>
@@ -362,15 +395,18 @@ export function PropertiesPanel({
 							type="number"
 							min="0"
 							value={importanceValue}
-							onChange={(e) => setImportanceValue(Math.max(0, Number(e.target.value)))}
+							onChange={(e) =>
+								setImportanceValue(Math.max(0, Number(e.target.value)))
+							}
 							onBlur={() => {
 								const val = Math.max(0, importanceValue);
-								if (val !== (task.importance ?? 0)) onUpdate?.({ importance: val });
+								if (val !== (task.importance ?? 0))
+									onUpdate?.({ importance: val });
 							}}
-							className="w-16 rounded-md border border-border/40 bg-muted/40 px-2 py-1 text-sm text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-ring"
+							className="w-16 rounded-lg border border-border/30 bg-muted/25 px-2.5 py-1 text-[13px] text-center tabular-nums font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
 						/>
 					) : (
-						<span className="text-sm tabular-nums text-foreground/80">
+						<span className="text-[13px] tabular-nums font-medium text-foreground">
 							{task.importance ?? 0}
 						</span>
 					)}
@@ -382,16 +418,16 @@ export function PropertiesPanel({
 						{localTags.map((tag) => (
 							<span
 								key={tag}
-								className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2.5 py-0.5 text-xs text-foreground/70 border border-border/30"
+								className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-foreground/80 border border-border/20 hover:border-border/40 transition-colors duration-150"
 							>
 								{tag}
 								{canEdit && (
 									<button
 										type="button"
 										onClick={() => handleRemoveTag(tag)}
-										className="hover:text-destructive transition-colors"
+										className="text-muted-foreground/60 hover:text-destructive transition-colors duration-150"
 									>
-										<X className="size-3" />
+										<X className="size-2.5" />
 									</button>
 								)}
 							</span>
@@ -400,12 +436,15 @@ export function PropertiesPanel({
 							<Popover>
 								<PopoverTrigger
 									type="button"
-									className="inline-flex items-center gap-1 rounded-full border border-dashed border-border/40 px-2 py-0.5 text-xs text-muted-foreground hover:border-border/70 hover:text-foreground transition-colors"
+									className="inline-flex items-center gap-1 rounded-md border border-dashed border-border/30 px-2 py-0.5 text-[11px] text-muted-foreground/60 hover:border-border/60 hover:text-muted-foreground transition-all duration-150"
 								>
-									<Plus className="size-3" />
+									<Plus className="size-2.5" />
 									Add tag
 								</PopoverTrigger>
-								<PopoverContent className="w-52 p-2" align="start">
+								<PopoverContent
+									className="w-52 p-2 rounded-xl border border-border/40 shadow-lg"
+									align="start"
+								>
 									<form
 										onSubmit={(e) => {
 											e.preventDefault();
@@ -420,7 +459,7 @@ export function PropertiesPanel({
 											value={tagInput}
 											onChange={(e) => setTagInput(e.target.value)}
 											placeholder="Add tag..."
-											className="w-full rounded-md border border-border/40 bg-muted/40 px-2.5 py-1.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+											className="w-full rounded-lg border border-border/30 bg-muted/25 px-3 py-2 text-[13px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
 											onKeyDown={(e) => {
 												if (e.key === "Enter") {
 													e.preventDefault();
@@ -438,13 +477,13 @@ export function PropertiesPanel({
 				{/* Reporter (conditional) */}
 				{reporter && (
 					<FieldRow label="Reporter">
-						<div className="flex items-center gap-2">
-							<div className="flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground text-xs font-bold ring-1 ring-border/40">
+						<div className="flex items-center gap-2.5">
+							<div className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold ring-1 ring-border/25">
 								{(reporter.full_name || reporter.username)
 									.slice(0, 1)
 									.toUpperCase()}
 							</div>
-							<span className="text-sm text-foreground/80">
+							<span className="text-[13px] font-medium text-foreground">
 								{reporter.full_name || reporter.username}
 							</span>
 						</div>
@@ -458,38 +497,46 @@ export function PropertiesPanel({
 							<Popover>
 								<PopoverTrigger
 									type="button"
-									className={task.sprint_id
-										? "inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border/70 hover:bg-muted/60 transition-colors"
-										: "inline-flex items-center gap-1.5 text-sm text-muted-foreground/40 italic hover:text-muted-foreground transition-colors"}
+									className={
+										task.sprint_id
+											? "inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground hover:border-border/50 hover:bg-muted/40 transition-all duration-150 font-medium"
+											: "inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
+									}
 								>
-									<GitBranch className="size-3.5 shrink-0" />
+									<GitBranch className="size-3 shrink-0 opacity-70" />
 									{task.sprint_id
-										? (sprints.find((s) => s.id === task.sprint_id)?.name ?? task.sprint_id)
+										? (sprints.find((s) => s.id === task.sprint_id)?.name ??
+											task.sprint_id)
 										: "No sprint"}
 								</PopoverTrigger>
-								<PopoverContent className="w-52 p-1" align="start">
+								<PopoverContent
+									className="w-52 p-1 rounded-xl border border-border/40 shadow-lg"
+									align="start"
+								>
 									<button
 										type="button"
-										className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
+										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 										onClick={() => onUpdate?.({ sprint_id: null })}
 									>
-										<GitBranch className="size-3.5 shrink-0" />
-										No sprint
+										<GitBranch className="size-3 shrink-0 opacity-60" />
+										<span className="flex-1 text-left">No sprint</span>
 										{!task.sprint_id && (
-											<Check className="size-3.5 ml-auto text-primary" />
+											<Check className="size-3.5 text-primary" />
 										)}
 									</button>
 									{sprints.map((s) => (
 										<button
 											key={s.id}
 											type="button"
-											className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+											className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
 											onClick={() => onUpdate?.({ sprint_id: s.id })}
 										>
-											<GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-											<span className="flex-1 truncate">{s.name}</span>
+											<GitBranch className="size-3 shrink-0 text-muted-foreground/70" />
+											<span className="flex-1 text-left truncate">
+												{s.name}
+											</span>
 											{s.id === task.sprint_id && (
-												<Check className="size-3.5 ml-auto text-primary shrink-0" />
+												<Check className="size-3.5 text-primary shrink-0" />
 											)}
 										</button>
 									))}
@@ -497,9 +544,10 @@ export function PropertiesPanel({
 							</Popover>
 						) : (
 							<div className="flex items-center gap-1.5">
-								<GitBranch className="size-3.5 text-muted-foreground shrink-0" />
-								<span className="text-sm text-foreground/80 truncate">
-									{sprints.find((s) => s.id === task.sprint_id)?.name ?? task.sprint_id}
+								<GitBranch className="size-3 text-muted-foreground/70 shrink-0" />
+								<span className="text-[13px] font-medium text-foreground truncate">
+									{sprints.find((s) => s.id === task.sprint_id)?.name ??
+										task.sprint_id}
 								</span>
 							</div>
 						)}
@@ -511,9 +559,9 @@ export function PropertiesPanel({
 					<FieldRow label="Parent task">
 						<button
 							type="button"
-							className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+							className="flex items-center gap-1.5 text-[13px] text-primary/80 hover:text-primary font-medium hover:underline underline-offset-2 transition-colors duration-150"
 						>
-							<ArrowRight className="size-3.5 shrink-0" />
+							<ArrowRight className="size-3 shrink-0" />
 							<span className="truncate">{task.parent_task_id}</span>
 						</button>
 					</FieldRow>
@@ -540,7 +588,7 @@ export function PropertiesPanel({
 				<button
 					type="button"
 					onClick={() => setAddFieldOpen(true)}
-					className="mt-3 flex items-center gap-2 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+					className="mt-3 flex items-center gap-2 text-[12px] text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
 				>
 					<Plus className="size-3.5" />
 					Add fields

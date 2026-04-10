@@ -8,38 +8,38 @@ export function ActivityItem({ entry }: { entry: ActivityEntry }) {
 		<div className="flex gap-3">
 			<div
 				className={cn(
-					"flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5",
+					"flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold mt-0.5 ring-1",
 					isComment
-						? "bg-primary/15 text-primary"
-						: "bg-muted text-muted-foreground",
+						? "bg-gradient-to-br from-primary/20 to-primary/10 text-primary ring-primary/15"
+						: "bg-muted/40 text-muted-foreground/80 ring-border/20",
 				)}
 			>
 				{entry.author.slice(0, 1).toUpperCase()}
 			</div>
 			<div className="flex-1 min-w-0">
 				{isComment ? (
-					<div className="rounded-xl rounded-tl-sm border border-border/60 bg-card px-4 py-3 shadow-xs">
-						<div className="mb-1.5 flex items-center gap-2">
-							<span className="text-sm font-semibold text-foreground/80">
+					<div className="rounded-xl rounded-tl-[4px] border border-border/25 bg-card/70 px-3.5 py-2.5">
+						<div className="mb-1 flex items-center gap-2">
+							<span className="text-[12px] font-semibold text-foreground">
 								{entry.author}
 							</span>
-							<span className="text-xs text-muted-foreground/50">
+							<span className="text-[10px] text-muted-foreground/50">
 								{timeAgo(entry.timestamp)}
 							</span>
 						</div>
-						<p className="text-sm text-foreground/80 leading-relaxed">
+						<p className="text-[13px] text-foreground leading-relaxed">
 							{entry.content}
 						</p>
 					</div>
 				) : (
-					<div className="flex flex-wrap items-baseline gap-1.5 py-1">
-						<span className="text-sm font-medium text-foreground/80">
+					<div className="flex flex-wrap items-baseline gap-1.5 py-0.5">
+						<span className="text-[12px] font-medium text-foreground/80">
 							{entry.author}
 						</span>
-						<span className="text-sm text-muted-foreground">
+						<span className="text-[12px] text-muted-foreground/70">
 							{entry.content}
 						</span>
-						<span className="text-xs text-muted-foreground/40">
+						<span className="text-[10px] text-muted-foreground/45">
 							{timeAgo(entry.timestamp)}
 						</span>
 					</div>

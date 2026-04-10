@@ -13,31 +13,31 @@ export function SubtaskRow({ task, statuses }: SubtaskRowProps) {
 	const status = statuses.find((s) => s.id === task.status_id);
 	const [done, setDone] = useState(false);
 	return (
-		<div className="group/sub flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-muted/40 transition-colors">
+		<div className="group/sub flex items-center gap-3 px-3.5 py-2.5 hover:bg-muted/30 transition-colors duration-150">
 			<button
 				type="button"
 				onClick={() => setDone(!done)}
 				className={cn(
-					"flex size-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
+					"flex size-4.5 shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200",
 					done
-						? "border-emerald-500 bg-emerald-500/15 text-emerald-500"
-						: "border-border/60 text-transparent hover:border-border",
+						? "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+						: "border-border/40 text-transparent hover:border-border/70 hover:bg-muted/40",
 				)}
 			>
-				<Check className="size-3" />
+				<Check className="size-2.5" strokeWidth={3} />
 			</button>
 			<span
 				className={cn(
-					"flex-1 text-sm truncate",
-					done && "line-through text-muted-foreground/50",
+					"flex-1 text-[13px] truncate transition-all duration-200",
+					done ? "line-through text-muted-foreground/60" : "text-foreground",
 				)}
 			>
 				{task.title}
 			</span>
 			{status && (
-				<span className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border/40 px-2 py-0.5 text-xs text-muted-foreground">
+				<span className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-border/25 bg-muted/30 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground/80 tracking-wide">
 					<span
-						className="size-2 rounded-full"
+						className="size-1.5 rounded-full"
 						style={{ background: status.color ?? "currentColor" }}
 					/>
 					{status.name}

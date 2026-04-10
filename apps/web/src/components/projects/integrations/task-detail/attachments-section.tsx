@@ -45,18 +45,19 @@ export function AttachmentsSection({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-					Attachments
-				</span>
+				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+					<span>Attachments</span>
+					<div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+				</h3>
 				{canEdit && (
 					<>
 						<button
 							type="button"
 							onClick={() => fileInputRef.current?.click()}
-							className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+							className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 transition-all duration-150"
 							aria-label="Upload attachment"
 						>
-							<Upload className="size-4" />
+							<Upload className="size-3.5" />
 						</button>
 						<input
 							ref={fileInputRef}
@@ -95,15 +96,28 @@ export function AttachmentsSection({
 					onDrop={handleFileDrop}
 					onClick={() => fileInputRef.current?.click()}
 					className={cn(
-						"w-full rounded-xl border-2 border-dashed p-8 text-center transition-all duration-150 cursor-pointer",
+						"w-full rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 cursor-pointer group/drop",
 						isDragOver
-							? "border-primary/50 bg-primary/5 text-primary"
-							: "border-border/40 bg-muted/20 text-muted-foreground/50 hover:border-border/60 hover:bg-muted/30",
+							? "border-primary/50 bg-primary/5 text-primary shadow-sm shadow-primary/10"
+							: "border-border/20 bg-muted/5 text-muted-foreground/50 hover:border-border/40 hover:bg-muted/10",
 					)}
 				>
-					<Paperclip className="size-6 mx-auto mb-2.5 opacity-60" />
-					<p className="text-sm font-medium">Drop your files here to upload</p>
-					<p className="text-xs mt-1 opacity-70">or click to browse</p>
+					<div
+						className={cn(
+							"mx-auto mb-3 flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+							isDragOver
+								? "bg-primary/10 text-primary"
+								: "bg-muted/30 text-muted-foreground/45 group-hover/drop:bg-muted/40 group-hover/drop:text-muted-foreground/70",
+						)}
+					>
+						<Paperclip className="size-5" />
+					</div>
+					<p className="text-[13px] font-medium text-muted-foreground/70 group-hover/drop:text-muted-foreground transition-colors">
+						Drop your files here to upload
+					</p>
+					<p className="text-[11px] mt-1.5 text-muted-foreground/45 transition-colors">
+						or click to browse
+					</p>
 				</button>
 			)}
 		</div>

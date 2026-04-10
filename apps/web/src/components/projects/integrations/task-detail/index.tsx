@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	createTask,
 	sprintsQueryOptions,
@@ -10,6 +9,7 @@ import {
 	updateTask,
 } from "@/lib/integration-api";
 import { cn } from "@/lib/utils";
+import { getTaskTypeIconComponent } from "../../task-types/task-type-icons";
 import { getPriority } from "../priority";
 import { ActivityPane } from "./activity-pane";
 import { AttachmentsSection } from "./attachments-section";
@@ -31,6 +31,9 @@ export type {
 	CustomFieldDef,
 	TaskDetailModalProps,
 } from "./types";
+
+const TITLE_CLASSES =
+	"font-[Syne] text-[26px] font-bold leading-snug text-foreground tracking-tight w-full";
 
 export function TaskDetailModal({
 	task: taskProp,
@@ -88,12 +91,10 @@ export function TaskDetailModal({
 		},
 		onSuccess: (updated) => {
 			if (!projectId) return;
-			// Update the task detail cache
 			qc.setQueryData(
 				taskQueryOptions(projectId, updated.id).queryKey,
 				updated,
 			);
-			// Invalidate the task lists (sprint / backlog) so they reflect changes
 			qc.invalidateQueries({
 				queryKey: ["projects", projectId],
 				predicate: (q) => {
@@ -127,7 +128,7 @@ export function TaskDetailModal({
 							},
 						]
 					: []),
-		  ]
+			]
 		: [];
 
 	// Close on Escape (modal mode only)
@@ -142,52 +143,54 @@ export function TaskDetailModal({
 
 	if (mode === "modal" && !open) return null;
 
+	// Resolve task type icon component
+	const TypeIcon = taskType ? getTaskTypeIconComponent(taskType.icon) : null;
+
 	// ── Content ────────────────────────────────────────────────────────────────
 	const content = task ? (
-		<div className="flex h-full overflow-hidden">
-			{/* ── Left: Content pane ── */}
-			<div className="flex flex-1 min-w-0 flex-col overflow-hidden">
-				{/* Header bar */}
-				<TaskHeader
-					task={task}
-					mode={mode}
-					projectName={projectName}
-					integrationName={integrationName}
-					projectId={projectId}
-					onClose={() => onOpenChange(false)}
-				/>
+		<div className="flex h-full flex-col overflow-hidden">
+			{/* ── Header bar (full width, above both panes) ── */}
+			<TaskHeader
+				task={task}
+				mode={mode}
+				projectName={projectName}
+				integrationName={integrationName}
+				projectId={projectId}
+				onClose={() => onOpenChange(false)}
+			/>
 
-				{/* Scrollable content */}
-				<ScrollArea className="flex-1">
-					<div className="p-6 space-y-8 max-w-3xl mx-auto">
+			{/* ── Body: scrollable content + activity pane ── */}
+			<div className="flex flex-1 min-w-0 overflow-hidden">
+				{/* Scrollable content with visible scrollbar */}
+				<div className="flex-1 overflow-y-auto [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:hover:bg-border">
+					<div className="px-8 py-7 space-y-8 max-w-3xl mx-auto">
 						{/* Type badge + Status chip + Title */}
 						<div className="space-y-4">
 							<div className="flex items-center gap-2.5 flex-wrap">
 								{taskType && (
 									<span
-										className="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold leading-tight border"
+										className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold leading-tight tracking-wide border"
 										style={{
 											borderColor: taskType.color
 												? `${taskType.color}44`
 												: "var(--border)",
 											backgroundColor: taskType.color
-												? `${taskType.color}18`
+												? `${taskType.color}15`
 												: "var(--muted)",
 											color: taskType.color ?? "inherit",
 										}}
 									>
-										{taskType.icon && (
-											<span className="mr-1">{taskType.icon}</span>
-										)}
+										{TypeIcon && <TypeIcon className="size-3.5 opacity-70" />}
 										{taskType.name}
 									</span>
 								)}
 								{status && (
-									<span className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-xs">
+									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide backdrop-blur-sm">
 										<span
-											className="size-2 rounded-full shrink-0"
+											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{
 												background: status.color ?? "var(--muted-foreground)",
+												boxShadow: `0 0 6px ${status.color ?? "var(--muted-foreground)"}40`,
 											}}
 										/>
 										{status.name}
@@ -217,15 +220,19 @@ export function TaskDetailModal({
 										}
 									}}
 									rows={1}
-									className="w-full resize-none font-[Syne] text-2xl font-bold leading-snug text-foreground bg-transparent outline-none border-b-2 border-primary rounded-none py-0"
+									className={cn(
+										TITLE_CLASSES,
+										"resize-none bg-transparent outline-none py-0",
+									)}
 									data-testid="task-title-input"
 								/>
 							) : (
-								// biome-ignore lint/a11y/noStaticElementInteractions: inline title click-to-edit
+								// biome-ignore lint/a11y/useKeyWithClickEvents: inline title click-to-edit
 								<h1
 									className={cn(
-										"font-[Syne] text-2xl font-bold leading-snug text-foreground",
-										canEdit && "cursor-text hover:opacity-80 transition-opacity",
+										TITLE_CLASSES,
+										canEdit &&
+											"cursor-text hover:bg-muted/15 rounded-md px-2 -ml-2 py-1 transition-all duration-150",
 									)}
 									data-testid="task-title"
 									onClick={() => {
@@ -242,8 +249,9 @@ export function TaskDetailModal({
 
 						{/* Properties */}
 						<div>
-							<h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
-								Properties
+							<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
+								<span>Properties</span>
+								<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 							</h3>
 							<PropertiesPanel
 								task={task}
@@ -294,10 +302,7 @@ export function TaskDetailModal({
 									parent_task_id: task.id,
 								}).then(() => {
 									qc.invalidateQueries({
-										queryKey: subtasksQueryOptions(
-											projectId,
-											task.id,
-										).queryKey,
+										queryKey: subtasksQueryOptions(projectId, task.id).queryKey,
 									});
 								});
 							}}
@@ -310,21 +315,25 @@ export function TaskDetailModal({
 						<AttachmentsSection canEdit={canEdit} />
 
 						{/* Bottom breathing room */}
-						<div className="h-6" />
+						<div className="h-8" />
 					</div>
-				</ScrollArea>
-			</div>
+				</div>
 
-			{/* ── Right: Activity pane ── */}
-			<ActivityPane activities={activities} />
+				{/* ── Right: Activity pane ── */}
+				<ActivityPane activities={activities} />
+			</div>
 		</div>
 	) : (
 		<div className="flex h-full items-center justify-center">
-			<div className="flex flex-col items-center gap-4 text-muted-foreground/50">
-				<AlertCircle className="size-10" />
+			<div className="flex flex-col items-center gap-4 text-muted-foreground/70">
+				<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+					<AlertCircle className="size-7 text-muted-foreground/60" />
+				</div>
 				<div className="text-center">
-					<p className="text-base font-medium">Task not found</p>
-					<p className="text-sm mt-1">
+					<p className="text-base font-semibold text-foreground/80">
+						Task not found
+					</p>
+					<p className="text-sm mt-1.5 text-muted-foreground/70">
 						This task may have been deleted or the link is invalid.
 					</p>
 				</div>
@@ -346,7 +355,7 @@ export function TaskDetailModal({
 			{/* Backdrop */}
 			<div
 				className={cn(
-					"fixed inset-0 z-50 bg-black/20 backdrop-blur-[2px] transition-opacity duration-150",
+					"fixed inset-0 z-50 bg-black/30 backdrop-blur-[3px] transition-opacity duration-200",
 					open ? "opacity-100" : "opacity-0 pointer-events-none",
 				)}
 				onClick={() => onOpenChange(false)}
@@ -361,11 +370,11 @@ export function TaskDetailModal({
 				className={cn(
 					"fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
 					"flex h-[90vh] w-[92vw] max-w-6xl flex-col overflow-hidden",
-					"rounded-2xl border border-border/60 bg-popover shadow-2xl",
-					"transition-all duration-150 origin-center",
+					"rounded-2xl border border-border/50 bg-background shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)_inset]",
+					"transition-all duration-200 origin-center",
 					open
 						? "opacity-100 scale-100"
-						: "opacity-0 scale-95 pointer-events-none",
+						: "opacity-0 scale-[0.97] pointer-events-none",
 				)}
 			>
 				{content}
@@ -373,4 +382,3 @@ export function TaskDetailModal({
 		</>
 	);
 }
-

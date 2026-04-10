@@ -44,46 +44,60 @@ export function ChecklistSection({
 	return (
 		<div className="space-y-3">
 			{/* Header */}
-			<div className="flex items-center gap-2">
-				<span className="text-sm font-medium text-foreground/90 flex-1">
+			<div className="flex items-center gap-3">
+				<span className="text-[13px] font-semibold text-foreground flex-1">
 					{checklist.title}
 				</span>
-				<span className="text-xs font-semibold text-muted-foreground tabular-nums">
-					{pct}%
+				<span
+					className={cn(
+						"text-[11px] font-bold tabular-nums rounded-full px-2 py-0.5",
+						pct === 100
+							? "bg-emerald-500/15 text-emerald-600"
+							: "bg-muted/50 text-muted-foreground/80",
+					)}
+				>
+					{completed}/{checklist.items.length}
 				</span>
 			</div>
 
 			{/* Progress bar */}
-			<div className="h-1.5 rounded-full bg-border/50 overflow-hidden">
+			<div className="h-1.5 rounded-full bg-border/25 overflow-hidden">
 				<div
-					className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+					className={cn(
+						"h-full rounded-full transition-all duration-500 ease-out",
+						pct === 100
+							? "bg-emerald-500 shadow-sm shadow-emerald-500/30"
+							: "bg-primary/60",
+					)}
 					style={{ width: `${pct}%` }}
 				/>
 			</div>
 
 			{/* Items */}
-			<div className="space-y-1">
+			<div className="space-y-0.5">
 				{checklist.items.map((item) => (
 					<div
 						key={item.id}
-						className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/30 group/ci"
+						className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/30 transition-colors duration-150 group/ci"
 					>
 						<button
 							type="button"
 							onClick={() => toggle(item.id)}
 							className={cn(
-								"flex size-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
+								"flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200",
 								item.checked
-									? "border-emerald-500 bg-emerald-500/15 text-emerald-500"
-									: "border-border/60 text-transparent hover:border-border",
+									? "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+									: "border-border/40 text-transparent hover:border-border/70 hover:bg-muted/40",
 							)}
 						>
-							<Check className="size-3" />
+							<Check className="size-2.5" strokeWidth={3} />
 						</button>
 						<span
 							className={cn(
-								"flex-1 text-sm",
-								item.checked && "line-through text-muted-foreground/50",
+								"flex-1 text-[13px] transition-all duration-200",
+								item.checked
+									? "line-through text-muted-foreground/60"
+									: "text-foreground",
 							)}
 						>
 							{item.text}
@@ -92,8 +106,8 @@ export function ChecklistSection({
 				))}
 
 				{/* Add item input */}
-				<div className="flex items-center gap-3 px-2">
-					<div className="size-5 shrink-0" />
+				<div className="flex items-center gap-3 px-2 pt-1">
+					<div className="size-[18px] shrink-0 rounded-[5px] border-2 border-dashed border-border/25" />
 					<input
 						value={newItem}
 						onChange={(e) => setNewItem(e.target.value)}
@@ -101,13 +115,13 @@ export function ChecklistSection({
 							if (e.key === "Enter") addItem();
 						}}
 						placeholder="Add an item…"
-						className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/40 py-1"
+						className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/45 py-1.5 focus:placeholder:text-muted-foreground/70 transition-colors"
 					/>
 					{newItem && (
 						<button
 							type="button"
 							onClick={addItem}
-							className="text-xs text-primary font-semibold hover:text-primary/80 transition-colors"
+							className="text-[11px] text-primary/80 font-semibold hover:text-primary transition-colors duration-150"
 						>
 							Add
 						</button>

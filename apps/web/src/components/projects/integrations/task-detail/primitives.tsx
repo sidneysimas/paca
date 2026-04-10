@@ -8,8 +8,8 @@ export function FieldRow({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="grid grid-cols-[9rem_1fr] items-start gap-3 py-2.5 group/field">
-			<span className="text-sm text-muted-foreground pt-0.5 leading-snug">
+		<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+			<span className="text-[13px] font-medium text-muted-foreground leading-snug select-none">
 				{label}
 			</span>
 			<div className="min-w-0">{children}</div>
@@ -26,16 +26,19 @@ export function FieldValue({
 }) {
 	if (empty) {
 		return (
-			<span className="text-sm text-muted-foreground/40 italic">Empty</span>
+			<span className="text-[13px] text-muted-foreground/50 italic">Empty</span>
 		);
 	}
-	return <span className="text-sm text-foreground">{children}</span>;
+	return (
+		<span className="text-[13px] font-medium text-foreground">{children}</span>
+	);
 }
 
 export function SectionHeading({ children }: { children: React.ReactNode }) {
 	return (
-		<h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
-			{children}
+		<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-4 flex items-center gap-2">
+			<span>{children}</span>
+			<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 		</h3>
 	);
 }

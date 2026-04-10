@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { FileText, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type UpdateFn = (payload: { description?: string | null }) => void;
@@ -34,14 +34,15 @@ export function DescriptionSection({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-					Description
-				</span>
+				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+					<span>Description</span>
+					<div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+				</h3>
 				<button
 					type="button"
-					className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+					className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
 				>
-					<Sparkles className="size-3.5" />
+					<Sparkles className="size-3" />
 					Write with AI
 				</button>
 			</div>
@@ -59,22 +60,27 @@ export function DescriptionSection({
 						}
 					}}
 					placeholder="Add description…"
-					className="w-full min-h-[120px] resize-y rounded-xl border border-primary/50 bg-card px-5 py-4 text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap outline-none focus:border-primary transition-colors"
-					autoFocus
+					className="w-full min-h-[140px] resize-y rounded-xl border-2 border-primary/30 bg-muted/20 px-5 py-4 text-[14px] text-foreground leading-relaxed whitespace-pre-wrap outline-none focus:border-primary/50 focus:bg-muted/30 transition-all duration-150"
 				/>
 			) : description ? (
 				// biome-ignore lint/a11y/noStaticElementInteractions: click-to-edit description
+				// biome-ignore lint/a11y/useKeyWithClickEvents: click-to-edit description
 				<div
-					className="rounded-xl border border-border/40 bg-card px-5 py-4 cursor-text hover:border-border/70 transition-colors"
+					className="rounded-xl border border-border/25 bg-card/50 px-5 py-4 cursor-text hover:border-border/50 hover:bg-card/80 transition-all duration-200 group/desc"
 					onClick={() => {
 						if (!canEdit) return;
 						setDraft(description);
 						setEditing(true);
 					}}
 				>
-					<p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+					<p className="text-[14px] text-foreground whitespace-pre-wrap leading-relaxed">
 						{description}
 					</p>
+					{canEdit && (
+						<span className="block mt-2 text-[11px] text-muted-foreground/45 opacity-0 group-hover/desc:opacity-100 transition-opacity duration-200">
+							Click to edit
+						</span>
+					)}
 				</div>
 			) : (
 				<button
@@ -84,9 +90,16 @@ export function DescriptionSection({
 						setDraft("");
 						setEditing(true);
 					}}
-					className="w-full rounded-xl border border-dashed border-border/50 bg-card/50 px-5 py-5 text-left text-sm text-muted-foreground/50 hover:border-border/70 hover:bg-card hover:text-muted-foreground/70 transition-colors"
+					className="w-full rounded-xl border-2 border-dashed border-border/25 bg-muted/10 px-5 py-6 text-left hover:border-border/50 hover:bg-muted/20 hover:border-primary/20 transition-all duration-200 group/add"
 				>
-					Add description…
+					<div className="flex items-center gap-3">
+						<div className="flex size-8 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground/45 group-hover/add:text-muted-foreground/70 transition-colors">
+							<FileText className="size-4" />
+						</div>
+						<span className="text-[13px] text-muted-foreground/60 group-hover/add:text-muted-foreground/80 font-medium transition-colors">
+							Add a description…
+						</span>
+					</div>
 				</button>
 			)}
 		</div>
