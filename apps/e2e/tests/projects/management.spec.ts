@@ -109,7 +109,7 @@ test.describe('Project Management', () => {
       await expect(page.getByRole('link', { name: new RegExp(BASE_PROJECT_NAME) })).toBeVisible();
 
       // The card should show the project description or "No description"
-      await expect(page.getByText('No description')).toBeVisible();
+      await expect(page.getByRole('link', { name: new RegExp(BASE_PROJECT_NAME) }).getByText('No description')).toBeVisible();
 
       // The card should show the project creation date (any date format)
       await expect(page.getByRole('link', { name: new RegExp(BASE_PROJECT_NAME) }).getByText(/\w+ \d+, \d{4}/)).toBeVisible();

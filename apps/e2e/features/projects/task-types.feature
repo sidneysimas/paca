@@ -184,8 +184,10 @@ Feature: Task types management
 
     Scenario: Opening the delete-type dialog shows a confirmation message
       When the user clicks "Delete type" for the type named "E2E Delete Me Type"
-      Then the "Delete type" dialog should open
+      Then the "Delete task type" dialog should open
       And the dialog should identify the type being deleted by name
+      And the dialog should warn that tasks using this type will lose their type assignment
+      And the dialog should warn that the action cannot be undone
 
     Scenario: Confirming deletion removes the type from the table
       When the user clicks "Delete type" for the type named "E2E Delete Me Type"
@@ -202,4 +204,5 @@ Feature: Task types management
     Scenario: Closing the delete-type dialog with the Close button keeps the type
       When the user clicks "Delete type" for the type named "E2E Delete Me Type"
       And the user clicks the Close button on the dialog
-      Then the task types table should still contain a type named "E2E Delete Me Type"
+      Then the "Delete task type" dialog should close
+      And the task types table should still contain a type named "E2E Delete Me Type"

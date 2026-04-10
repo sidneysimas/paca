@@ -135,6 +135,9 @@ export function IntegrationLayout({
 	]);
 
 	// Active view: prefer last-selected (stored in localStorage), fall back to first
+	const [previewConfig, setPreviewConfig] = useState<ViewConfig | undefined>(
+		undefined,
+	);
 	const [preferredViewId, setPreferredViewId] = useState<string>(() => {
 		try {
 			return localStorage.getItem(`paca:active-view:${integrationKey}`) ?? "";
@@ -156,15 +159,16 @@ export function IntegrationLayout({
 		}
 	}, [activeViewId, integrationKey]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clear preview when switching views to prevent settings from bleeding across views
+	useEffect(() => {
+		setPreviewConfig(undefined);
+	}, [activeViewId]);
+
 	const [renameTarget, setRenameTarget] = useState<IntegrationView | null>(
 		null,
 	);
 	const [renameOpen, setRenameOpen] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	// Previewed view config (updated by the settings panel before Save)
-	const [previewConfig, setPreviewConfig] = useState<ViewConfig | undefined>(
-		undefined,
-	);
 	const activeViewConfig = previewConfig ?? activeView?.config;
 	const isManualSort =
 		!activeViewConfig?.sort_by ||

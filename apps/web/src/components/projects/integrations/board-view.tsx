@@ -260,6 +260,7 @@ export function BoardView({
 					// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop column requires pointer events; keyboard reorder is handled separately
 					<div
 						key={status.id}
+						data-status-id={status.id}
 						className="flex w-72 shrink-0 flex-col gap-2"
 						onDragOver={(e) => handleDragOver(e, status.id)}
 						onDrop={(e) => handleDrop(e, status.id)}

@@ -76,6 +76,10 @@ Feature: Task statuses management
       And the dropdown should list "In Progress"
       And the dropdown should list "Done"
 
+    Scenario: Default category in the Create status dialog is "To Do"
+      When the user clicks the "New status" button
+      Then the "Category" dropdown should display "To Do" as the selected value
+
     Scenario: Creating a status with only a name succeeds
       When the user clicks the "New status" button
       And the user fills the status name with "E2E In Review"

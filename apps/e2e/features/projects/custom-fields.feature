@@ -43,6 +43,11 @@ Feature: Custom field management
       When the user clicks "Custom Fields" in the settings sidebar
       Then the "New custom field" button should be visible
 
+    Scenario: "Create first field" button in the empty state also opens the create dialog
+      When the user clicks "Custom Fields" in the settings sidebar
+      And the user clicks the "Create first field" button in the empty state
+      Then the "Create custom field" dialog should open
+
     Scenario: Field key is displayed in monospace style
       Given a custom field named "E2E Priority Score" exists in the project
       When the user clicks "Custom Fields" in the settings sidebar

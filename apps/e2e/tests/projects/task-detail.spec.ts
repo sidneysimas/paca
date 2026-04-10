@@ -119,11 +119,11 @@ const navigateToBacklog = async (page: Page, projectId: string) => {
 };
 
 const openBoardView = async (page: Page) => {
-  await page.getByRole('button', { name: 'Board' }).first().click();
+  await page.getByRole('button', { name: 'Board', exact: true }).click();
 };
 
 const openTableView = async (page: Page) => {
-  await page.getByRole('button', { name: 'Table' }).click();
+  await page.getByRole('button', { name: 'Table', exact: true }).click();
 };
 
 // ─── Test Suites ──────────────────────────────────────────────────────────────
@@ -165,8 +165,8 @@ test.describe('Opening task detail from board view', () => {
     await expect(card).toBeVisible({ timeout: 10_000 });
     await card.click();
 
-    // The modal should show the task title at least twice (card + modal)
-    await expect(page.getByText(task.title).nth(1)).toBeVisible({ timeout: 10_000 });
+    // The task detail dialog should be open and accessible by its title
+    await expect(page.getByRole('dialog', { name: task.title })).toBeVisible({ timeout: 10_000 });
   });
 
   test('Clicking a task row in Table view opens the task detail modal', async ({ page }) => {
@@ -177,8 +177,8 @@ test.describe('Opening task detail from board view', () => {
     await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
     await page.getByText(task.title).click();
 
-    // Modal opens and shows the title
-    await expect(page.getByText(task.title).nth(1)).toBeVisible({ timeout: 10_000 });
+    // The task detail dialog should be open and accessible by its title
+    await expect(page.getByRole('dialog', { name: task.title })).toBeVisible({ timeout: 10_000 });
   });
 
   test('URL includes the task identifier when the modal opens', async ({ page }) => {
@@ -203,8 +203,8 @@ test.describe('Opening task detail from board view', () => {
     await expect(card).toBeVisible({ timeout: 10_000 });
     await card.click();
 
-    // Modal open states: both the modal content and the board columns are present in DOM
-    await expect(page.getByText(task.title).nth(1)).toBeVisible({ timeout: 10_000 });
+    // The task detail dialog should be open and accessible by its title
+    await expect(page.getByRole('dialog', { name: task.title })).toBeVisible({ timeout: 10_000 });
 
     // Board columns should still be visible in the background
     const todoStatus = statuses.find((s) => s.category === 'todo');
@@ -243,7 +243,7 @@ test.describe('Task detail page via direct URL', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Task detail page shows project breadcrumb context', async ({ page }) => {
@@ -294,7 +294,7 @@ test.describe('Task detail two-pane layout', () => {
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
     // The content area for description should be visible
-    await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
     // A description or add-description affordance should exist
     await expect(
       page.getByText(/description|add a description/i).first(),
@@ -305,7 +305,7 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
     // Activity / comment input should be visible
     await expect(
       page.getByPlaceholder(/write a comment/i).or(page.getByText(/write a comment/i).first()),
@@ -316,7 +316,7 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Status', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
@@ -324,7 +324,7 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -367,7 +367,7 @@ test.describe('Sprint task detail — sprint_id preservation', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Patching only the status from the task detail does not move task to backlog', async ({ request }) => {

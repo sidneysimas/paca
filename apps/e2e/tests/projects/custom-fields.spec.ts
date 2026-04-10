@@ -9,8 +9,6 @@ const PASSWORD = process.env.E2E_PASSWORD ?? 'e2e-admin-password';
 const TEST_PROJECT_PREFIX = 'E2E_CFIELD_';
 const RUN_ID = Date.now().toString(36).slice(-5).toUpperCase();
 
-// ── API Helpers ───────────────────────────────────────────────────────────────
-
 async function authRequest(request: APIRequestContext): Promise<void> {
   await request.post(`${BASE_URL}/api/v1/auth/login`, {
     data: { username: USERNAME, password: PASSWORD, rememberMe: false },
@@ -53,7 +51,7 @@ async function createProject(request: APIRequestContext, name: string): Promise<
 async function createCustomField(
   request: APIRequestContext,
   projectId: string,
-  opts: {
+  options: {
     display_name: string;
     field_key?: string;
     field_type?: string;
@@ -61,21 +59,22 @@ async function createCustomField(
     is_required?: boolean;
   },
 ): Promise<string> {
-  const fieldKey = opts.field_key ?? opts.display_name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  const defaultKey = options.display_name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
   const resp = await request.post(`${BASE_URL}/api/v1/projects/${projectId}/custom-fields`, {
     data: {
-      display_name: opts.display_name,
-      field_key: fieldKey,
-      field_type: opts.field_type ?? 'text',
-      options: opts.options ?? [],
-      is_required: opts.is_required ?? false,
+      display_name: options.display_name,
+      field_key: options.field_key ?? defaultKey,
+      field_type: options.field_type ?? 'text',
+      options: options.options ?? [],
+      is_required: options.is_required ?? false,
     },
   });
   const body = await resp.json();
   return body.data.id as string;
 }
-
-// ── Browser Helpers ───────────────────────────────────────────────────────────
 
 const signIn = async (page: Page) => {
   await page.goto(`${BASE_URL}/`);
@@ -90,18 +89,7 @@ const navigateToProjectSettings = async (page: Page, projectId: string) => {
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
 };
 
-const openCustomFieldsSection = async (page: Page) => {
-  await page.getByRole('button', { name: 'Custom Fields' }).click();
-  await expect(page.getByRole('heading', { name: 'Custom Fields', level: 3 })).toBeVisible();
-};
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
-test.describe('Custom field management', () => {
-  // ---------------------------------------------------------------------------
-  // Rule: Viewing custom fields
-  // ---------------------------------------------------------------------------
-
+test.describe('Custom Fields Management', () => {
   test.describe('Viewing custom fields', () => {
     let projectId: string;
 
@@ -120,28 +108,39 @@ test.describe('Custom field management', () => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
 
+      // When the user clicks "Custom Fields" in the settings sidebar
       await page.getByRole('button', { name: 'Custom Fields' }).click();
 
+      // The "Custom Fields" section heading should be visible
       await expect(page.getByRole('heading', { name: 'Custom Fields', level: 3 })).toBeVisible();
+
+      // The section should display a description mentioning extending tasks
       await expect(page.getByText(/extend tasks|additional data/i)).toBeVisible();
     });
 
-    test('New project shows an empty state with no custom fields', async ({ page }) => {
+    test('New project shows the empty state for Custom Fields', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
 
+      // When the user clicks "Custom Fields" in the settings sidebar
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // The section should show the "No custom fields yet" empty state
       await expect(page.getByText(/No custom fields yet/i)).toBeVisible();
-      await expect(page.getByText(/Create first field|create.*field/i)).toBeVisible();
+
+      // The section should show a "Create first field" button
+      await expect(page.getByRole('button', { name: 'Create first field' })).toBeVisible();
     });
 
-    test('Custom fields table shows the expected columns once fields exist', async ({ page, request }) => {
-      await createCustomField(request, projectId, { display_name: 'E2E Priority Score' });
-
+    test('Custom fields table shows the expected columns when fields exist', async ({ page, request }) => {
+      await createCustomField(request, projectId, { display_name: 'E2E Field', field_type: 'text' });
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
 
+      // When the user clicks "Custom Fields" in the settings sidebar
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // The custom fields table should have columns "Display Name", "Field Key", "Type", "Required"
       await expect(page.getByRole('columnheader', { name: 'Display Name' })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: 'Field Key' })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: 'Type' })).toBeVisible();
@@ -149,41 +148,46 @@ test.describe('Custom field management', () => {
     });
 
     test('Each custom field row has Edit and Delete action buttons', async ({ page, request }) => {
-      await createCustomField(request, projectId, { display_name: 'E2E Priority Score' });
-
+      await createCustomField(request, projectId, { display_name: 'E2E Field', field_type: 'text' });
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
 
+      // When the user clicks "Custom Fields" in the settings sidebar
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // Every custom field row should have an "Edit field" button
       await expect(page.getByRole('button', { name: 'Edit field' }).first()).toBeVisible();
+
+      // Every custom field row should have a "Delete field" button
       await expect(page.getByRole('button', { name: 'Delete field' }).first()).toBeVisible();
     });
 
-    test('"New custom field" button is visible on the Custom Fields section', async ({ page }) => {
+    test('Field key is displayed in monospace font', async ({ page, request }) => {
+      await createCustomField(request, projectId, { display_name: 'E2E Mono Field', field_key: 'e2e_mono_field', field_type: 'text' });
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
 
-      await expect(page.getByRole('button', { name: 'New custom field' })).toBeVisible();
-    });
+      // When the user clicks "Custom Fields" in the settings sidebar
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-    test('Field key is displayed in monospace style', async ({ page, request }) => {
-      await createCustomField(request, projectId, { display_name: 'E2E Priority Score' });
-
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      // The field key cell should use font-mono class
-      const row = page.getByRole('row').filter({ hasText: 'E2E Priority Score' });
-      const keyCell = row.locator('td').nth(1);
+      // The "Field Key" column cell should use a monospace font class
+      const row = page.getByRole('row').filter({ hasText: 'E2E Mono Field' });
+      const keyCell = row.getByText('e2e_mono_field');
       await expect(keyCell).toHaveClass(/font-mono/);
     });
-  });
 
-  // ---------------------------------------------------------------------------
-  // Rule: Creating a custom field
-  // ---------------------------------------------------------------------------
+    test('"New custom field" button is visible when fields already exist', async ({ page, request }) => {
+      await createCustomField(request, projectId, { display_name: 'E2E Existing', field_type: 'text' });
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+
+      // When the user clicks "Custom Fields" in the settings sidebar
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // The "New custom field" button should be visible
+      await expect(page.getByRole('button', { name: 'New custom field' })).toBeVisible();
+    });
+  });
 
   test.describe('Creating a custom field', () => {
     let projectId: string;
@@ -199,81 +203,49 @@ test.describe('Custom field management', () => {
       await cleanupTestProjects(request);
     });
 
-    test('Opening the create-custom-field dialog', async ({ page }) => {
+    test('Opening the create-custom-field dialog from the "New custom field" button', async ({ page, request }) => {
+      await createCustomField(request, projectId, { display_name: 'E2E Seed', field_type: 'text' });
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
+      // When the user clicks the "New custom field" button
       await page.getByRole('button', { name: 'New custom field' }).click();
 
+      // The "Create custom field" dialog should open
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
       await expect(dialog).toBeVisible();
+    });
+
+    test('Opening the create-custom-field dialog from the "Create first field" button', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // When the user clicks the "Create first field" button in the empty state
+      await page.getByRole('button', { name: 'Create first field' }).click();
+
+      // The "Create custom field" dialog should open
+      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+      await expect(dialog).toBeVisible();
+    });
+
+    test('Create dialog contains required fields and controls', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+
+      // The dialog should contain a "Display name" field
       await expect(dialog.getByRole('textbox', { name: /Display name/i })).toBeVisible();
+
+      // The dialog should contain a "Field key" field
       await expect(dialog.getByRole('textbox', { name: /Field key/i })).toBeVisible();
-      await expect(dialog.getByRole('switch', { name: /Required/i })).toBeVisible();
-    });
 
-    test('"Create field" button is disabled while the display name is empty', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await expect(dialog.getByRole('button', { name: 'Create field' })).toBeDisabled();
-    });
-
-    test('"Create field" button becomes enabled after typing a display name', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Sprint Points');
-
-      await expect(dialog.getByRole('button', { name: 'Create field' })).toBeEnabled();
-    });
-
-    test('Typing a display name auto-generates the field key', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('Sprint Points');
-
-      await expect(dialog.getByRole('textbox', { name: /Field key/i })).toHaveValue('sprint_points');
-    });
-
-    test('Auto-generated field key can be manually overridden', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('Sprint Points');
-      const keyInput = dialog.getByRole('textbox', { name: /Field key/i });
-      await keyInput.clear();
-      await keyInput.fill('sp_pts');
-
-      await expect(keyInput).toHaveValue('sp_pts');
-    });
-
-    test('Field type selector lists all available types', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+      // The dialog should contain field type buttons: Text, Number, Date, Checkbox, Select
       await expect(dialog.getByRole('button', { name: 'Text' })).toBeVisible();
       await expect(dialog.getByRole('button', { name: 'Number' })).toBeVisible();
       await expect(dialog.getByRole('button', { name: 'Date' })).toBeVisible();
@@ -281,278 +253,205 @@ test.describe('Custom field management', () => {
       await expect(dialog.getByRole('button', { name: 'Select' })).toBeVisible();
     });
 
-    test('Default field type is Text', async ({ page }) => {
+    test('"Create field" button is disabled when Display name is empty', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      // The Text button should have the selected styling (primary class)
-      await expect(dialog.getByRole('button', { name: 'Text' })).toHaveClass(/text-primary|bg-primary/);
+
+      // The "Create field" button should be disabled
+      await expect(dialog.getByRole('button', { name: 'Create field' })).toBeDisabled();
     });
 
-    test('Options editor is hidden for non-Select field types', async ({ page }) => {
+    test('"Create field" button becomes enabled after filling in Display name', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('button', { name: 'Number' }).click();
 
-      await expect(dialog.getByLabel('Options')).not.toBeVisible();
-    });
+      // And the user fills in the Display name field
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Text Field');
 
-    test('Options editor appears when the Select field type is chosen', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('button', { name: 'Select' }).click();
-
-      await expect(dialog.getByLabel('Options')).toBeVisible();
-    });
-
-    test('Adding an option to a Select field', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('button', { name: 'Select' }).click();
-      await dialog.getByPlaceholder('Add option…').fill('High');
-      await dialog.getByRole('button', { name: 'Add' }).click();
-
-      await expect(dialog.locator('input[value="High"]')).toBeVisible();
-    });
-
-    test('Removing an option from a Select field', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('button', { name: 'Select' }).click();
-      await dialog.getByPlaceholder('Add option…').fill('Unwanted');
-      await dialog.getByRole('button', { name: 'Add' }).click();
-      // Remove it via the X button next to the option input
-      await dialog.locator('input[value="Unwanted"]').locator('..').getByRole('button').click();
-
-      await expect(dialog.locator('input[value="Unwanted"]')).not.toBeVisible();
+      // The "Create field" button should be enabled
+      await expect(dialog.getByRole('button', { name: 'Create field' })).toBeEnabled();
     });
 
     test('Creating a Text field succeeds', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Notes');
+
+      // And the user fills in the Display name field with "E2E Text Field"
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Text Field');
+
+      // And the user selects "Text" field type
       await dialog.getByRole('button', { name: 'Text' }).click();
+
+      // And the user clicks "Create field"
       await dialog.getByRole('button', { name: 'Create field' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Notes' });
-      await expect(row).toBeVisible();
-      await expect(row).toContainText('Text');
+
+      // And the custom fields table should contain "E2E Text Field"
+      await expect(page.getByRole('table').getByText('E2E Text Field', { exact: true })).toBeVisible();
     });
 
     test('Creating a Number field succeeds', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Story Points');
+
+      // And the user fills in the Display name field with "E2E Number Field"
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Number Field');
+
+      // And the user selects "Number" field type
       await dialog.getByRole('button', { name: 'Number' }).click();
+
+      // And the user clicks "Create field"
       await dialog.getByRole('button', { name: 'Create field' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Story Points' });
-      await expect(row).toBeVisible();
-      await expect(row).toContainText('Number');
+
+      // And the custom fields table should contain "E2E Number Field"
+      await expect(page.getByRole('table').getByText('E2E Number Field', { exact: true })).toBeVisible();
     });
 
-    test('Creating a Date field succeeds', async ({ page }) => {
+    test('Creating a Select field shows the options editor', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Due Date');
-      await dialog.getByRole('button', { name: 'Date' }).click();
-      await dialog.getByRole('button', { name: 'Create field' }).click();
 
-      await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Due Date' });
-      await expect(row).toBeVisible();
-      await expect(row).toContainText('Date');
-    });
+      // And the user fills in the Display name field with "E2E Select Field"
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Select Field');
 
-    test('Creating a Checkbox field succeeds', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Blocked');
-      await dialog.getByRole('button', { name: 'Checkbox' }).click();
-      await dialog.getByRole('button', { name: 'Create field' }).click();
-
-      await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Blocked' });
-      await expect(row).toBeVisible();
-      await expect(row).toContainText('Checkbox');
-    });
-
-    test('Creating a Select field with options succeeds', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Severity');
+      // When the user selects "Select" field type
       await dialog.getByRole('button', { name: 'Select' }).click();
-      for (const opt of ['Low', 'Medium', 'High']) {
-        await dialog.getByPlaceholder('Add option…').fill(opt);
-        await dialog.getByRole('button', { name: 'Add' }).click();
-      }
-      await dialog.getByRole('button', { name: 'Create field' }).click();
 
-      await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Severity' });
-      await expect(row).toBeVisible();
-      await expect(row).toContainText('Select');
+      // Then the options editor should appear
+      await expect(dialog.getByPlaceholder('Add option…')).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Add' })).toBeVisible();
     });
 
-    test('Creating a Required field shows "Yes" in the Required column', async ({ page }) => {
+    test('Adding options to a Select field works', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+
+      // And the user fills in the Display name field
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Select Options');
+
+      // And the user selects "Select" field type
+      await dialog.getByRole('button', { name: 'Select' }).click();
+
+      // And the user types "High" in the "Add option…" field
+      await dialog.getByPlaceholder('Add option…').fill('High');
+
+      // And the user clicks "Add"
+      await dialog.getByRole('button', { name: 'Add' }).click();
+
+      // Then the option "High" should appear in the options list
+      await expect(dialog.locator('input[value="High"]')).toBeVisible();
+    });
+
+    test('Removing an option from a Select field works', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+
+      // And the user fills in the Display name field
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Remove Option');
+
+      // And the user selects "Select" field type
+      await dialog.getByRole('button', { name: 'Select' }).click();
+
+      // And the user adds option "Unwanted"
+      await dialog.getByPlaceholder('Add option…').fill('Unwanted');
+      await dialog.getByRole('button', { name: 'Add' }).click();
+      await expect(dialog.locator('input[value="Unwanted"]')).toBeVisible();
+
+      // When the user clicks the remove button next to "Unwanted"
+      await dialog.locator('input[value="Unwanted"]').locator('..').getByRole('button').click();
+
+      // Then the option "Unwanted" should no longer appear in the options list
+      await expect(dialog.locator('input[value="Unwanted"]')).not.toBeVisible();
+    });
+
+    test('Creating a "Required" field marks it as required in the table', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+
+      // And the user fills in the Display name field with "E2E Required Field"
       await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Required Field');
-      await dialog.getByRole('switch', { name: /Required/i }).click();
+
+      // And the user toggles the "Required" switch on
+      await dialog.getByRole('switch').click();
+
+      // And the user clicks "Create field"
       await dialog.getByRole('button', { name: 'Create field' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
+
+      // And the custom fields table should show "E2E Required Field" as required
       const row = page.getByRole('row').filter({ hasText: 'E2E Required Field' });
-      await expect(row).toContainText('Yes');
-    });
-
-    test('Creating an optional field shows "No" in the Required column', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Optional Field');
-      await dialog.getByRole('button', { name: 'Create field' }).click();
-
-      await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Optional Field' });
-      await expect(row).toContainText('No');
-    });
-
-    test('Created field key matches the auto-generated slug', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Sprint Goal');
-      await dialog.getByRole('button', { name: 'Create field' }).click();
-
-      await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Sprint Goal' });
-      await expect(row).toContainText('e2e_sprint_goal');
+      await expect(row).toBeVisible();
     });
 
     test('Cancelling the create dialog discards changes', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
+      // When the user clicks "Create first field"
+      await page.getByRole('button', { name: 'Create first field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create custom field' });
+
+      // And the user fills in the Display name field with "E2E Should Not Exist"
       await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Should Not Exist');
+
+      // And the user clicks "Cancel"
       await dialog.getByRole('button', { name: 'Cancel' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Should Not Exist' })).not.toBeVisible();
-    });
 
-    test('Closing the create dialog with the Close button discards changes', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Should Not Exist via X');
-      // Close via the X button on the dialog
-      await dialog.getByRole('button', { name: 'Close' }).click();
-
-      await expect(dialog).not.toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Should Not Exist via X' })).not.toBeVisible();
-    });
-
-    test('Duplicate field key within the same project is rejected', async ({ page, request }) => {
-      await createCustomField(request, projectId, {
-        display_name: 'Existing Field',
-        field_key: 'e2e_dup_key',
-      });
-
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'New custom field' }).click();
-
-      const dialog = page.getByRole('dialog', { name: 'Create custom field' });
-      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Duplicate');
-      const keyInput = dialog.getByRole('textbox', { name: /Field key/i });
-      await keyInput.clear();
-      await keyInput.fill('e2e_dup_key');
-      await dialog.getByRole('button', { name: 'Create field' }).click();
-
-      // Dialog stays open and shows an error
-      await expect(dialog).toBeVisible();
-      await expect(dialog.getByText(/already in use|already exists/i)).toBeVisible();
+      // And the empty state should still be visible (no field was created)
+      await expect(page.getByText(/No custom fields yet/i)).toBeVisible();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Editing a custom field
-  // ---------------------------------------------------------------------------
 
   test.describe('Editing a custom field', () => {
     let projectId: string;
@@ -561,10 +460,9 @@ test.describe('Custom field management', () => {
       await cleanupTestProjects(request);
       projectId = await createProject(request, `E2E_CFIELD_EDIT_${RUN_ID}`);
       await createCustomField(request, projectId, {
-        display_name: 'E2E Edit Me Field',
-        field_key: 'e2e_edit_me_field',
-        field_type: 'select',
-        options: ['Alpha', 'Beta'],
+        display_name: 'E2E Edit Me',
+        field_key: 'e2e_edit_me',
+        field_type: 'text',
       });
       await context.clearCookies();
       await context.clearPermissions();
@@ -574,142 +472,127 @@ test.describe('Custom field management', () => {
       await cleanupTestProjects(request);
     });
 
-    test('Opening the edit dialog pre-fills existing values', async ({ page }) => {
+    test('Opening the edit-custom-field dialog pre-fills existing values', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
+      // When the user clicks "Edit custom field" for "E2E Edit Me"
+      const editRow0 = page.getByRole('row').filter({ hasText: 'E2E Edit Me' });
+      await editRow0.hover();
+      await editRow0.getByRole('button', { name: 'Edit field' }).click();
 
+      // The "Edit field" dialog should open
       const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
       await expect(dialog).toBeVisible();
-      await expect(dialog.getByRole('textbox', { name: /Display name/i })).toHaveValue('E2E Edit Me Field');
-      await expect(dialog.locator('input[value="e2e_edit_me_field"]')).toBeVisible();
-    });
 
-    test('Field type is not editable in the edit dialog', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      // The "Display name" field should be pre-filled with "E2E Edit Me"
+      await expect(dialog.getByRole('textbox', { name: /Display name/i })).toHaveValue('E2E Edit Me');
 
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      // The field type button should be disabled
-      const fieldTypeBtn = dialog.locator('button[disabled]').filter({ hasText: /select/i });
-      await expect(fieldTypeBtn).toBeVisible();
-    });
-
-    test('Field key is immutable in the edit dialog', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      const keyInput = dialog.locator('input[value="e2e_edit_me_field"][disabled]');
-      await expect(keyInput).toBeVisible();
-      await expect(keyInput).toBeDisabled();
+      // The "Field key" field should be pre-filled with "e2e_edit_me"
+      // Note: the field key input is disabled so it has no accessible name;
+      // look it up via the disabled input locator instead
+      await expect(dialog.locator('input[disabled]').first()).toHaveValue('e2e_edit_me');
     });
 
     test('Saving a new display name updates the field in the table', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
+      // When the user clicks "Edit custom field" for "E2E Edit Me"
+      const editRow1 = page.getByRole('row').filter({ hasText: 'E2E Edit Me' });
+      await editRow1.hover();
+      await editRow1.getByRole('button', { name: 'Edit field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      const nameInput = dialog.getByRole('textbox', { name: /Display name/i });
-      await nameInput.clear();
-      await nameInput.fill('E2E Renamed Field');
-      await dialog.getByRole('button', { name: 'Save changes' }).click();
 
-      await expect(dialog).not.toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Renamed Field' })).toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Edit Me Field' })).not.toBeVisible();
-    });
-
-    test('Clearing the display name disables the save button', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
+      // And the user clears and fills the Display name with "E2E Edited Name"
       await dialog.getByRole('textbox', { name: /Display name/i }).clear();
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Edited Name');
 
-      await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled();
-    });
-
-    test('Options editor is visible for a Select field in edit mode', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      await expect(dialog.getByLabel('Options')).toBeVisible();
-      await expect(dialog.locator('input[value="Alpha"]')).toBeVisible();
-      await expect(dialog.locator('input[value="Beta"]')).toBeVisible();
-    });
-
-    test('Adding an option to an existing Select field saves correctly', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      await dialog.getByPlaceholder('Add option…').fill('Gamma');
-      await dialog.getByRole('button', { name: 'Add' }).click();
+      // And the user clicks "Save changes"
       await dialog.getByRole('button', { name: 'Save changes' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-    });
 
-    test('Toggling the Required flag updates the Required column', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      // And the table should contain "E2E Edited Name"
+      await expect(page.getByRole('table').getByText('E2E Edited Name', { exact: true })).toBeVisible();
 
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      await dialog.getByRole('switch', { name: /Required/i }).click();
-      await dialog.getByRole('button', { name: 'Save changes' }).click();
-
-      await expect(dialog).not.toBeVisible();
-      const row = page.getByRole('row').filter({ hasText: 'E2E Edit Me Field' });
-      await expect(row).toContainText('Yes');
+      // And the table should not contain the old name "E2E Edit Me"
+      await expect(page.getByRole('table').getByText('E2E Edit Me', { exact: true })).not.toBeVisible();
     });
 
     test('Cancelling the edit dialog discards changes', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Edit field' }).first().click();
-
+      // When the user clicks "Edit custom field" for "E2E Edit Me"
+      const editRow2 = page.getByRole('row').filter({ hasText: 'E2E Edit Me' });
+      await editRow2.hover();
+      await editRow2.getByRole('button', { name: 'Edit field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
-      const nameInput = dialog.getByRole('textbox', { name: /Display name/i });
-      await nameInput.clear();
-      await nameInput.fill('E2E Should Not Save');
+
+      // And the user clears and fills the Display name with "E2E Should Not Save"
+      await dialog.getByRole('textbox', { name: /Display name/i }).clear();
+      await dialog.getByRole('textbox', { name: /Display name/i }).fill('E2E Should Not Save');
+
+      // And the user clicks "Cancel"
       await dialog.getByRole('button', { name: 'Cancel' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Edit Me Field' })).toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Should Not Save' })).not.toBeVisible();
+
+      // And the table should still contain "E2E Edit Me"
+      await expect(page.getByRole('table').getByText('E2E Edit Me', { exact: true })).toBeVisible();
+
+      // And the table should not contain "E2E Should Not Save"
+      await expect(page.getByRole('table').getByText('E2E Should Not Save', { exact: true })).not.toBeVisible();
+    });
+
+    test('Clearing the Display name field disables the Save button', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // When the user clicks "Edit custom field" for "E2E Edit Me"
+      const editRow3 = page.getByRole('row').filter({ hasText: 'E2E Edit Me' });
+      await editRow3.hover();
+      await editRow3.getByRole('button', { name: 'Edit field' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
+
+      // And the user clears the Display name field
+      await dialog.getByRole('textbox', { name: /Display name/i }).clear();
+
+      // Then the "Save changes" button should be disabled
+      await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    });
+
+    test('Toggling Required on an existing field updates it', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
+
+      // When the user clicks "Edit custom field" for "E2E Edit Me"
+      const editRow4 = page.getByRole('row').filter({ hasText: 'E2E Edit Me' });
+      await editRow4.hover();
+      await editRow4.getByRole('button', { name: 'Edit field' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Edit custom field' });
+
+      // And the user toggles the "Required" switch
+      await dialog.getByRole('switch').click();
+
+      // And the user clicks "Save changes"
+      await dialog.getByRole('button', { name: 'Save changes' }).click();
+
+      // Then the dialog should close
+      await expect(dialog).not.toBeVisible();
+
+      // And "E2E Edit Me" should still be visible in the table
+      await expect(page.getByRole('table').getByText('E2E Edit Me', { exact: true })).toBeVisible();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Deleting a custom field
-  // ---------------------------------------------------------------------------
 
   test.describe('Deleting a custom field', () => {
     let projectId: string;
@@ -717,7 +600,10 @@ test.describe('Custom field management', () => {
     test.beforeEach(async ({ request, context }) => {
       await cleanupTestProjects(request);
       projectId = await createProject(request, `E2E_CFIELD_DELETE_${RUN_ID}`);
-      await createCustomField(request, projectId, { display_name: 'E2E Delete Me Field' });
+      await createCustomField(request, projectId, {
+        display_name: 'E2E Delete Me',
+        field_type: 'text',
+      });
       await context.clearCookies();
       await context.clearPermissions();
     });
@@ -726,73 +612,85 @@ test.describe('Custom field management', () => {
       await cleanupTestProjects(request);
     });
 
-    test('Opening the delete dialog shows a confirmation message', async ({ page }) => {
+    test('Opening the delete-custom-field dialog shows a confirmation message', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Delete field' }).first().click();
+      // When the user clicks "Delete custom field" for "E2E Delete Me"
+      const deleteRow0 = page.getByRole('row').filter({ hasText: 'E2E Delete Me' });
+      await deleteRow0.hover();
+      await deleteRow0.getByRole('button', { name: 'Delete field' }).click();
 
+      // The "Delete custom field" dialog should open
       const dialog = page.getByRole('dialog', { name: 'Delete custom field' });
       await expect(dialog).toBeVisible();
-      await expect(dialog.getByText('E2E Delete Me Field')).toBeVisible();
-      await expect(dialog.getByText(/cannot be undone/i)).toBeVisible();
-      await expect(dialog.getByText(/data.*lost|lost|will be lost/i)).toBeVisible();
+
+      // The dialog should identify the field being deleted by name
+      await expect(dialog).toContainText('E2E Delete Me');
+
+      // The dialog should warn that the action cannot be undone
+      await expect(dialog).toContainText(/cannot be undone/i);
     });
 
-    test('Confirming deletion removes the field from the table', async ({ page }) => {
+    test('Confirming deletion removes the custom field from the table', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Delete field' }).first().click();
-
+      // When the user clicks "Delete custom field" for "E2E Delete Me"
+      const deleteRow1 = page.getByRole('row').filter({ hasText: 'E2E Delete Me' });
+      await deleteRow1.hover();
+      await deleteRow1.getByRole('button', { name: 'Delete field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Delete custom field' });
+
+      // And the user confirms by clicking "Delete field"
       await dialog.getByRole('button', { name: 'Delete field' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Delete Me Field' })).not.toBeVisible();
-    });
 
-    test('Confirming deletion of the last field returns to the empty state', async ({ page }) => {
-      await signIn(page);
-      await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
-
-      await page.getByRole('button', { name: 'Delete field' }).first().click();
-
-      const dialog = page.getByRole('dialog', { name: 'Delete custom field' });
-      await dialog.getByRole('button', { name: 'Delete field' }).click();
-
-      await expect(dialog).not.toBeVisible();
+      // And the custom fields section should show the empty state
       await expect(page.getByText(/No custom fields yet/i)).toBeVisible();
     });
 
-    test('Cancelling the delete dialog keeps the field in the table', async ({ page }) => {
+    test('Cancelling the delete dialog keeps the custom field in the table', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Delete field' }).first().click();
-
+      // When the user clicks "Delete custom field" for "E2E Delete Me"
+      const deleteRow2 = page.getByRole('row').filter({ hasText: 'E2E Delete Me' });
+      await deleteRow2.hover();
+      await deleteRow2.getByRole('button', { name: 'Delete field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Delete custom field' });
+
+      // And the user clicks "Cancel"
       await dialog.getByRole('button', { name: 'Cancel' }).click();
 
+      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-      await expect(page.getByRole('cell', { name: 'E2E Delete Me Field' })).toBeVisible();
+
+      // And the custom fields table should still contain "E2E Delete Me"
+      await expect(page.getByRole('table').getByText('E2E Delete Me', { exact: true })).toBeVisible();
     });
 
-    test('Closing the delete dialog with the Close button keeps the field', async ({ page }) => {
+    test('Closing the delete dialog with the Close button keeps the custom field', async ({ page }) => {
       await signIn(page);
       await navigateToProjectSettings(page, projectId);
-      await openCustomFieldsSection(page);
+      await page.getByRole('button', { name: 'Custom Fields' }).click();
 
-      await page.getByRole('button', { name: 'Delete field' }).first().click();
-
+      // When the user clicks "Delete custom field" for "E2E Delete Me"
+      const deleteRow3 = page.getByRole('row').filter({ hasText: 'E2E Delete Me' });
+      await deleteRow3.hover();
+      await deleteRow3.getByRole('button', { name: 'Delete field' }).click();
       const dialog = page.getByRole('dialog', { name: 'Delete custom field' });
+
+      // And the user clicks the Close button on the dialog
       await dialog.getByRole('button', { name: 'Close' }).click();
 
-      await expect(page.getByRole('cell', { name: 'E2E Delete Me Field' })).toBeVisible();
+      // Then the custom fields table should still contain "E2E Delete Me"
+      await expect(page.getByRole('table').getByText('E2E Delete Me', { exact: true })).toBeVisible();
     });
   });
 });

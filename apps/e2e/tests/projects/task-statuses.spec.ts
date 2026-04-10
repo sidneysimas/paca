@@ -75,10 +75,6 @@ const navigateToProjectSettings = async (page: Page, projectId: string) => {
 };
 
 test.describe('Task Statuses Management', () => {
-  // ---------------------------------------------------------------------------
-  // Rule: Viewing task statuses
-  // ---------------------------------------------------------------------------
-
   test.describe('Viewing task statuses', () => {
     let projectId: string;
 
@@ -170,10 +166,6 @@ test.describe('Task Statuses Management', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Rule: Creating a task status
-  // ---------------------------------------------------------------------------
-
   test.describe('Creating a task status', () => {
     let projectId: string;
 
@@ -259,6 +251,19 @@ test.describe('Task Statuses Management', () => {
       await expect(page.getByRole('option', { name: 'To Do' })).toBeVisible();
       await expect(page.getByRole('option', { name: 'In Progress' })).toBeVisible();
       await expect(page.getByRole('option', { name: 'Done' })).toBeVisible();
+    });
+
+    test('Default category in the Create status dialog is "To Do"', async ({ page }) => {
+      await signIn(page);
+      await navigateToProjectSettings(page, projectId);
+      await page.getByRole('button', { name: 'Task Statuses' }).click();
+
+      // When the user clicks the "New status" button
+      await page.getByRole('button', { name: 'New status' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Create status' });
+
+      // Then the "Category" dropdown should display "To Do" as the selected value
+      await expect(dialog.getByRole('combobox', { name: 'Category' })).toContainText('To Do');
     });
 
     test('Creating a status with only a name succeeds', async ({ page }) => {
@@ -381,10 +386,6 @@ test.describe('Task Statuses Management', () => {
       ).not.toBeVisible();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Editing a task status
-  // ---------------------------------------------------------------------------
 
   test.describe('Editing a task status', () => {
     let projectId: string;
@@ -512,10 +513,6 @@ test.describe('Task Statuses Management', () => {
       await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Deleting a task status
-  // ---------------------------------------------------------------------------
 
   test.describe('Deleting a task status', () => {
     let projectId: string;

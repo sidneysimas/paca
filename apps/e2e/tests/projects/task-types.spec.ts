@@ -70,10 +70,6 @@ const navigateToProjectSettings = async (page: Page, projectId: string) => {
 };
 
 test.describe('Task Types Management', () => {
-  // ---------------------------------------------------------------------------
-  // Rule: Viewing task types
-  // ---------------------------------------------------------------------------
-
   test.describe('Viewing task types', () => {
     let projectId: string;
 
@@ -109,13 +105,9 @@ test.describe('Task Types Management', () => {
       // When the user clicks "Task Types" in the settings sidebar
       await page.getByRole('button', { name: 'Task Types' }).click();
 
-      // The task types table should contain a type named "Bug"
+      // The task types table should contain Bug, Story, Task
       await expect(page.getByRole('table').getByText('Bug', { exact: true })).toBeVisible();
-
-      // The task types table should contain a type named "Story"
       await expect(page.getByRole('table').getByText('Story', { exact: true })).toBeVisible();
-
-      // The task types table should contain a type named "Task"
       await expect(page.getByRole('table').getByText('Task', { exact: true })).toBeVisible();
     });
 
@@ -139,10 +131,7 @@ test.describe('Task Types Management', () => {
       // When the user clicks "Task Types" in the settings sidebar
       await page.getByRole('button', { name: 'Task Types' }).click();
 
-      // Every task type row should have an "Edit type" button
       await expect(page.getByRole('button', { name: 'Edit type' }).first()).toBeVisible();
-
-      // Every task type row should have a "Delete type" button
       await expect(page.getByRole('button', { name: 'Delete type' }).first()).toBeVisible();
     });
 
@@ -153,14 +142,9 @@ test.describe('Task Types Management', () => {
       // When the user clicks "Task Types" in the settings sidebar
       await page.getByRole('button', { name: 'Task Types' }).click();
 
-      // The "New type" button should be visible
       await expect(page.getByRole('button', { name: 'New type' })).toBeVisible();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Creating a task type
-  // ---------------------------------------------------------------------------
 
   test.describe('Creating a task type', () => {
     let projectId: string;
@@ -184,20 +168,11 @@ test.describe('Task Types Management', () => {
       // When the user clicks the "New type" button
       await page.getByRole('button', { name: 'New type' }).click();
 
-      // The "Create task type" dialog should open
       const dialog = page.getByRole('dialog', { name: 'Create task type' });
       await expect(dialog).toBeVisible();
-
-      // The dialog should contain a required "Name" field
       await expect(dialog.getByRole('textbox', { name: 'Name' })).toBeVisible();
-
-      // The dialog should contain an optional icon picker
       await expect(dialog.getByRole('button', { name: 'Bug' })).toBeVisible();
-
-      // The dialog should contain a colour picker
       await expect(dialog.locator('label[title="Custom color"]')).toBeVisible();
-
-      // The dialog should contain an optional "Description" field
       await expect(dialog.getByRole('textbox', { name: 'Description (optional)' })).toBeVisible();
     });
 
@@ -209,7 +184,6 @@ test.describe('Task Types Management', () => {
       // When the user clicks the "New type" button
       await page.getByRole('button', { name: 'New type' }).click();
 
-      // The "Create type" button should be disabled
       await expect(
         page.getByRole('dialog', { name: 'Create task type' }).getByRole('button', { name: 'Create type' }),
       ).toBeDisabled();
@@ -227,7 +201,6 @@ test.describe('Task Types Management', () => {
       // And the user fills the type name with "E2E Epic"
       await dialog.getByRole('textbox', { name: 'Name' }).fill('E2E Epic');
 
-      // The "Create type" button should be enabled
       await expect(dialog.getByRole('button', { name: 'Create type' })).toBeEnabled();
     });
 
@@ -240,7 +213,6 @@ test.describe('Task Types Management', () => {
       await page.getByRole('button', { name: 'New type' }).click();
       const dialog = page.getByRole('dialog', { name: 'Create task type' });
 
-      // The icon picker should offer all preset icons
       const icons = [
         'Bug', 'Feature', 'Story', 'Epic', 'Task', 'Idea',
         'Security', 'Chore', 'Branch', 'Critical', 'Important', 'Goal',
@@ -267,10 +239,7 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Create type"
       await dialog.getByRole('button', { name: 'Create type' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should contain a type named "E2E Name Only"
       await expect(page.getByRole('table').getByText('E2E Name Only', { exact: true })).toBeVisible();
     });
 
@@ -292,13 +261,8 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Create type"
       await dialog.getByRole('button', { name: 'Create type' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should contain a type named "E2E Described Type"
       await expect(page.getByRole('table').getByText('E2E Described Type', { exact: true })).toBeVisible();
-
-      // And the row for "E2E Described Type" should display the description
       const row = page.getByRole('row').filter({ hasText: 'E2E Described Type' });
       await expect(row).toContainText('Used for exploratory work');
     });
@@ -321,13 +285,8 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Create type"
       await dialog.getByRole('button', { name: 'Create type' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should contain a type named "E2E Iconic Type"
       await expect(page.getByRole('table').getByText('E2E Iconic Type', { exact: true })).toBeVisible();
-
-      // And the row for "E2E Iconic Type" should display an icon
       const row = page.getByRole('row').filter({ hasText: 'E2E Iconic Type' });
       await expect(row.getByRole('cell').first().locator('svg')).toBeVisible({ timeout: 15000 });
     });
@@ -350,10 +309,7 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Create type"
       await dialog.getByRole('button', { name: 'Create type' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should contain a type named "E2E Coloured Type"
       await expect(page.getByRole('table').getByText('E2E Coloured Type', { exact: true })).toBeVisible();
     });
 
@@ -372,10 +328,7 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Cancel"
       await dialog.getByRole('button', { name: 'Cancel' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should not contain a type named "E2E Should Not Exist Type"
       await expect(
         page.getByRole('table').getByText('E2E Should Not Exist Type', { exact: true }),
       ).not.toBeVisible();
@@ -396,19 +349,12 @@ test.describe('Task Types Management', () => {
       // And the user clicks the Close button on the dialog
       await dialog.getByRole('button', { name: 'Close' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should not contain a type named "E2E Should Not Exist via X"
       await expect(
         page.getByRole('table').getByText('E2E Should Not Exist via X', { exact: true }),
       ).not.toBeVisible();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Editing a task type
-  // ---------------------------------------------------------------------------
 
   test.describe('Editing a task type', () => {
     let projectId: string;
@@ -437,11 +383,8 @@ test.describe('Task Types Management', () => {
         .getByRole('button', { name: 'Edit type' })
         .click();
 
-      // The "Edit task type" dialog should open
       const dialog = page.getByRole('dialog', { name: 'Edit task type' });
       await expect(dialog).toBeVisible();
-
-      // The "Name" field should be pre-filled with "E2E Edit Me Type"
       await expect(dialog.getByRole('textbox', { name: 'Name' })).toHaveValue('E2E Edit Me Type');
     });
 
@@ -465,13 +408,8 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Save changes"
       await dialog.getByRole('button', { name: 'Save changes' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible({ timeout: 15000 });
-
-      // And the task types table should contain a type named "E2E Edited Type Name"
       await expect(page.getByRole('table').getByText('E2E Edited Type Name', { exact: true })).toBeVisible();
-
-      // And the task types table should not contain a type named "E2E Edit Me Type"
       await expect(page.getByRole('table').getByText('E2E Edit Me Type', { exact: true })).not.toBeVisible();
     });
 
@@ -494,10 +432,7 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Save changes"
       await dialog.getByRole('button', { name: 'Save changes' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the row for "E2E Edit Me Type" should display the description
       const row = page.getByRole('row').filter({ hasText: 'E2E Edit Me Type' });
       await expect(row).toContainText('Now has a description');
     });
@@ -521,10 +456,7 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Save changes"
       await dialog.getByRole('button', { name: 'Save changes' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the row for "E2E Edit Me Type" should display an icon
       const row = page.getByRole('row').filter({ hasText: 'E2E Edit Me Type' });
       await expect(row.getByRole('cell').first().locator('svg')).toBeVisible({ timeout: 15000 });
     });
@@ -549,13 +481,8 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Cancel"
       await dialog.getByRole('button', { name: 'Cancel' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should still contain a type named "E2E Edit Me Type"
       await expect(page.getByRole('table').getByText('E2E Edit Me Type', { exact: true })).toBeVisible();
-
-      // And the task types table should not contain a type named "E2E Should Not Save Type"
       await expect(page.getByRole('table').getByText('E2E Should Not Save Type', { exact: true })).not.toBeVisible();
     });
 
@@ -575,14 +502,9 @@ test.describe('Task Types Management', () => {
       // And the user clears the name field
       await dialog.getByRole('textbox', { name: 'Name' }).clear();
 
-      // Then the "Save changes" button should be disabled
       await expect(dialog.getByRole('button', { name: 'Save changes' })).toBeDisabled();
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // Rule: Deleting a task type
-  // ---------------------------------------------------------------------------
 
   test.describe('Deleting a task type', () => {
     let projectId: string;
@@ -611,12 +533,11 @@ test.describe('Task Types Management', () => {
         .getByRole('button', { name: 'Delete type' })
         .click();
 
-      // The "Delete task type" dialog should open
       const dialog = page.getByRole('dialog', { name: 'Delete task type' });
       await expect(dialog).toBeVisible();
-
-      // The dialog should identify the type being deleted by name
       await expect(dialog).toContainText('E2E Delete Me Type');
+      await expect(dialog).toContainText(/tasks using this type will lose their type assignment/i);
+      await expect(dialog).toContainText(/cannot be undone/i);
     });
 
     test('Confirming deletion removes the type from the table', async ({ page }) => {
@@ -635,10 +556,7 @@ test.describe('Task Types Management', () => {
       // And the user confirms by clicking "Delete type" in the dialog
       await dialog.getByRole('button', { name: 'Delete type' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should not contain a type named "E2E Delete Me Type"
       await expect(page.getByRole('table').getByText('E2E Delete Me Type', { exact: true })).not.toBeVisible();
     });
 
@@ -658,10 +576,7 @@ test.describe('Task Types Management', () => {
       // And the user clicks "Cancel" in the delete confirmation dialog
       await dialog.getByRole('button', { name: 'Cancel' }).click();
 
-      // Then the dialog should close
       await expect(dialog).not.toBeVisible();
-
-      // And the task types table should still contain a type named "E2E Delete Me Type"
       await expect(page.getByRole('table').getByText('E2E Delete Me Type', { exact: true })).toBeVisible();
     });
 
@@ -681,7 +596,6 @@ test.describe('Task Types Management', () => {
       // And the user clicks the Close button on the dialog
       await dialog.getByRole('button', { name: 'Close' }).click();
 
-      // Then the task types table should still contain a type named "E2E Delete Me Type"
       await expect(page.getByRole('table').getByText('E2E Delete Me Type', { exact: true })).toBeVisible();
     });
   });
