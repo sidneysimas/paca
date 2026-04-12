@@ -480,11 +480,7 @@ export function TaskCard({
 			</span>
 
 			{fieldChips.length > 0 && (
-				// biome-ignore lint/a11y/noStaticElementInteractions: stop card click from firing when interacting with inline field controls
-				<div
-					className="mt-2 flex flex-wrap items-center gap-1.5"
-					onClick={(e) => e.stopPropagation()}
-				>
+				<div className="mt-2 flex flex-wrap items-center gap-1.5">
 					{fieldChips}
 				</div>
 			)}
