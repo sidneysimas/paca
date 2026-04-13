@@ -290,15 +290,21 @@ export function BoardView({
 	const filteredTasks = useMemo(
 		() =>
 			tasks.filter((t) => {
-				if (
-					searchQuery &&
-					!t.title.toLowerCase().includes(searchQuery.toLowerCase())
-				)
-					return false;
+				if (searchQuery) {
+					const q = searchQuery.toLowerCase();
+					const taskId = taskIdPrefix
+						? `${taskIdPrefix}-${t.task_number}`
+						: `#${t.task_number}`;
+					if (
+						!t.title.toLowerCase().includes(q) &&
+						!taskId.toLowerCase().includes(q)
+					)
+						return false;
+				}
 				if (assigneeFilter && t.assignee_id !== assigneeFilter) return false;
 				return true;
 			}),
-		[tasks, searchQuery, assigneeFilter],
+		[tasks, searchQuery, assigneeFilter, taskIdPrefix],
 	);
 
 	// ── Column tasks helper ───────────────────────────────────────────────────
