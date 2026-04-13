@@ -47,11 +47,12 @@ type TaskRepository interface {
 
 // TaskFilter carries optional criteria for listing tasks.
 type TaskFilter struct {
-	SprintID     *uuid.UUID
-	StatusID     *uuid.UUID
-	AssigneeID   *uuid.UUID
-	ParentTaskID *uuid.UUID // non-nil → only subtasks of this parent
-	BacklogOnly  bool       // true → only tasks where sprint_id IS NULL
+	SprintID           *uuid.UUID
+	StatusID           *uuid.UUID
+	AssigneeID         *uuid.UUID
+	ParentTaskID       *uuid.UUID // non-nil → only subtasks of this parent
+	BacklogOnly        bool       // true → only tasks where sprint_id IS NULL
+	ExcludeSystemTypes bool       // true → exclude tasks whose type has is_system = true (e.g. Epic, Subtask)
 }
 
 // CustomFieldDefinitionRepository defines persistence operations for custom

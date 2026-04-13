@@ -128,6 +128,10 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusNotFound, apierr.CodeTaskTypeNotFound
 	case errors.Is(err, taskdom.ErrTypeNameInvalid):
 		return http.StatusBadRequest, apierr.CodeTaskTypeNameInvalid
+	case errors.Is(err, taskdom.ErrTypeIsSystem):
+		return http.StatusForbidden, apierr.CodeTaskTypeIsSystem
+	case errors.Is(err, taskdom.ErrTypeNameReserved):
+		return http.StatusConflict, apierr.CodeTaskTypeNameReserved
 	case errors.Is(err, taskdom.ErrStatusNotFound):
 		return http.StatusNotFound, apierr.CodeTaskStatusNotFound
 	case errors.Is(err, taskdom.ErrStatusNameInvalid):
@@ -226,8 +230,11 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeCustomFieldNameInvalid:
 		return http.StatusBadRequest
 	case apierr.CodeViewIsLastView,
-		apierr.CodeCustomFieldKeyTaken:
+		apierr.CodeCustomFieldKeyTaken,
+		apierr.CodeTaskTypeNameReserved:
 		return http.StatusConflict
+	case apierr.CodeTaskTypeIsSystem:
+		return http.StatusForbidden
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
 	case apierr.CodePasswordChangeRequired:

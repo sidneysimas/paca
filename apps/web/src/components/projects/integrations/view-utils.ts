@@ -1,4 +1,4 @@
-import type { Task, ViewConfig } from "@/lib/integration-api";
+import type { Sprint, Task, ViewConfig } from "@/lib/integration-api";
 import type {
 	CustomFieldDefinition,
 	ProjectMember,
@@ -15,6 +15,7 @@ export interface ViewContext {
 	taskTypes: TaskType[];
 	members: ProjectMember[];
 	customFields: CustomFieldDefinition[];
+	sprints?: Sprint[];
 }
 
 // ── Column / Swimlane group definition ───────────────────────────────────────
@@ -53,6 +54,24 @@ export function getColumnGroupDefs(
 				color: s.color ?? undefined,
 				fieldValue: s.id,
 			}));
+	}
+
+	if (columnBy === "sprint") {
+		const sprintGroups = (ctx.sprints ?? [])
+			.filter((s) => s.status !== "completed")
+			.sort((a, b) => {
+				if (a.status === b.status) return a.name.localeCompare(b.name);
+				return a.status === "active" ? -1 : 1;
+			})
+			.map((s) => ({
+				key: s.id,
+				label: s.name,
+				fieldValue: s.id,
+			}));
+		return [
+			...sprintGroups,
+			{ key: "__backlog", label: "Backlog", fieldValue: null },
+		];
 	}
 
 	if (columnBy === "assignee") {
@@ -125,6 +144,9 @@ export function getTaskColumnKeys(
 ): string[] {
 	if (!columnBy || columnBy === "status") {
 		return [task.status_id ?? "__none"];
+	}
+	if (columnBy === "sprint") {
+		return [task.sprint_id ?? "__backlog"];
 	}
 	if (columnBy === "assignee") {
 		return [task.assignee_id ?? "__unassigned"];
@@ -271,6 +293,7 @@ export function computeFieldSum(
 
 export const BUILTIN_COLUMN_BY: { key: string; label: string }[] = [
 	{ key: "status", label: "Status" },
+	{ key: "sprint", label: "Sprint" },
 	{ key: "assignee", label: "Assignee" },
 	{ key: "importance", label: "Importance" },
 	{ key: "type", label: "Type" },
@@ -394,6 +417,7 @@ export type TaskFieldUpdate = Partial<{
 	importance: number;
 	task_type_id: string | null;
 	custom_fields: Record<string, unknown>;
+	sprint_id: string | null;
 }>;
 
 /**
@@ -407,6 +431,9 @@ export function buildColumnDropUpdate(
 ): TaskFieldUpdate {
 	if (!columnBy || columnBy === "status") {
 		return { status_id: (columnFieldValue as string | null) ?? null };
+	}
+	if (columnBy === "sprint") {
+		return { sprint_id: (columnFieldValue as string | null) ?? null };
 	}
 	if (columnBy === "assignee") {
 		return { assignee_id: (columnFieldValue as string | null) ?? null };

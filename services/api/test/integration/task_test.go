@@ -647,6 +647,95 @@ func TestIntegrationTaskTypes_SetDefault_NotFound(t *testing.T) {
 	}
 }
 
+func TestIntegrationTaskTypes_SystemTypeCannotBeUpdated(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	// Seed a system type directly in the repo.
+	sysType := &taskdom.TaskType{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Epic",
+		IsSystem:  true,
+	}
+	if err := taskRepo.CreateTaskType(t.Context(), sysType); err != nil {
+		t.Fatalf("seed system type: %v", err)
+	}
+
+	// Attempt to update the system type — should return 403.
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+sysType.ID.String(), tok, map[string]any{
+		"name": "Epic Renamed",
+	}))
+	if patchW.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for updating system type, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+	if code := decodeErrorCode(t, patchW); code != "TASK_TYPE_IS_SYSTEM" {
+		t.Errorf("expected TASK_TYPE_IS_SYSTEM, got %q", code)
+	}
+}
+
+func TestIntegrationTaskTypes_SystemTypeCannotBeDeleted(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	sysType := &taskdom.TaskType{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Subtask",
+		IsSystem:  true,
+	}
+	if err := taskRepo.CreateTaskType(t.Context(), sysType); err != nil {
+		t.Fatalf("seed system type: %v", err)
+	}
+
+	delW := serve(r, authedJSONReq(t.Context(), http.MethodDelete, base+"/"+sysType.ID.String(), tok, nil))
+	if delW.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for deleting system type, got %d (%s)", delW.Code, delW.Body.String())
+	}
+	if code := decodeErrorCode(t, delW); code != "TASK_TYPE_IS_SYSTEM" {
+		t.Errorf("expected TASK_TYPE_IS_SYSTEM, got %q", code)
+	}
+}
+
+func TestIntegrationTaskTypes_ReservedNameRejected(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	for _, reserved := range []string{"Epic", "Subtask"} {
+		w := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": reserved}))
+		if w.Code != http.StatusConflict {
+			t.Fatalf("expected 409 for reserved name %q, got %d (%s)", reserved, w.Code, w.Body.String())
+		}
+		if code := decodeErrorCode(t, w); code != "TASK_TYPE_NAME_RESERVED" {
+			t.Errorf("expected TASK_TYPE_NAME_RESERVED for %q, got %q", reserved, code)
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Task Status tests
 // ---------------------------------------------------------------------------

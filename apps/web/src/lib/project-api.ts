@@ -177,6 +177,7 @@ export interface TaskType {
 	color?: string | null;
 	description?: string | null;
 	is_default?: boolean;
+	is_system?: boolean;
 	created_at: string;
 	updated_at: string;
 }

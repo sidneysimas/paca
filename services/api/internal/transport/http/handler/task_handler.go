@@ -459,7 +459,7 @@ func (h *TaskHandler) GetSprintTasks(c *gin.Context) {
 	}
 
 	page, pageSize := pagingParams(c)
-	filter := taskdom.TaskFilter{SprintID: &sprintID}
+	filter := taskdom.TaskFilter{SprintID: &sprintID, ExcludeSystemTypes: true}
 	if raw := c.Query("status_id"); raw != "" {
 		if id, err := uuid.Parse(raw); err == nil {
 			filter.StatusID = &id
@@ -632,7 +632,7 @@ func (h *TaskHandler) ListBacklogTasks(c *gin.Context) {
 	}
 
 	page, pageSize := pagingParams(c)
-	filter := taskdom.TaskFilter{BacklogOnly: true}
+	filter := taskdom.TaskFilter{BacklogOnly: true, ExcludeSystemTypes: true}
 	if raw := c.Query("status_id"); raw != "" {
 		if id, err := uuid.Parse(raw); err == nil {
 			filter.StatusID = &id

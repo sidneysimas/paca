@@ -8,7 +8,7 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `start_date`, `due_date`, `tags`), `task_attachments`, `task_checklists`, `task_checklist_items`, seed data |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `start_date`, `due_date`, `tags`), `task_attachments`, `task_checklists`, `task_checklist_items`, seed data. On project creation the seed inserts three user-manageable task types (Bug, Story, Task — where Task is `is_default = true`) and two system task types (Epic, Subtask — where `is_system = true`). The product backlog gets two views: a Table view at position 0 with `config.column_by = "sprint"` (default), and a Board view at position 1. |
 
 ## Schema (DBML)
 
@@ -71,6 +71,7 @@ Table task_types {
   color varchar
   description text
   is_default boolean [not null, default: false, note: 'True for the single default type seeded at project creation (Task). Only one type per project should have is_default = true.']
+  is_system boolean [not null, default: false, note: 'True for system-managed types (Epic, Subtask). System types are seeded at project creation and cannot be created, edited, or deleted by users. They are displayed in a read-only section on the Task Types settings page and are excluded from inline task creation type pickers unless explicitly supported.']
 }
 
 Table task_statuses {
@@ -127,7 +128,7 @@ Table sprints {
   start_date date
   end_date date
   goal text
-  status varchar
+  status varchar [note: 'planned | active | completed. Multiple sprints per project may be active simultaneously.']
 }
 
 Table sprint_views {
@@ -144,7 +145,11 @@ Table sprint_views {
     fields      array<string>  Ordered list of visible column names.
                                e.g. ["title","assignees","status","importance"]
     column_by   string         Field used to group board columns or table
-                               groups.  e.g. "status" (default), "assignee".
+                               groups.  e.g. "status" (default for board/sprint
+                               views), "sprint" (default for product-backlog
+                               Table view — groups tasks into sprint columns
+                               plus an "Unassigned" column for tasks with no
+                               sprint).
     swimlanes   string|null    Field used to create horizontal swimlane bands
                                across the view.  null = no swimlanes.
     sort_by     string         "manual" = user-defined drag order stored in

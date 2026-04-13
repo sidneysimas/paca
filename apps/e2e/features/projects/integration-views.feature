@@ -5,12 +5,20 @@ Feature: Integration views (board and list layouts)
   Board, or Roadmap — and persists the user's preferred way of looking at work
   items.  Each view also stores display settings (visible fields, column
   grouping, swimlanes, sort order, field sum, and slice dimension).  The
-  default view opened when entering an integration is always the first view in
-  the tab bar.  Users with sufficient permissions may create additional views,
-  rename or delete them, and switch freely between layouts.  An "Add view" (+)
-  button sits to the right of the last view tab; a separate "View settings"
-  button in the view toolbar opens a settings panel for the active view.
-  Creating tasks is available inline from both Table and Board views.
+  default view opened when entering the product backlog is the Table view
+  grouped by sprint (column_by = "sprint"); for sprint integrations it is the
+  first view in the tab bar.  On the product backlog Table view every sprint
+  column header shows a "Start sprint" button for planned sprints, allowing
+  the user to open the Start Sprint modal without leaving the backlog.  The
+  product backlog page header and each sprint-column header also contain a
+  "New sprint" button that quick-creates a sprint with a system-generated
+  default name (no modal).  Epic and Subtask tasks are excluded from both
+  the product backlog and sprint views.  Users with sufficient permissions
+  may create additional views, rename or delete them, and switch freely
+  between layouts.  An "Add view" (+) button sits to the right of the last
+  view tab; a separate "View settings" button in the view toolbar opens a
+  settings panel for the active view.  Creating tasks is available inline
+  from both Table and Board views.
 
   @authenticated
   Rule: Entering an integration opens its default view
@@ -22,11 +30,18 @@ Feature: Integration views (board and list layouts)
       And the user has the "View Sprints" project permission in "E2E_VIEWS_PROJECT"
       And the user has navigated to the "E2E_VIEWS_PROJECT" project
 
-    Scenario: Navigating to the product backlog opens the default view
+    Scenario: Navigating to the product backlog opens the default Table view
       When the user clicks "Product Backlog" in the project sidebar
       Then the integration page for "Product Backlog" should be visible
       And a view tab bar should be shown below the integration header
-      And the first view tab should be active
+      And the "Table" view tab should be active
+      And the tabular list layout should be displayed
+
+    Scenario: The product backlog default Table view groups tasks by sprint
+      When the user clicks "Product Backlog" in the project sidebar
+      Then the table should be grouped into sprint columns
+      And each sprint column should display the sprint name as its header
+      And an "Unassigned" column should be visible for tasks with no sprint
 
     Scenario: The view header shows the integration name and a description
       When the user clicks "Product Backlog" in the project sidebar
@@ -59,6 +74,122 @@ Feature: Integration views (board and list layouts)
       When the user clicks "E2E_SPRINT_1" in the project sidebar
       Then the integration page for "E2E_SPRINT_1" should be visible
       And the view tab bar should be shown
+
+  @authenticated
+  Rule: Product backlog Table view sprint-column headers
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_BACKLOG_SPRINT_COLS_PROJECT" exists
+      And the project has a "Product Backlog" integration with a "Table" view
+      And the project has a planned sprint named "E2E_PLANNED_SPRINT_COL"
+      And the project has an active sprint named "E2E_ACTIVE_SPRINT_COL"
+      And the user has the "View Sprints" project permission in "E2E_BACKLOG_SPRINT_COLS_PROJECT"
+      And the user has the "Manage Sprints" project permission in "E2E_BACKLOG_SPRINT_COLS_PROJECT"
+      And the user has navigated to the "Product Backlog" table view inside "E2E_BACKLOG_SPRINT_COLS_PROJECT"
+
+    Scenario: Each sprint appears as a named column in the product backlog table view
+      Then a column header named "E2E_PLANNED_SPRINT_COL" should be visible
+      And a column header named "E2E_ACTIVE_SPRINT_COL" should be visible
+      And an "Unassigned" column header should be visible for tasks with no sprint
+
+    Scenario: A "Start sprint" button appears in the column header of a planned sprint
+      Then the column header for "E2E_PLANNED_SPRINT_COL" should contain a "Start sprint" button
+
+    Scenario: The "Start sprint" button is not present on an already-active sprint column
+      Then the column header for "E2E_ACTIVE_SPRINT_COL" should not contain a "Start sprint" button
+
+    Scenario: Clicking "Start sprint" in a column header opens the Start Sprint modal
+      When the user clicks "Start sprint" in the "E2E_PLANNED_SPRINT_COL" column header
+      Then the "Start sprint" modal should open
+      And the modal should display the sprint name "E2E_PLANNED_SPRINT_COL" in an editable field
+      And the modal should contain an optional "Goal" field
+      And the modal should contain an optional "Start date" date picker
+      And the modal should contain an optional "Due date" date picker
+      And the modal should contain a "Start sprint" submit button
+      And the modal should contain a "Cancel" button
+
+    Scenario: Submitting the Start Sprint modal transitions the sprint to active
+      When the user clicks "Start sprint" in the "E2E_PLANNED_SPRINT_COL" column header
+      And the user fills the goal with "Deliver login feature"
+      And the user sets the start date to "2026-04-14"
+      And the user sets the due date to "2026-04-27"
+      And the user clicks "Start sprint" in the modal
+      Then the modal should close
+      And the sprint "E2E_PLANNED_SPRINT_COL" should have status "active"
+      And the "Start sprint" button should no longer appear on that column header
+
+  @authenticated
+  Rule: New sprint quick-create from product backlog page header and sprint columns
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_NEW_SPRINT_BTN_PROJECT" exists
+      And the project has a "Product Backlog" integration with a "Table" view
+      And the user has the "View Sprints" project permission in "E2E_NEW_SPRINT_BTN_PROJECT"
+      And the user has the "Manage Sprints" project permission in "E2E_NEW_SPRINT_BTN_PROJECT"
+      And the user has navigated to the "Product Backlog" table view inside "E2E_NEW_SPRINT_BTN_PROJECT"
+
+    Scenario: A "New sprint" button is visible in the product backlog page header
+      Then the product backlog page header should contain a "New sprint" button
+
+    Scenario: Clicking "New sprint" in the page header quick-creates a sprint with a default name
+      When the user clicks "New sprint" in the product backlog page header
+      Then a new sprint should be created with a system-generated name matching "Sprint \d+"
+      And no modal or dialog should be shown
+      And the new sprint column should appear in the table view
+
+    Scenario: Each sprint column header also contains a "New sprint" quick-create button
+      Then each sprint column header should contain a "New sprint" quick-create button
+
+    Scenario: Clicking "New sprint" in a sprint column header quick-creates a sprint
+      When the user clicks "New sprint" in any sprint column header
+      Then a new sprint should be created with a system-generated name
+      And the new sprint column should appear in the table view without a modal
+
+    Scenario: "New sprint" button is not visible to users without "Manage Sprints" permission
+      Given the user does not have the "Manage Sprints" project permission
+      Then the "New sprint" button should not be visible in the product backlog page header
+
+  @authenticated
+  Rule: Epic and Subtask tasks are excluded from product backlog and sprint views
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_EPIC_FILTER_PROJECT" exists
+      And the project has a "Product Backlog" integration
+      And the project has tasks of various types including "Epic", "Subtask", "Story", and "Bug"
+      And the user has the "View Sprints" project permission in "E2E_EPIC_FILTER_PROJECT"
+      And the user has navigated to the "Product Backlog" integration inside "E2E_EPIC_FILTER_PROJECT"
+
+    Scenario: Epic tasks do not appear in the product backlog table view
+      Given there is a task named "E2E_EPIC_TASK" with type "Epic" in the product backlog
+      When the user views the "Table" layout
+      Then no task named "E2E_EPIC_TASK" should be visible in any column
+
+    Scenario: Subtask tasks do not appear in the product backlog table view
+      Given there is a task named "E2E_SUBTASK_TASK" with type "Subtask" in the product backlog
+      When the user views the "Table" layout
+      Then no task named "E2E_SUBTASK_TASK" should be visible in any column
+
+    Scenario: Non-system task types still appear in the product backlog
+      Given there is a task named "E2E_STORY_TASK" with type "Story" in the product backlog
+      And there is a task named "E2E_BUG_TASK" with type "Bug" in the product backlog
+      When the user views the "Table" layout
+      Then the task "E2E_STORY_TASK" should be visible
+      And the task "E2E_BUG_TASK" should be visible
+
+    Scenario: Epic tasks do not appear in a sprint's board view
+      Given the project has an active sprint named "E2E_EPIC_SPRINT"
+      And the sprint "E2E_EPIC_SPRINT" has a task "E2E_EPIC_IN_SPRINT" with type "Epic"
+      When the user navigates to the "E2E_EPIC_SPRINT" board view
+      Then no task named "E2E_EPIC_IN_SPRINT" should be visible in any column
+
+    Scenario: Subtask tasks do not appear in a sprint's table view
+      Given the project has an active sprint named "E2E_SUBTASK_SPRINT"
+      And the sprint "E2E_SUBTASK_SPRINT" has a task "E2E_SUBTASK_IN_SPRINT" with type "Subtask"
+      When the user navigates to the "E2E_SUBTASK_SPRINT" table view
+      Then no task named "E2E_SUBTASK_IN_SPRINT" should be visible in any row
 
   @authenticated
   Rule: Board view layout and task display

@@ -75,6 +75,10 @@ const (
 	CodeTaskTypeNotFound Code = "TASK_TYPE_NOT_FOUND"
 	// CodeTaskTypeNameInvalid indicates an empty or invalid task type name.
 	CodeTaskTypeNameInvalid Code = "TASK_TYPE_NAME_INVALID"
+	// CodeTaskTypeIsSystem indicates an attempt to modify a system task type.
+	CodeTaskTypeIsSystem Code = "TASK_TYPE_IS_SYSTEM"
+	// CodeTaskTypeNameReserved indicates an attempt to use a reserved system type name.
+	CodeTaskTypeNameReserved Code = "TASK_TYPE_NAME_RESERVED"
 
 	// CodeTaskStatusNotFound indicates the requested task status does not exist.
 	CodeTaskStatusNotFound Code = "TASK_STATUS_NOT_FOUND"

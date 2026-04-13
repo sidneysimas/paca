@@ -40,6 +40,8 @@ export const ApiErrorCode = {
 	// Task type domain errors.
 	TaskTypeNotFound: "TASK_TYPE_NOT_FOUND",
 	TaskTypeNameInvalid: "TASK_TYPE_NAME_INVALID",
+	TaskTypeIsSystem: "TASK_TYPE_IS_SYSTEM",
+	TaskTypeNameReserved: "TASK_TYPE_NAME_RESERVED",
 
 	// Task status domain errors.
 	TaskStatusNotFound: "TASK_STATUS_NOT_FOUND",

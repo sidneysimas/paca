@@ -18,18 +18,9 @@ import {
 	Sun,
 	Users,
 } from "lucide-react";
-import { type ComponentType, useEffect, useRef, useState } from "react";
+import { type ComponentType, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -57,7 +48,6 @@ import { usePermissions } from "@/hooks/use-permissions";
 import type { ThemeMode } from "@/hooks/use-theme-mode";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import {
-	createSprint,
 	sprintsQueryOptions,
 	updateTask,
 } from "@/lib/integration-api";
@@ -286,15 +276,8 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 			return false;
 		}
 	});
-	const [createOpen, setCreateOpen] = useState(false);
-	const [sprintName, setSprintName] = useState("");
-	const [sprintGoal, setSprintGoal] = useState("");
-	const [startDate, setStartDate] = useState("");
-	const [endDate, setEndDate] = useState("");
-	const nameRef = useRef<HTMLInputElement>(null);
 
 	const canViewSprints = hasPermission("sprints.read");
-	const canCreateSprint = hasPermission("sprints.write");
 	const canEditTasks = hasPermission("tasks.write");
 
 	const [dragOverIntegrationId, setDragOverIntegrationId] = useState<
@@ -320,6 +303,9 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		onSuccess: () => {
 			qc.invalidateQueries({
 				queryKey: ["projects", projectId, "backlog-tasks"],
+			});
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "all-tasks"],
 			});
 			qc.invalidateQueries({ queryKey: ["projects", projectId, "sprints"] });
 		},
@@ -366,34 +352,12 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		refetchInterval: 30_000,
 	});
 
-	const createMutation = useMutation({
-		mutationFn: (name: string) =>
-			createSprint(projectId, {
-				name,
-				goal: sprintGoal.trim() || null,
-				status: "planned",
-				start_date: startDate || null,
-				end_date: endDate || null,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["projects", projectId, "sprints"] });
-			setSprintName("");
-			setSprintGoal("");
-			setStartDate("");
-			setEndDate("");
-			setCreateOpen(false);
-		},
-	});
-
 	// Hide entire section if user lacks the "View Sprints" permission
 	if (!canViewSprints) return null;
 
 	const openSprints = sprints
-		.filter((s) => s.status !== "completed")
-		.sort((a, b) => {
-			if (a.status === b.status) return a.name.localeCompare(b.name);
-			return a.status === "active" ? -1 : 1;
-		});
+		.filter((s) => s.status === "active")
+		.sort((a, b) => a.name.localeCompare(b.name));
 
 	const backlogHref = `/projects/${projectId}/integrations/backlog`;
 	const isBacklogActive = location.startsWith(backlogHref);
@@ -411,15 +375,6 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 			}
 			return next;
 		});
-	};
-
-	const handleCreate = () => {
-		const name = sprintName.trim();
-		if (!name) {
-			nameRef.current?.focus();
-			return;
-		}
-		createMutation.mutate(name);
 	};
 
 	return (
@@ -498,134 +453,10 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 									</SidebarMenuItem>
 								);
 							})}
-
-							{/* New sprint button — always visible to authorised users */}
-							{canCreateSprint && (
-								<SidebarMenuItem>
-									{/* Expanded sidebar: dashed bordered button with label */}
-									<button
-										type="button"
-										onClick={() => setCreateOpen(true)}
-										className="group-data-[collapsible=icon]:hidden flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground border border-dashed border-sidebar-border hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-150"
-									>
-										<Plus className="size-3.5 shrink-0" />
-										<span>New sprint</span>
-									</button>
-									{/* Icon-only sidebar: plain icon button with tooltip */}
-									<SidebarMenuButton
-										tooltip="New sprint"
-										onClick={() => setCreateOpen(true)}
-										className="hidden group-data-[collapsible=icon]:flex"
-									>
-										<Plus className="size-4" />
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							)}
 						</SidebarMenu>
 					</SidebarGroupContent>
 				)}
 			</SidebarGroup>
-
-			{/* Create sprint dialog — rendered outside the sidebar DOM tree via portal */}
-			{canCreateSprint && (
-				<Dialog open={createOpen} onOpenChange={setCreateOpen}>
-					<DialogContent className="sm:max-w-md">
-						<DialogHeader>
-							<DialogTitle>New sprint</DialogTitle>
-						</DialogHeader>
-
-						<div className="flex flex-col gap-4 py-2">
-							{/* Name */}
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="sprint-create-name"
-									className="text-sm font-medium"
-								>
-									Name <span className="text-destructive">*</span>
-								</label>
-								<input
-									id="sprint-create-name"
-									ref={nameRef}
-									value={sprintName}
-									onChange={(e) => setSprintName(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter") handleCreate();
-									}}
-									placeholder="Sprint name…"
-									autoFocus
-									className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
-								/>
-							</div>
-
-							{/* Goal */}
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="sprint-create-goal"
-									className="text-sm font-medium text-muted-foreground"
-								>
-									Goal <span className="text-xs font-normal">(optional)</span>
-								</label>
-								<textarea
-									id="sprint-create-goal"
-									value={sprintGoal}
-									onChange={(e) => setSprintGoal(e.target.value)}
-									placeholder="What should this sprint achieve?"
-									rows={3}
-									className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 resize-none"
-								/>
-							</div>
-
-							{/* Dates */}
-							<div className="grid grid-cols-2 gap-3">
-								<div className="flex flex-col gap-1.5">
-									<label
-										htmlFor="sprint-create-start"
-										className="text-sm font-medium text-muted-foreground"
-									>
-										Start date{" "}
-										<span className="text-xs font-normal">(optional)</span>
-									</label>
-									<input
-										id="sprint-create-start"
-										type="date"
-										value={startDate}
-										onChange={(e) => setStartDate(e.target.value)}
-										className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-									/>
-								</div>
-								<div className="flex flex-col gap-1.5">
-									<label
-										htmlFor="sprint-create-end"
-										className="text-sm font-medium text-muted-foreground"
-									>
-										End date{" "}
-										<span className="text-xs font-normal">(optional)</span>
-									</label>
-									<input
-										id="sprint-create-end"
-										type="date"
-										value={endDate}
-										onChange={(e) => setEndDate(e.target.value)}
-										className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-									/>
-								</div>
-							</div>
-						</div>
-
-						<DialogFooter>
-							<DialogClose render={<Button variant="outline" />}>
-								Cancel
-							</DialogClose>
-							<Button
-								onClick={handleCreate}
-								disabled={!sprintName.trim() || createMutation.isPending}
-							>
-								{createMutation.isPending ? "Creating…" : "Create sprint"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
-			)}
 		</>
 	);
 }

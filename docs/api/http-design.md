@@ -139,20 +139,22 @@ These routes already exist in the Go API service.
 | `POST` | `/api/v1/projects/:projectId/roles` | Access token (fresh) + `roles.write` | Create a project-scoped role. |
 | `PATCH` | `/api/v1/projects/:projectId/roles/:roleId` | Access token (fresh) + `roles.write` | Update a project role. |
 | `DELETE` | `/api/v1/projects/:projectId/roles/:roleId` | Access token (fresh) + `roles.write` | Delete a project role. |
-| `GET` | `/api/v1/projects/:projectId/task-types` | Access token (fresh) + `tasks.read` | List task type definitions. |
-| `POST` | `/api/v1/projects/:projectId/task-types` | Access token (fresh) + `tasks.write` | Create a task type (e.g. story, bug, chore). |
-| `PATCH` | `/api/v1/projects/:projectId/task-types/:typeId` | Access token (fresh) + `tasks.write` | Update a task type. |
-| `DELETE` | `/api/v1/projects/:projectId/task-types/:typeId` | Access token (fresh) + `tasks.write` | Delete a task type. |
+| `GET` | `/api/v1/projects/:projectId/task-types` | Access token (fresh) + `tasks.read` | List task type definitions. System types (`is_system = true`) are included in the response but are marked as non-editable. |
+| `POST` | `/api/v1/projects/:projectId/task-types` | Access token (fresh) + `tasks.write` | Create a task type (e.g. story, bug, chore). Cannot be used to create system types (Epic, Subtask) — returns `400 TASK_TYPE_SYSTEM_TYPE_NOT_ALLOWED`. |
+| `PATCH` | `/api/v1/projects/:projectId/task-types/:typeId` | Access token (fresh) + `tasks.write` | Update a task type. Returns `409 TASK_TYPE_IS_SYSTEM` if the target type is a system type. |
+| `DELETE` | `/api/v1/projects/:projectId/task-types/:typeId` | Access token (fresh) + `tasks.write` | Delete a task type. Returns `409 TASK_TYPE_IS_SYSTEM` if the target type is a system type. |
 | `GET` | `/api/v1/projects/:projectId/task-statuses` | Access token (fresh) + `tasks.read` | List workflow statuses in board order. |
 | `POST` | `/api/v1/projects/:projectId/task-statuses` | Access token (fresh) + `tasks.write` | Create a workflow status. |
 | `PATCH` | `/api/v1/projects/:projectId/task-statuses/:statusId` | Access token (fresh) + `tasks.write` | Update a workflow status. |
 | `DELETE` | `/api/v1/projects/:projectId/task-statuses/:statusId` | Access token (fresh) + `tasks.write` | Delete a workflow status. |
 | `GET` | `/api/v1/projects/:projectId/sprints` | Access token (fresh) + `sprints.read` | List sprints for a project ordered by creation date. |
-| `POST` | `/api/v1/projects/:projectId/sprints` | Access token (fresh) + `sprints.write` | Create a sprint. |
+| `POST` | `/api/v1/projects/:projectId/sprints` | Access token (fresh) + `sprints.write` | Quick-create a sprint with a system-generated default name ("Sprint N"). No request body required. The sprint is created with `status = planned`. |
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.read` | Get sprint details (goal, dates, status). |
-| `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Update sprint metadata or lifecycle status. |
-| `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Delete a sprint. |
-| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/tasks` | Access token (fresh) + `tasks.read` | List tasks assigned to a specific sprint (sprint backlog view). |
+| `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Update sprint metadata (name, goal, start_date, end_date). Cannot be used to change `status`; use the dedicated lifecycle actions instead. |
+| `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Delete a sprint. Fails with `409 SPRINT_IS_ACTIVE` if the sprint is currently active. |
+| `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/start` | Access token (fresh) + `sprints.write` | Start a planned sprint: set name, goal, start date, and due date, then transition `status` to `active`. Multiple sprints may be active simultaneously. Fails with `409 SPRINT_NOT_PLANNED` if the sprint is not in `planned` state. |
+| `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/complete` | Access token (fresh) + `sprints.write` | Complete an active sprint: transition `status` to `completed` and move all incomplete tasks to the specified sprint (or back to no-sprint if `move_to_sprint_id` is `null`). Fails with `409 SPRINT_NOT_ACTIVE` if the sprint is not in `active` state. |
+| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/tasks` | Access token (fresh) + `tasks.read` | List tasks assigned to a specific sprint (sprint backlog view). Epic and Subtask task types are excluded from this list. |
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Access token (fresh) + `sprints.read` | List saved view configurations for a sprint. |
 | `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for a sprint. Sprint creation automatically seeds one Board and one Table view. |
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single sprint view configuration. |
@@ -161,9 +163,9 @@ These routes already exist in the Go API service.
 | `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/positions` | Access token (fresh) + `sprints.write` | Reorder all views for a sprint. Body: `{ "view_ids": ["<uuid>", ...] }` — must include every view ID in the desired tab order. Returns `400 VIEW_REORDER_INVALID` if the list is missing or contains unknown IDs. |
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a view. |
 | `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a view. |
-| `GET` | `/api/v1/projects/:projectId/product-backlog` | Access token (fresh) + `tasks.read` | List tasks not yet assigned to any sprint (product backlog view). |
+| `GET` | `/api/v1/projects/:projectId/product-backlog` | Access token (fresh) + `tasks.read` | List tasks not yet assigned to any sprint (product backlog view). Epic and Subtask task types are excluded from this list. |
 | `GET` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.read` | List saved view configurations for the product backlog. |
-| `POST` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for the product backlog. Project creation automatically seeds one Board and one Table view. |
+| `POST` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for the product backlog. Project creation automatically seeds a Table view (position 0, `config.column_by = "sprint"`) and a Board view (position 1). |
 | `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single product-backlog view configuration. |
 | `PATCH` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Update a product-backlog view's name or config. |
 | `DELETE` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a product-backlog view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
@@ -515,6 +517,128 @@ Request body:
 }
 ```
 
+## Sprint Lifecycle Contracts
+
+### `POST /api/v1/projects/:projectId/sprints` (quick create)
+
+Function:
+
+- create a new sprint with a system-generated default name ("Sprint N" where N is the next sprint number for the project);
+- set `status = planned`;
+- no request body required.
+
+Request body: (empty)
+
+Success response: `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "project_id": "uuid",
+    "name": "Sprint 1",
+    "goal": null,
+    "start_date": null,
+    "end_date": null,
+    "status": "planned",
+    "created_at": "2026-04-13T00:00:00Z"
+  },
+  "request_id": "..."
+}
+```
+
+### `POST /api/v1/projects/:projectId/sprints/:sprintId/start`
+
+Function:
+
+- transition a `planned` sprint to `active`;
+- accept name, goal, start date, and due date to set or confirm before starting;
+- multiple sprints may be active simultaneously within the same project.
+
+Request body:
+
+```json
+{
+  "name": "Sprint 1",
+  "goal": "Ship the login flow",
+  "start_date": "2026-04-14",
+  "end_date": "2026-04-27"
+}
+```
+
+All fields are optional. Fields omitted from the body retain their current values.
+
+Success response: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "project_id": "uuid",
+    "name": "Sprint 1",
+    "goal": "Ship the login flow",
+    "start_date": "2026-04-14",
+    "end_date": "2026-04-27",
+    "status": "active",
+    "created_at": "2026-04-13T00:00:00Z"
+  },
+  "request_id": "..."
+}
+```
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `SPRINT_NOT_PLANNED` | 409 | The sprint is not in `planned` state and cannot be started. |
+
+### `POST /api/v1/projects/:projectId/sprints/:sprintId/complete`
+
+Function:
+
+- transition an `active` sprint to `completed`;
+- move all tasks in this sprint whose status category is not `done` to the sprint identified by `move_to_sprint_id`, or to no sprint if `move_to_sprint_id` is `null`;
+- tasks whose status category is `done` remain on the completed sprint for record-keeping.
+
+Request body:
+
+```json
+{
+  "move_to_sprint_id": "uuid-or-null"
+}
+```
+
+`move_to_sprint_id` is required. Pass `null` to return incomplete tasks to the product backlog (no sprint assigned).
+
+Success response: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "project_id": "uuid",
+    "name": "Sprint 1",
+    "status": "completed",
+    "moved_task_count": 3,
+    "move_to_sprint_id": "uuid-or-null"
+  },
+  "request_id": "..."
+}
+```
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `SPRINT_NOT_ACTIVE` | 409 | The sprint is not in `active` state and cannot be completed. |
+| `SPRINT_MOVE_TARGET_NOT_FOUND` | 404 | The `move_to_sprint_id` does not refer to a valid sprint in this project. |
+| `SPRINT_MOVE_TARGET_COMPLETED` | 409 | The target sprint is already `completed` and cannot receive new tasks. |
+
+---
+
 ## Sprint View Contracts
 
 ### `GET /api/v1/projects/:projectId/sprints/:sprintId/views`
@@ -653,7 +777,7 @@ Product-backlog views are identical in structure to sprint views, but they are s
 Function:
 
 - list all saved view configurations for the product backlog ordered by `position`;
-- project creation automatically seeds a Board view (position 0) and a Table view (position 1).
+- project creation automatically seeds a Table view (position 0, `config.column_by = "sprint"`) as the default, and a Board view (position 1).
 
 Success response data:
 
@@ -781,7 +905,8 @@ Success response: `204 No Content`
 Function:
 
 - list all non-deleted tasks for a project, with optional filtering and pagination;
-- when `view_id` is supplied, each task in the response includes its manual `view_position` and `view_group_key` from that view's ordering (these fields are omitted when the task has no recorded position in the requested view).
+- when `view_id` is supplied, each task in the response includes its manual `view_position` and `view_group_key` from that view's ordering (these fields are omitted when the task has no recorded position in the requested view);
+- tasks with system task types (`is_system = true`, i.e. Epic and Subtask) are **included** in this general list endpoint and are distinguished by the `is_system_type` flag in the response; use `exclude_system_types=true` to omit them (default behaviour of the product-backlog and sprint-specific task list endpoints).
 
 Query parameters:
 
@@ -793,6 +918,7 @@ Query parameters:
 | `status_id` | – | Filter to tasks with a specific status |
 | `assignee_id` | – | Filter to tasks assigned to a specific user |
 | `view_id` | – | UUID of a view; enriches each task with its manual position in that view |
+| `exclude_system_types` | `false` | When `true`, omit tasks whose type has `is_system = true` (Epic, Subtask) |
 
 Success response data (without `view_id`):
 

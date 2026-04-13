@@ -145,6 +145,7 @@ CREATE TABLE IF NOT EXISTS task_types (
     color       TEXT,
     description TEXT,
     is_default  BOOLEAN     NOT NULL DEFAULT false,
+    is_system   BOOLEAN     NOT NULL DEFAULT false,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

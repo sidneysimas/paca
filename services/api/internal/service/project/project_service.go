@@ -235,13 +235,16 @@ func (s *Service) Create(ctx context.Context, in projectdom.CreateProjectInput) 
 
 func ptr[T any](v T) *T { return &v }
 
-// seedDefaultTaskTypes creates the three built-in task types for a new project.
-// The "Task" type is marked as the default.
+// seedDefaultTaskTypes creates the three built-in task types for a new project
+// plus two system-managed types (Epic, Subtask). The "Task" type is marked as
+// the default. System types are read-only and cannot be modified by users.
 func (s *Service) seedDefaultTaskTypes(ctx context.Context, projectID uuid.UUID, now time.Time) error {
 	defaults := []*taskdom.TaskType{
 		{ID: uuid.New(), ProjectID: projectID, Name: "Task", Icon: ptr("CheckSquare"), Color: ptr("#3b82f6"), Description: ptr("A general work item that needs to be completed"), IsDefault: true, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "Bug", Icon: ptr("Bug"), Color: ptr("#ef4444"), Description: ptr("An issue or defect that needs to be fixed"), CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "Story", Icon: ptr("BookOpen"), Color: ptr("#22c55e"), Description: ptr("A user-facing feature or requirement"), CreatedAt: now, UpdatedAt: now},
+		{ID: uuid.New(), ProjectID: projectID, Name: "Epic", Icon: ptr("Layers"), Color: ptr("#a855f7"), Description: ptr("A large body of work that can be broken down into smaller tasks"), IsSystem: true, CreatedAt: now, UpdatedAt: now},
+		{ID: uuid.New(), ProjectID: projectID, Name: "Subtask", Icon: ptr("ClipboardList"), Color: ptr("#64748b"), Description: ptr("A smaller piece of work within a parent task"), IsSystem: true, CreatedAt: now, UpdatedAt: now},
 	}
 	for _, tt := range defaults {
 		if err := s.taskRepo.CreateTaskType(ctx, tt); err != nil {

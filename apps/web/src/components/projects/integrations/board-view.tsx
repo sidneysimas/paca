@@ -1,15 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Plus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { getTaskTypeIconComponent } from "@/components/projects/task-types/task-type-icons";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { type Task, type ViewConfig, updateTask } from "@/lib/integration-api";
+import { type Sprint, type Task, type ViewConfig, updateTask } from "@/lib/integration-api";
 import type {
 	CustomFieldDefinition,
 	ProjectMember,
@@ -18,9 +10,11 @@ import type {
 } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
+import { AddTaskRow } from "./add-task-row";
 import { TaskCard } from "./task-card";
 import {
 	type ColumnGroupDef,
+	type TaskFieldUpdate,
 	DEFAULT_VISIBLE_FIELDS,
 	buildColumnDropUpdate,
 	computeFieldSum,
@@ -32,14 +26,6 @@ import {
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
-type MoveToColumnUpdate = Partial<{
-	status_id: string | null;
-	assignee_id: string | null;
-	importance: number;
-	task_type_id: string | null;
-	custom_fields: Record<string, unknown>;
-}>;
-
 interface BoardViewProps {
 	projectId: string;
 	taskIdPrefix?: string;
@@ -48,6 +34,7 @@ interface BoardViewProps {
 	taskTypes: TaskType[];
 	members?: ProjectMember[];
 	customFields?: CustomFieldDefinition[];
+	sprints?: Sprint[];
 	viewConfig?: ViewConfig;
 	canCreate: boolean;
 	canEdit: boolean;
@@ -58,141 +45,13 @@ interface BoardViewProps {
 		statusId: string,
 		title: string,
 		taskTypeId?: string | null,
-		extraFields?: MoveToColumnUpdate,
+		extraFields?: TaskFieldUpdate,
 	) => Promise<void>;
 	onTaskClick: (task: Task) => void;
-	onUpdateTask?: (taskId: string, payload: MoveToColumnUpdate) => void;
-	onMoveToColumn?: (taskId: string, update: MoveToColumnUpdate) => void;
+	onUpdateTask?: (taskId: string, payload: TaskFieldUpdate) => void;
+	onMoveToColumn?: (taskId: string, update: TaskFieldUpdate) => void;
 	manualSort?: boolean;
 	onReorderTask?: (groupKey: string, taskId: string, newIndex: number) => void;
-}
-
-// ── Add task row inside a status column ──────────────────────────────────────
-
-interface ColumnAddProps {
-	taskTypes: TaskType[];
-	onAdd: (title: string, taskTypeId: string | null) => void;
-}
-
-function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
-	const [open, setOpen] = useState(false);
-	const [value, setValue] = useState("");
-	const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
-	const inputRef = useRef<HTMLInputElement>(null);
-
-	const defaultType =
-		taskTypes.find((tt) => tt.is_default) ?? taskTypes[0] ?? null;
-	const selectedType =
-		taskTypes.find((tt) => tt.id === selectedTypeId) ?? defaultType;
-
-	const open_ = () => {
-		setOpen(true);
-		setTimeout(() => inputRef.current?.focus(), 0);
-	};
-
-	const submit = () => {
-		const title = value.trim();
-		if (!title) return;
-		onAdd(title, selectedType?.id ?? null);
-		setValue("");
-		setSelectedTypeId(null);
-		setOpen(false);
-	};
-
-	const cancel = () => {
-		setValue("");
-		setSelectedTypeId(null);
-		setOpen(false);
-	};
-
-	if (!open) {
-		return (
-			<button
-				type="button"
-				onClick={open_}
-				className="flex w-full items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
-			>
-				<Plus className="size-3" />
-				Add task
-			</button>
-		);
-	}
-
-	const SelectedIcon = getTaskTypeIconComponent(selectedType?.icon ?? null);
-
-	return (
-		<div className="rounded-xl border border-border/30 bg-card/50 p-2.5 shadow-sm">
-			<div className="flex items-center gap-1.5 mb-2">
-				{taskTypes.length > 0 && selectedType && (
-					<DropdownMenu>
-						<DropdownMenuTrigger
-							className={cn(
-								"flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-semibold transition-all duration-150 hover:bg-muted/60 shrink-0",
-							)}
-							style={
-								selectedType.color ? { color: selectedType.color } : undefined
-							}
-						>
-							{SelectedIcon ? (
-								<SelectedIcon className="size-3" />
-							) : (
-								<span className="size-3 rounded-full bg-current opacity-60" />
-							)}
-							<span>{selectedType?.name ?? "Task"}</span>
-							<ChevronDown className="size-2.5 opacity-60" />
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="start" sideOffset={2}>
-							{taskTypes.map((tt) => {
-								const Icon = getTaskTypeIconComponent(tt.icon ?? null);
-								return (
-									<DropdownMenuItem
-										key={tt.id}
-										onSelect={() => setSelectedTypeId(tt.id)}
-										style={tt.color ? { color: tt.color } : undefined}
-									>
-										{Icon ? (
-											<Icon className="size-3 mr-1.5" />
-										) : (
-											<span className="size-3 rounded-full bg-current opacity-60 mr-1.5" />
-										)}
-										{tt.name}
-									</DropdownMenuItem>
-								);
-							})}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
-			</div>
-			<input
-				ref={inputRef}
-				value={value}
-				onChange={(e) => setValue(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === "Enter") submit();
-					if (e.key === "Escape") cancel();
-				}}
-				placeholder="Task title…"
-				className="w-full rounded-lg border border-border/30 bg-muted/15 px-3 py-2 text-[13px] font-medium outline-none placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
-			/>
-			<div className="mt-2 flex items-center gap-1.5 justify-end">
-				<button
-					type="button"
-					onClick={cancel}
-					className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
-				>
-					Cancel
-				</button>
-				<button
-					type="button"
-					onClick={submit}
-					disabled={!value.trim()}
-					className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
-				>
-					Create
-				</button>
-			</div>
-		</div>
-	);
 }
 
 // ── Board view ────────────────────────────────────────────────────────────────
@@ -205,6 +64,7 @@ export function BoardView({
 	taskTypes,
 	members = [],
 	customFields = [],
+	sprints = [],
 	viewConfig,
 	canCreate,
 	canEdit,
@@ -240,14 +100,14 @@ export function BoardView({
 			update,
 		}: {
 			taskId: string;
-			update: MoveToColumnUpdate;
+			update: TaskFieldUpdate;
 		}) => updateTask(projectId, taskId, update),
 		onSuccess: () => qc.invalidateQueries({ queryKey: tasksQueryKey }),
 	});
 
 	// Inline field update handler used by TaskCard — delegates to onMoveToColumn
 	// (which does proper cache invalidation) or falls back to updateMutation.
-	const handleInlineUpdate = (taskId: string, payload: MoveToColumnUpdate) => {
+	const handleInlineUpdate = (taskId: string, payload: TaskFieldUpdate) => {
 		if (onUpdateTask) {
 			onUpdateTask(taskId, payload);
 		} else if (onMoveToColumn) {
@@ -269,8 +129,8 @@ export function BoardView({
 			: DEFAULT_VISIBLE_FIELDS;
 
 	const viewCtx = useMemo(
-		() => ({ statuses, taskTypes, members, customFields }),
-		[statuses, taskTypes, members, customFields],
+		() => ({ statuses, taskTypes, members, customFields, sprints }),
+		[statuses, taskTypes, members, customFields, sprints],
 	);
 
 	// Static column definitions (all possible values)
@@ -409,7 +269,7 @@ export function BoardView({
 			return;
 		}
 
-		const updates: MoveToColumnUpdate = {};
+		const updates: TaskFieldUpdate = {};
 		const currentColKeys = getTaskColumnKeys(task, columnBy, viewCtx);
 		const colChanged = !currentColKeys.includes(colDef.key);
 
@@ -481,7 +341,7 @@ export function BoardView({
 			return;
 		}
 
-		const updates: MoveToColumnUpdate = {};
+		const updates: TaskFieldUpdate = {};
 
 		// Update column field if moved to a different column
 		const currentColKeys = getTaskColumnKeys(task, columnBy, viewCtx);
@@ -626,17 +486,24 @@ export function BoardView({
 						/>
 					</div>
 				))}
-				{canCreate && isStatusGrouping && colDef.key !== "__none" && (
-					<ColumnAddTask
+				{canCreate && (isStatusGrouping || columnBy === "sprint") && colDef.key !== "__none" && (
+					<AddTaskRow
+						variant="board"
 						taskTypes={taskTypes}
 						onAdd={(title, typeId) => {
-							const extra: MoveToColumnUpdate = {};
+							const extra: TaskFieldUpdate = {};
+							if (!isStatusGrouping && columnBy === "sprint") {
+								extra.sprint_id = colDef.key === "__backlog" ? null : (colDef.key as string);
+							}
 							if (hasSwimlanes && swimDef.key !== "__all" && swimlaneBy && swimlaneBy !== "none") {
 								const swimUpdate = buildColumnDropUpdate(swimlaneBy, swimDef.fieldValue, customFields);
 								Object.assign(extra, swimUpdate);
 							}
+							const statusId = isStatusGrouping
+								? colDef.key
+								: statuses.find((s) => s.category !== "done")?.id ?? statuses[0]?.id ?? "";
 							onCreateTask(
-								colDef.key,
+								statusId,
 								title,
 								typeId,
 								Object.keys(extra).length > 0 ? extra : undefined,

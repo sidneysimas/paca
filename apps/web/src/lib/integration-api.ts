@@ -299,6 +299,26 @@ export async function createSprint(
 	return data.data;
 }
 
+export interface UpdateSprintPayload {
+	name?: string;
+	status?: SprintStatus;
+	goal?: string | null;
+	start_date?: string | null;
+	end_date?: string | null;
+}
+
+export async function updateSprint(
+	projectId: string,
+	sprintId: string,
+	payload: UpdateSprintPayload,
+): Promise<Sprint> {
+	const { data } = await apiClient.instance.patch<SuccessEnvelope<Sprint>>(
+		`/projects/${projectId}/sprints/${sprintId}`,
+		payload,
+	);
+	return data.data;
+}
+
 // ── Task API ──────────────────────────────────────────────────────────────────
 
 export interface ListTasksOptions {
@@ -308,6 +328,24 @@ export interface ListTasksOptions {
 	page?: number;
 	pageSize?: number;
 	viewId?: string;
+}
+
+export async function listAllTasks(
+	projectId: string,
+	opts: ListTasksOptions = {},
+): Promise<TaskListResult> {
+	const params: Record<string, string | number> = {
+		page: opts.page ?? 1,
+		page_size: opts.pageSize ?? 200,
+	};
+	if (opts.statusId) params.status_id = opts.statusId;
+	if (opts.assigneeId) params.assignee_id = opts.assigneeId;
+	if (opts.viewId) params.view_id = opts.viewId;
+	const { data } = await apiClient.instance.get<SuccessEnvelope<TaskListResult>>(
+		`/projects/${projectId}/tasks`,
+		{ params },
+	);
+	return data.data;
 }
 
 export async function listBacklogTasks(
@@ -441,6 +479,15 @@ export const sprintQueryOptions = (projectId: string, sprintId: string) =>
 		queryKey: ["projects", projectId, "sprints", sprintId],
 		queryFn: () => getSprint(projectId, sprintId),
 		staleTime: 30_000,
+	});
+
+export const allTasksQueryOptions = (projectId: string, viewId?: string) =>
+	queryOptions({
+		queryKey: viewId
+			? ["projects", projectId, "all-tasks", viewId]
+			: ["projects", projectId, "all-tasks"],
+		queryFn: () => listAllTasks(projectId, { viewId }),
+		staleTime: 15_000,
 	});
 
 export const backlogTasksQueryOptions = (projectId: string, viewId?: string) =>

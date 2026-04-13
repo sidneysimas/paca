@@ -39,6 +39,7 @@ type TaskType struct {
 	Color       *string
 	Description *string
 	IsDefault   bool
+	IsSystem    bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

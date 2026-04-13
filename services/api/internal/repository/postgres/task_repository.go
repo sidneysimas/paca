@@ -23,6 +23,7 @@ type taskTypeRecord struct {
 	Color       *string `gorm:"type:text"`
 	Description *string `gorm:"type:text"`
 	IsDefault   bool    `gorm:"not null;default:false;column:is_default"`
+	IsSystem    bool    `gorm:"not null;default:false;column:is_system"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -128,6 +129,7 @@ func (r *TaskRepository) CreateTaskType(ctx context.Context, t *taskdom.TaskType
 		Color:       t.Color,
 		Description: t.Description,
 		IsDefault:   t.IsDefault,
+		IsSystem:    t.IsSystem,
 		CreatedAt:   t.CreatedAt,
 		UpdatedAt:   t.UpdatedAt,
 	}
@@ -277,6 +279,9 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 	}
 	if filter.AssigneeID != nil {
 		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
+	}
+	if filter.ExcludeSystemTypes {
+		q = q.Where("task_type_id IS NULL OR task_type_id NOT IN (SELECT id FROM task_types WHERE is_system = true)")
 	}
 
 	var total int64
@@ -458,6 +463,7 @@ func toTaskTypeEntity(r *taskTypeRecord) *taskdom.TaskType {
 		Color:       r.Color,
 		Description: r.Description,
 		IsDefault:   r.IsDefault,
+		IsSystem:    r.IsSystem,
 		CreatedAt:   r.CreatedAt,
 		UpdatedAt:   r.UpdatedAt,
 	}

@@ -10,6 +10,11 @@ import (
 	taskdom "github.com/paca/api/internal/domain/task"
 )
 
+var reservedSystemTypeNames = map[string]bool{
+	"Epic":    true,
+	"Subtask": true,
+}
+
 // Service is the concrete implementation of taskdom.Service.
 type Service struct {
 	repo taskdom.Repository
@@ -38,6 +43,9 @@ func (s *Service) CreateTaskType(ctx context.Context, in taskdom.CreateTaskTypeI
 	if name == "" {
 		return nil, taskdom.ErrTypeNameInvalid
 	}
+	if reservedSystemTypeNames[name] {
+		return nil, taskdom.ErrTypeNameReserved
+	}
 
 	now := time.Now()
 	t := &taskdom.TaskType{
@@ -63,6 +71,9 @@ func (s *Service) UpdateTaskType(ctx context.Context, id uuid.UUID, in taskdom.U
 	if err != nil {
 		return nil, err
 	}
+	if t.IsSystem {
+		return nil, taskdom.ErrTypeIsSystem
+	}
 
 	if name := strings.TrimSpace(in.Name); name != "" {
 		t.Name = name
@@ -80,8 +91,12 @@ func (s *Service) UpdateTaskType(ctx context.Context, id uuid.UUID, in taskdom.U
 
 // DeleteTaskType removes a task type by ID.
 func (s *Service) DeleteTaskType(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindTaskTypeByID(ctx, id); err != nil {
+	t, err := s.repo.FindTaskTypeByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	if t.IsSystem {
+		return taskdom.ErrTypeIsSystem
 	}
 	return s.repo.DeleteTaskType(ctx, id)
 }

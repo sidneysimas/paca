@@ -135,6 +135,7 @@ type TaskTypeResponse struct {
 	Color       *string   `json:"color,omitempty"`
 	Description *string   `json:"description,omitempty"`
 	IsDefault   bool      `json:"is_default"`
+	IsSystem    bool      `json:"is_system"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -149,6 +150,7 @@ func TaskTypeFromEntity(t *taskdom.TaskType) TaskTypeResponse {
 		Color:       t.Color,
 		Description: t.Description,
 		IsDefault:   t.IsDefault,
+		IsSystem:    t.IsSystem,
 		CreatedAt:   t.CreatedAt,
 		UpdatedAt:   t.UpdatedAt,
 	}

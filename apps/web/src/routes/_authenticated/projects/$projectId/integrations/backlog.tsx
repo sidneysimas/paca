@@ -27,6 +27,7 @@ function BacklogPage() {
 			canEdit={canEdit}
 			canManageViews={canManageViews}
 			sprintId={null}
+			isBacklog={true}
 		/>
 	);
 }

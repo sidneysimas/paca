@@ -953,8 +953,8 @@ func TestE2EProjectCreation_DefaultTaskRecords(t *testing.T) {
 		decodeJSON(t, resp, &env2)
 		data := assertDataMap(t, env2)
 		items, _ := data["items"].([]any)
-		if len(items) != 3 {
-			t.Errorf("expected 3 default task types, got %d", len(items))
+		if len(items) != 5 {
+			t.Errorf("expected 5 default task types, got %d", len(items))
 		}
 		gotNames := map[string]bool{}
 		for _, item := range items {
@@ -962,7 +962,7 @@ func TestE2EProjectCreation_DefaultTaskRecords(t *testing.T) {
 			name, _ := m["name"].(string)
 			gotNames[name] = true
 		}
-		for _, name := range []string{"Task", "Bug", "Story"} {
+		for _, name := range []string{"Task", "Bug", "Story", "Epic", "Subtask"} {
 			if !gotNames[name] {
 				t.Errorf("missing default task type %q", name)
 			}
@@ -978,6 +978,22 @@ func TestE2EProjectCreation_DefaultTaskRecords(t *testing.T) {
 			}
 			if name != "Task" && isDefault {
 				t.Errorf("expected task type %q to have is_default=false", name)
+			}
+		}
+
+		// "Epic" and "Subtask" should have is_system: true; others false.
+		for _, item := range items {
+			m, _ := item.(map[string]any)
+			name, _ := m["name"].(string)
+			isSystem, _ := m["is_system"].(bool)
+			if name == "Epic" || name == "Subtask" {
+				if !isSystem {
+					t.Errorf("expected task type %q to have is_system=true", name)
+				}
+			} else {
+				if isSystem {
+					t.Errorf("expected task type %q to have is_system=false", name)
+				}
 			}
 		}
 	})

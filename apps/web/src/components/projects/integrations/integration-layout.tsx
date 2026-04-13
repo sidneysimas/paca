@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 // Upper bound for manual-sort positions.  All computed positions stay strictly
 // inside (0, POSITION_MAX) by always taking midpoints toward the boundaries, so
@@ -9,11 +10,13 @@ import {
 	KanbanSquare,
 	List,
 	Map as MapIcon,
+	Plus,
 	Search,
 	SlidersHorizontal,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import {
 	DropdownMenu,
@@ -28,9 +31,11 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+	allTasksQueryOptions,
 	backlogTasksQueryOptions,
 	backlogViewsQueryOptions,
 	createBacklogView,
+	createSprint,
 	createTask,
 	createView,
 	deleteBacklogView,
@@ -42,8 +47,10 @@ import {
 	reorderBacklogViews,
 	reorderViews,
 	sprintTasksQueryOptions,
+	sprintsQueryOptions,
 	type Task,
 	updateBacklogView,
+	updateSprint,
 	updateTask,
 	updateView,
 	type ViewConfig,
@@ -85,6 +92,10 @@ interface IntegrationLayoutProps {
 	canManageViews: boolean;
 	onTaskClick?: (task: Task) => void;
 	sprintId?: string | null;
+	/** Whether this layout is the product backlog (allows sprint management) */
+	isBacklog?: boolean;
+	/** Optional action buttons to show in the page header */
+	headerActions?: ReactNode;
 }
 
 export function IntegrationLayout({
@@ -97,14 +108,21 @@ export function IntegrationLayout({
 	canManageViews,
 	onTaskClick,
 	sprintId,
+	isBacklog = false,
+	headerActions,
 }: IntegrationLayoutProps) {
 	const qc = useQueryClient();
+	const navigate = useNavigate();
 
 	const { data: project } = useQuery(projectQueryOptions(projectId));
 	const taskIdPrefix = project?.task_id_prefix ?? "";
 
 	const { data: statuses = [] } = useQuery(taskStatusesQueryOptions(projectId));
 	const { data: taskTypes = [] } = useQuery(taskTypesQueryOptions(projectId));
+	const creatableTaskTypes = useMemo(
+		() => taskTypes.filter((tt) => !tt.is_system),
+		[taskTypes],
+	);
 	const { data: customFields = [] } = useQuery(
 		customFieldsQueryOptions(projectId),
 	);
@@ -138,10 +156,11 @@ export function IntegrationLayout({
 						view_type: "table",
 					}),
 				])
-			: Promise.all([
-					createBacklogView(projectId, { name: "Board", view_type: "board" }),
-					createBacklogView(projectId, { name: "Table", view_type: "table" }),
-				]);
+			: createBacklogView(projectId, {
+					name: "Table",
+					view_type: "table",
+					config: { column_by: "sprint" },
+				});
 		seed
 			.then(() => qc.invalidateQueries({ queryKey: viewsQueryKey }))
 			.catch(console.error);
@@ -200,24 +219,34 @@ export function IntegrationLayout({
 
 	const isRealView = !!activeViewId && !activeViewId.startsWith("__default-");
 	const effectiveViewId = isManualSort && isRealView ? activeViewId : undefined;
+	const isSprintColumnBacklog = isBacklog && activeViewConfig?.column_by === "sprint";
 	const tasksQueryOpts = sprintId
 		? sprintTasksQueryOptions(projectId, sprintId, effectiveViewId)
-		: backlogTasksQueryOptions(projectId, effectiveViewId);
+		: isSprintColumnBacklog
+			? allTasksQueryOptions(projectId, effectiveViewId)
+			: backlogTasksQueryOptions(projectId, effectiveViewId);
 	const tasksQuery = useQuery(tasksQueryOpts);
 	const tasks = tasksQuery.data?.items ?? [];
 	const tasksLoading = tasksQuery.isLoading;
 
 	const tasksBaseQueryKey = sprintId
 		? ["projects", projectId, "sprints", sprintId, "tasks"]
-		: ["projects", projectId, "backlog-tasks"];
+		: isSprintColumnBacklog
+			? ["projects", projectId, "all-tasks"]
+			: ["projects", projectId, "backlog-tasks"];
 
 	const { data: members = [] } = useQuery(
 		projectMembersQueryOptions(projectId),
 	);
 
+	const { data: sprints = [] } = useQuery({
+		...sprintsQueryOptions(projectId),
+		enabled: isBacklog,
+	});
+
 	const viewCtx: ViewContext = useMemo(
-		() => ({ statuses, taskTypes, members, customFields }),
-		[statuses, taskTypes, members, customFields],
+		() => ({ statuses, taskTypes, members, customFields, sprints }),
+		[statuses, taskTypes, members, customFields, sprints],
 	);
 
 	const sortedTasks = useMemo(() => {
@@ -327,14 +356,21 @@ export function IntegrationLayout({
 			taskTypeId?: string | null;
 			extraFields?: TaskFieldUpdate;
 		}) => {
+			// sprint_id: prefer explicit extraFields.sprint_id, else fall back to route sprint param
+			const sprintIdForTask =
+				payload.extraFields?.sprint_id !== undefined
+					? payload.extraFields.sprint_id
+					: (sprintId ?? null);
 			const task = await createTask(projectId, {
 				title: payload.title,
-				status_id: payload.statusId,
-				sprint_id: sprintId ?? null,
+				status_id: payload.statusId || undefined,
+				sprint_id: sprintIdForTask,
 				task_type_id: payload.taskTypeId ?? null,
 			});
-			if (payload.extraFields && Object.keys(payload.extraFields).length > 0) {
-				return updateTask(projectId, task.id, payload.extraFields);
+			// Apply remaining extraFields (excluding sprint_id which was handled above)
+			const { sprint_id: _sid, ...remainingFields } = payload.extraFields ?? {};
+			if (Object.keys(remainingFields).length > 0) {
+				return updateTask(projectId, task.id, remainingFields);
 			}
 			return task;
 		},
@@ -440,16 +476,8 @@ export function IntegrationLayout({
 	);
 
 	const handleMoveToColumn = useCallback(
-		(taskId: string, update: Partial<{
-			status_id: string | null;
-			assignee_id: string | null;
-			importance: number;
-			task_type_id: string | null;
-			custom_fields: Record<string, unknown>;
-		}>) => {
-			const task = sortedTasks.find((t) => t.id === taskId);
-			const sprintPayload = task?.sprint_id ? { sprint_id: task.sprint_id } : {};
-			updateTask(projectId, taskId, { ...update, ...sprintPayload })
+		(taskId: string, update: TaskFieldUpdate) => {
+			updateTask(projectId, taskId, update)
 				.then((updatedTask) => {
 					// Write the server response directly into the per-task cache so the
 					// detail modal immediately shows the updated value without a separate fetch.
@@ -458,7 +486,7 @@ export function IntegrationLayout({
 				})
 				.catch(console.error);
 		},
-		[projectId, qc, tasksBaseQueryKey, sortedTasks],
+		[projectId, qc, tasksBaseQueryKey],
 	);
 
 	const createViewMutation = useMutation({
@@ -546,13 +574,53 @@ export function IntegrationLayout({
 		reorderViewMutation.mutate(withPositions.map((v) => v.id));
 	};
 
+	// ── Sprint management (backlog only) ────────────────────────────────────
+	const createSprintMutation = useMutation({
+		mutationFn: (name: string) =>
+			createSprint(projectId, { name, status: "planned" }),
+		onSuccess: () =>
+			qc.invalidateQueries({ queryKey: ["projects", projectId, "sprints"] }),
+	});
+
+	const handleNewSprint = () => {
+		const nextNum = sprints.length + 1;
+		createSprintMutation.mutate(`Sprint ${nextNum}`);
+	};
+
+	const updateSprintMutation = useMutation({
+		mutationFn: ({
+			sprintId: sid,
+			payload,
+		}: {
+			sprintId: string;
+			payload: Parameters<typeof updateSprint>[2];
+		}) => updateSprint(projectId, sid, payload),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ["projects", projectId, "sprints"] });
+		},
+	});
+
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
 			{/* Header */}
 			<div className="shrink-0 border-b border-border/30 px-8 py-5">
-				<h1 className="font-[Syne] text-[26px] font-bold tracking-tight">
-					{title}
-				</h1>
+				<div className="flex items-center gap-3">
+					<h1 className="font-[Syne] text-[26px] font-bold tracking-tight flex-1">
+						{title}
+					</h1>
+					{headerActions}
+					{isBacklog && canCreate && (
+						<button
+							type="button"
+							onClick={handleNewSprint}
+							disabled={createSprintMutation.isPending}
+							className="flex items-center gap-1.5 rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-1.5 text-[12px] font-semibold text-muted-foreground hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-150 disabled:opacity-50"
+						>
+							<Plus className="size-3.5 shrink-0" />
+							New sprint
+						</button>
+					)}
+				</div>
 				{description && (
 					<p className="mt-1 text-[13px] text-muted-foreground">
 						{description}
@@ -861,9 +929,10 @@ export function IntegrationLayout({
 						taskIdPrefix={taskIdPrefix}
 						tasks={sliceFilteredTasks}
 						statuses={statuses}
-						taskTypes={taskTypes}
+						taskTypes={creatableTaskTypes}
 						members={members}
 						customFields={customFields}
+						sprints={sprints}
 						viewConfig={activeViewConfig}
 						canCreate={canCreate}
 						canEdit={canEdit}
@@ -892,7 +961,7 @@ export function IntegrationLayout({
 						tasks={sliceFilteredTasks}
 						taskIdPrefix={taskIdPrefix}
 						statuses={statuses}
-						taskTypes={taskTypes}
+						taskTypes={creatableTaskTypes}
 						members={members}
 						customFields={customFields}
 						viewConfig={activeViewConfig}
@@ -907,6 +976,19 @@ export function IntegrationLayout({
 						canEdit={canEdit}
 						sortBy={activeViewConfig?.sort_by}
 						onUpdateTaskField={canEdit ? handleMoveToColumn : undefined}
+						sprints={isBacklog ? sprints : undefined}
+						onStartSprint={
+							isBacklog && canCreate
+								? async (sid, payload) => {
+										await updateSprintMutation.mutateAsync({ sprintId: sid, payload });
+										navigate({
+											to: "/projects/$projectId/integrations/sprints/$sprintId",
+											params: { projectId, sprintId: sid },
+										});
+									}
+								: undefined
+						}
+						onCreateSprint={isBacklog && canCreate ? handleNewSprint : undefined}
 					/>
 				)}
 			</div>
