@@ -218,7 +218,7 @@ function GenericGroup({
 		setOrderedTasks(tasks);
 	}, [tasks]);
 
-	const isDraggable = !!(canEdit || manualSort) && isStatusGrouping;
+	const isDraggable = isStatusGrouping && !!(canEdit || manualSort);
 
 	const sumValue = computeFieldSum(tasks, fieldSum, customFields);
 
@@ -236,6 +236,13 @@ function GenericGroup({
 
 		if (isStatusGrouping && sourceGroupKey && sourceGroupKey !== groupDef.key) {
 			if (canEdit) onStatusChange?.(taskId, groupDef.key as string);
+			setDraggingId(null);
+			setDragOverId(null);
+			setIsDropTarget(false);
+			return;
+		}
+
+		if (!manualSort) {
 			setDraggingId(null);
 			setDragOverId(null);
 			setIsDropTarget(false);
@@ -416,7 +423,8 @@ function GenericGroup({
 												key={task.id}
 												className={cn(
 													"relative",
-													dragOverId === task.id &&
+													manualSort &&
+														dragOverId === task.id &&
 														draggingId !== task.id &&
 														"border-t-2 border-primary/60",
 												)}
@@ -442,7 +450,7 @@ function GenericGroup({
 												}}
 												onDragOver={(e) => {
 													e.preventDefault();
-													if (isDraggable) setDragOverId(task.id);
+													if (manualSort) setDragOverId(task.id);
 												}}
 												onDrop={(e) => {
 													e.preventDefault();
@@ -465,6 +473,12 @@ function GenericGroup({
 													}
 													if (isStatusGrouping && sourceGroupKey && sourceGroupKey !== groupDef.key) {
 														if (canEdit) onStatusChange?.(taskId, groupDef.key as string);
+														setDraggingId(null);
+														setDragOverId(null);
+														setIsDropTarget(false);
+														return;
+													}
+													if (!manualSort) {
 														setDraggingId(null);
 														setDragOverId(null);
 														setIsDropTarget(false);
@@ -537,7 +551,8 @@ function GenericGroup({
 										key={task.id}
 										className={cn(
 											"relative",
-											dragOverId === task.id &&
+											manualSort &&
+												dragOverId === task.id &&
 												draggingId !== task.id &&
 												"border-t-2 border-primary/60",
 										)}
