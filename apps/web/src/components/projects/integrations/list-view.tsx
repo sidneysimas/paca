@@ -24,7 +24,6 @@ import {
 	DEFAULT_VISIBLE_FIELDS,
 	buildColumnDropUpdate,
 	computeFieldSum,
-	computeImportanceForReorder,
 	getColumnGroupDefs,
 	getSwimlaneDefs,
 	getTaskColumnKeys,
@@ -205,7 +204,6 @@ function GenericGroup({
 	onStatusChange,
 	canEdit,
 	isStatusGrouping,
-	sortBy,
 	onUpdateTaskField,
 	visibleFields,
 }: GenericGroupProps) {
@@ -220,7 +218,7 @@ function GenericGroup({
 		setOrderedTasks(tasks);
 	}, [tasks]);
 
-	const isDraggable = !!(canEdit || manualSort || sortBy === "importance") && isStatusGrouping;
+	const isDraggable = !!(canEdit || manualSort) && isStatusGrouping;
 
 	const sumValue = computeFieldSum(tasks, fieldSum, customFields);
 
@@ -252,12 +250,7 @@ function GenericGroup({
 		const [moved] = updated.splice(sourceIndex, 1);
 		updated.splice(targetIndex, 0, moved);
 		setOrderedTasks(updated);
-		if (sortBy === "importance") {
-			const newImportance = computeImportanceForReorder(orderedTasks, sourceIndex, targetIndex);
-			onUpdateTaskField?.(currentDraggingId, { importance: newImportance });
-		} else {
-			onReorderTask?.(groupDef.key, currentDraggingId, targetIndex);
-		}
+		onReorderTask?.(groupDef.key, currentDraggingId, targetIndex);
 		setDraggingId(null);
 		setDragOverId(null);
 	};
@@ -417,7 +410,7 @@ function GenericGroup({
 											<p className="text-[12px] font-medium">No tasks</p>
 										</div>
 									) : (
-										laneTasks.map((task, laneIndex) => (
+										laneTasks.map((task) => (
 											// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop row slot
 											<div
 												key={task.id}
@@ -487,12 +480,7 @@ function GenericGroup({
 													const [moved] = updated.splice(sourceOrderedIndex, 1);
 													updated.splice(targetOrderedIndex, 0, moved);
 													setOrderedTasks(updated);
-													if (sortBy === "importance") {
-														const newImportance = computeImportanceForReorder(laneTasks, sourceLaneIndex, laneIndex);
-														onUpdateTaskField?.(currentDraggingId, { importance: newImportance });
-													} else {
-														onReorderTask?.(groupDef.key, currentDraggingId, targetOrderedIndex);
-													}
+													onReorderTask?.(groupDef.key, currentDraggingId, targetOrderedIndex);
 													setDraggingId(null);
 													setDragOverId(null);
 												}}
@@ -571,7 +559,7 @@ function GenericGroup({
 										}}
 										onDragOver={(e) => {
 											e.preventDefault();
-											if (manualSort || sortBy === "importance") setDragOverId(task.id);
+											if (manualSort) setDragOverId(task.id);
 										}}
 										onDrop={(e) => handleIntraGroupDrop(e, task, index)}
 									>

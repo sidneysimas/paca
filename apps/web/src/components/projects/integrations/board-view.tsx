@@ -18,14 +18,12 @@ import type {
 } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
-import { getImportanceBucketBounds } from "./priority";
 import { TaskCard } from "./task-card";
 import {
 	type ColumnGroupDef,
 	DEFAULT_VISIBLE_FIELDS,
 	buildColumnDropUpdate,
 	computeFieldSum,
-	computeImportanceForReorder,
 	getColumnGroupDefs,
 	getSwimlaneDefs,
 	getTaskColumnKeys,
@@ -431,41 +429,7 @@ export function BoardView({
 			} else {
 				updateMutation.mutate({ taskId, update: updates });
 			}
-	} else if (
-			viewConfig?.sort_by === "importance" &&
-			taskId !== targetTaskId &&
-			!colChanged
-		) {
-			// Drag-reorder within an importance-sorted column → compute midpoint value.
-			// Use swimlane-scoped tasks so that the targetIndex (relative to the band)
-			// matches the task list passed to the algorithm, preventing index mismatches.
-			const relevantTasks = swimDef
-				? getSwimlaneColumnTasks(colDef.key, swimDef.key)
-				: getColumnTasks(colDef.key);
-			const srcIdx = relevantTasks.findIndex((t) => t.id === taskId);
-			if (srcIdx !== -1) {
-				// Clamp result to the current bucket when the swimlane or column is
-				// grouped by importance, so the task never jumps to a different band.
-				const bucketBounds =
-					swimDef && swimlaneBy === "importance" && swimDef.key !== "__all"
-						? getImportanceBucketBounds(Number(swimDef.key))
-						: columnBy === "importance"
-							? getImportanceBucketBounds(Number(colDef.key))
-							: undefined;
-				const newImportance = computeImportanceForReorder(
-					relevantTasks,
-					srcIdx,
-					targetIndex,
-					bucketBounds,
-				);
-				const update = { importance: newImportance };
-				if (onMoveToColumn) {
-					onMoveToColumn(taskId, update);
-				} else {
-					updateMutation.mutate({ taskId, update });
-				}
-			}
-		} else if (manualSort && taskId !== targetTaskId && !colChanged) {
+	} else if (manualSort && taskId !== targetTaskId && !colChanged) {
 			// Reorder within same column
 			const current = getColumnTasks(colDef.key);
 			const srcIdx = current.findIndex((t) => t.id === taskId);
@@ -615,7 +579,7 @@ export function BoardView({
 						key={task.id}
 						className={cn(
 							"relative",
-							(manualSort || viewConfig?.sort_by === "importance") &&
+							manualSort &&
 								overCardId === task.id &&
 								draggingId !== task.id &&
 								"border-t-2 border-primary/60",
@@ -625,7 +589,7 @@ export function BoardView({
 							e.stopPropagation();
 							setOverColumnKey(colDef.key);
 							setOverSwimKey(swimOverKey);
-						if (manualSort || viewConfig?.sort_by === "importance") setOverCardId(task.id);
+						if (manualSort) setOverCardId(task.id);
 						}}
 						onDrop={(e) =>
 							handleDropOnCard(

@@ -47,8 +47,6 @@ export function getPriority(importance: number): PriorityMeta {
 
 /**
  * Returns the min/max raw importance bounds for a given bucket index (0-4).
- * Callers can pass these bounds to computeImportanceForReorder so that
- * drag-reorder within a swimlane/column never crosses bucket boundaries.
  */
 export function getImportanceBucketBounds(
 	bucket: number,
