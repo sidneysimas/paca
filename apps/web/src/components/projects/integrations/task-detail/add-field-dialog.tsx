@@ -210,7 +210,7 @@ export function AddFieldDialog({
 							<span
 								className={cn(
 									"inline-block size-3.5 rounded-full bg-white shadow-sm transition-transform duration-200",
-									required ? "translate-x-[18px]" : "translate-x-[3px]",
+									required ? "translate-x-4.5" : "translate-x-0.75",
 								)}
 							/>
 						</button>

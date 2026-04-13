@@ -36,7 +36,7 @@ export function DescriptionSection({
 			<div className="flex items-center justify-between">
 				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
 					<span>Description</span>
-					<div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
 				<button
 					type="button"
@@ -60,7 +60,7 @@ export function DescriptionSection({
 						}
 					}}
 					placeholder="Add description…"
-					className="w-full min-h-[140px] resize-y rounded-xl border-2 border-primary/30 bg-muted/20 px-5 py-4 text-[14px] text-foreground leading-relaxed whitespace-pre-wrap outline-none focus:border-primary/50 focus:bg-muted/30 transition-all duration-150"
+					className="w-full min-h-35 resize-y rounded-xl border-2 border-primary/30 bg-muted/20 px-5 py-4 text-[14px] text-foreground leading-relaxed whitespace-pre-wrap outline-none focus:border-primary/50 focus:bg-muted/30 transition-all duration-150"
 				/>
 			) : description ? (
 				// biome-ignore lint/a11y/noStaticElementInteractions: click-to-edit description
@@ -90,7 +90,7 @@ export function DescriptionSection({
 						setDraft("");
 						setEditing(true);
 					}}
-					className="w-full rounded-xl border-2 border-dashed border-border/25 bg-muted/10 px-5 py-6 text-left hover:border-border/50 hover:bg-muted/20 hover:border-primary/20 transition-all duration-200 group/add"
+					className="w-full rounded-xl border-2 border-dashed border-border/25 bg-muted/10 px-5 py-6 text-left hover:border-border/50 hover:bg-muted/20 transition-all duration-200 group/add"
 				>
 					<div className="flex items-center gap-3">
 						<div className="flex size-8 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground/45 group-hover/add:text-muted-foreground/70 transition-colors">

@@ -22,7 +22,7 @@ export function ChecklistsSection() {
 			<div className="flex items-center justify-between">
 				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
 					<span>Checklists</span>
-					<div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
 				<button
 					type="button"

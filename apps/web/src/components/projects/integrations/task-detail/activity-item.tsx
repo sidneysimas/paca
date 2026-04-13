@@ -10,7 +10,7 @@ export function ActivityItem({ entry }: { entry: ActivityEntry }) {
 				className={cn(
 					"flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold mt-0.5 ring-1",
 					isComment
-						? "bg-gradient-to-br from-primary/20 to-primary/10 text-primary ring-primary/15"
+						? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/15"
 						: "bg-muted/40 text-muted-foreground/80 ring-border/20",
 				)}
 			>
@@ -18,7 +18,7 @@ export function ActivityItem({ entry }: { entry: ActivityEntry }) {
 			</div>
 			<div className="flex-1 min-w-0">
 				{isComment ? (
-					<div className="rounded-xl rounded-tl-[4px] border border-border/25 bg-card/70 px-3.5 py-2.5">
+					<div className="rounded-xl rounded-tl-lg border border-border/25 bg-card/70 px-3.5 py-2.5">
 						<div className="mb-1 flex items-center gap-2">
 							<span className="text-[12px] font-semibold text-foreground">
 								{entry.author}

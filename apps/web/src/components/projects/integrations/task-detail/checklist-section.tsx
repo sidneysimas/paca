@@ -84,7 +84,7 @@ export function ChecklistSection({
 							type="button"
 							onClick={() => toggle(item.id)}
 							className={cn(
-								"flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200",
+								"flex size-4.5 shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200",
 								item.checked
 									? "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
 									: "border-border/40 text-transparent hover:border-border/70 hover:bg-muted/40",
@@ -107,7 +107,7 @@ export function ChecklistSection({
 
 				{/* Add item input */}
 				<div className="flex items-center gap-3 px-2 pt-1">
-					<div className="size-[18px] shrink-0 rounded-[5px] border-2 border-dashed border-border/25" />
+					<div className="size-4.5 shrink-0 rounded-[5px] border-2 border-dashed border-border/25" />
 					<input
 						value={newItem}
 						onChange={(e) => setNewItem(e.target.value)}
