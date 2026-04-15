@@ -36,7 +36,9 @@ export function TaskTypesSettings({
 	const setDefaultMutation = useMutation({
 		mutationFn: (typeId: string) => setDefaultTaskType(projectId, typeId),
 		onSuccess: () => {
-			queryClient.invalidateQueries(taskTypesQueryOptions(projectId));
+			queryClient.invalidateQueries({
+				queryKey: taskTypesQueryOptions(projectId).queryKey,
+			});
 		},
 	});
 
