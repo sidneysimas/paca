@@ -178,10 +178,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	viewRepo := pgRepo.NewViewRepository(db)
 	viewService := sprintsvc.NewViewService(viewRepo)
 	attachmentRepo := pgRepo.NewAttachmentRepository(db)
-	// Only create the attachment handler when MinIO is available.  Keeping the
-	// handler nil signals the router to skip attachment route registration,
-	// which prevents a nil-service panic if MinIO fails to start.
-	var attachmentHandler *handler.AttachmentHandler
+	var attachmentService *attachmentsvc.Service
 	if sharedMinIOEndpoint != "" {
 		minIOEndpoint := sharedMinIOEndpoint
 		storageClient, storageErr := storage.NewS3Client(ctx, storage.S3Config{
@@ -198,7 +195,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		if err := storageClient.EnsureBucket(ctx, attachBucket); err != nil {
 			t.Fatalf("ensure bucket: %v", err)
 		}
-		attachmentHandler = handler.NewAttachmentHandler(attachmentsvc.New(attachmentRepo, storageClient, attachBucket))
+		attachmentService = attachmentsvc.New(attachmentRepo, storageClient, attachBucket)
 	}
 
 	cookieCfg := handler.CookieConfig{
@@ -218,7 +215,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		Task:         handler.NewTaskHandler(taskService, viewService),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
-		Attachment:   attachmentHandler,
+		Attachment:   handler.NewAttachmentHandler(attachmentService),
 		Log:          log,
 	})
 
