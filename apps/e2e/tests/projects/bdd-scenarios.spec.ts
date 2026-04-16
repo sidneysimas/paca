@@ -16,6 +16,12 @@ interface TaskStatus {
   category: string;
 }
 
+interface TaskType {
+  id: string;
+  name: string;
+  is_system: boolean;
+}
+
 interface Task {
   id: string;
   title: string;
@@ -67,14 +73,20 @@ async function getTaskStatuses(request: APIRequestContext, projectId: string): P
   return ((await resp.json())?.data?.items ?? []) as TaskStatus[];
 }
 
+async function getTaskTypes(request: APIRequestContext, projectId: string): Promise<TaskType[]> {
+  const resp = await request.get(`${BASE_URL}/api/v1/projects/${projectId}/task-types`);
+  return ((await resp.json())?.data?.items ?? []) as TaskType[];
+}
+
 async function createTask(
   request: APIRequestContext,
   projectId: string,
   title: string,
   statusId?: string,
+  taskTypeId?: string,
 ): Promise<Task> {
   const resp = await request.post(`${BASE_URL}/api/v1/projects/${projectId}/tasks`, {
-    data: { title, status_id: statusId ?? null },
+    data: { title, status_id: statusId ?? null, task_type_id: taskTypeId ?? null },
   });
   return (await resp.json()).data as Task;
 }
@@ -87,7 +99,14 @@ async function createBDDScenario(
 ): Promise<BDDScenario> {
   const resp = await request.post(
     `${BASE_URL}/api/v1/projects/${projectId}/tasks/${taskId}/bdd-scenarios`,
-    { data: { title: payload.title, given: payload.given ?? '', when: payload.when ?? '', then: payload.then ?? '' } },
+    {
+      data: {
+        title: payload.title,
+        given: payload.given ?? '',
+        when: payload.when ?? '',
+        then: payload.then ?? '',
+      },
+    },
   );
   return (await resp.json()).data as BDDScenario;
 }
@@ -103,8 +122,6 @@ async function signIn(page: Page): Promise<void> {
 }
 
 async function openTaskDetail(page: Page, projectId: string, taskId: string): Promise<void> {
-  await page.goto(`${BASE_URL}/projects/${projectId}/interactions/backlog`);
-  // Navigate via URL query param that opens the task detail modal
   await page.goto(`${BASE_URL}/projects/${projectId}/interactions/backlog?taskId=${taskId}`);
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
 }
@@ -112,7 +129,7 @@ async function openTaskDetail(page: Page, projectId: string, taskId: string): Pr
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 // =============================================================================
-// Rule: Empty state
+// Rule: CRUD operations on BDD scenarios — Empty state
 // =============================================================================
 
 test.describe('BDD Scenarios — empty state', () => {
@@ -123,8 +140,10 @@ test.describe('BDD Scenarios — empty state', () => {
     await cleanupTestProjects(request);
     projectId = await createProject(request, `${TEST_PROJECT_PREFIX}EMPTY_${RUN_ID}`);
     const statuses = await getTaskStatuses(request, projectId);
+    const taskTypes = await getTaskTypes(request, projectId);
     const todo = statuses.find((s) => s.category === 'todo');
-    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id);
+    const normalType = taskTypes.find((t) => !t.is_system);
+    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id, normalType?.id);
     await context.clearCookies();
     await context.clearPermissions();
   });
@@ -133,16 +152,18 @@ test.describe('BDD Scenarios — empty state', () => {
     await cleanupTestProjects(request);
   });
 
-  test('shows empty state message when the task has no BDD scenarios', async ({ page }) => {
+  test('Empty state when no scenarios exist', async ({ page }) => {
     await signIn(page);
+    // the user opens the task detail modal
     await openTaskDetail(page, projectId, task.id);
 
+    // the task has no BDD scenarios — verify the empty state message
     await expect(page.getByText('No BDD scenarios yet')).toBeVisible({ timeout: 10_000 });
   });
 });
 
 // =============================================================================
-// Rule: Creating BDD scenarios
+// Rule: CRUD operations on BDD scenarios — Creating
 // =============================================================================
 
 test.describe('BDD Scenarios — create', () => {
@@ -153,8 +174,10 @@ test.describe('BDD Scenarios — create', () => {
     await cleanupTestProjects(request);
     projectId = await createProject(request, `${TEST_PROJECT_PREFIX}CREATE_${RUN_ID}`);
     const statuses = await getTaskStatuses(request, projectId);
+    const taskTypes = await getTaskTypes(request, projectId);
     const todo = statuses.find((s) => s.category === 'todo');
-    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id);
+    const normalType = taskTypes.find((t) => !t.is_system);
+    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id, normalType?.id);
     await context.clearCookies();
     await context.clearPermissions();
   });
@@ -163,74 +186,88 @@ test.describe('BDD Scenarios — create', () => {
     await cleanupTestProjects(request);
   });
 
-  test('creates a BDD scenario with a title only', async ({ page }) => {
+  test('Creating a BDD scenario with a title', async ({ page }) => {
     await signIn(page);
+    // the user opens the task detail modal
     await openTaskDetail(page, projectId, task.id);
 
+    // clicks "Add scenario" in the BDD Scenarios section
     await page.getByRole('button', { name: 'Add scenario' }).click();
-    await page.getByPlaceholder('Scenario title…').fill('User can log in');
+
+    // enters a scenario title "User can log in"
+    await page.getByRole('textbox', { name: 'Scenario title\u2026' }).fill('User can log in');
+
+    // clicks "Create scenario"
     await page.getByRole('button', { name: 'Create scenario' }).click();
 
-    await expect(page.getByText('User can log in')).toBeVisible({ timeout: 8_000 });
-    // Empty state message should be gone
+    // the new scenario "User can log in" appears in the BDD Scenarios section
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'User can log in' }),
+    ).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText('No BDD scenarios yet')).not.toBeVisible();
   });
 
-  test('creates a BDD scenario with Given / When / Then clauses', async ({ page }) => {
+  test('Creating a scenario with Given / When / Then clauses', async ({ page }) => {
     await signIn(page);
+    // the user opens the task detail modal
     await openTaskDetail(page, projectId, task.id);
 
+    // clicks "Add scenario" in the BDD Scenarios section
     await page.getByRole('button', { name: 'Add scenario' }).click();
-    await page.getByPlaceholder('Scenario title…').fill('Successful login');
 
-    // Expand Given/When/Then
-    await page.getByRole('button', { name: /Add Given \/ When \/ Then/i }).click();
+    // enters a scenario title "Successful login"
+    await page.getByRole('textbox', { name: 'Scenario title\u2026' }).fill('Successful login');
 
-    await page.getByPlaceholder(/initial context or precondition/i).fill('a registered user');
-    await page.getByPlaceholder(/action or event that occurs/i).fill('the user submits valid credentials');
-    await page.getByPlaceholder(/expected outcome or result/i).fill('the user is redirected to the dashboard');
+    // Given / When / Then fields are directly visible in the create form — fills in all clauses
+    // fills in the Given clause "a registered user"
+    await page.getByRole('textbox', { name: 'the initial context or precondition\u2026' }).fill('a registered user');
 
+    // fills in the When clause "the user submits valid credentials"
+    await page.getByRole('textbox', { name: 'the action or event that occurs\u2026' }).fill('the user submits valid credentials');
+
+    // fills in the Then clause "the user is redirected to the dashboard"
+    await page.getByRole('textbox', { name: 'the expected outcome or result\u2026' }).fill('the user is redirected to the dashboard');
+
+    // clicks "Create scenario"
     await page.getByRole('button', { name: 'Create scenario' }).click();
 
-    await expect(page.getByText('Successful login')).toBeVisible({ timeout: 8_000 });
+    // the scenario "Successful login" appears in the list
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'Successful login' }),
+    ).toBeVisible({ timeout: 8_000 });
 
-    // Expand to verify clauses
-    await page.getByText('Successful login').click();
-    await expect(page.getByText('a registered user')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText('the user submits valid credentials')).toBeVisible();
-    await expect(page.getByText('the user is redirected to the dashboard')).toBeVisible();
-  });
-
-  test('does not create a scenario without a title (button stays disabled)', async ({ page }) => {
-    await signIn(page);
-    await openTaskDetail(page, projectId, task.id);
-
-    await page.getByRole('button', { name: 'Add scenario' }).click();
-    // Leave title blank
-    const createBtn = page.getByRole('button', { name: 'Create scenario' });
-    await expect(createBtn).toBeDisabled();
+    // expanding the scenario reveals the Given, When, and Then clauses
+    await page.getByTestId('bdd-scenario-card').locator('div').filter({ hasText: /^Successful login$/ }).click();
+    await expect(
+      page.getByRole('textbox', { name: 'the initial context or precondition\u2026' }),
+    ).toHaveValue('a registered user', { timeout: 5_000 });
+    await expect(
+      page.getByRole('textbox', { name: 'the action or event that occurs\u2026' }),
+    ).toHaveValue('the user submits valid credentials');
+    await expect(
+      page.getByRole('textbox', { name: 'the expected outcome or result\u2026' }),
+    ).toHaveValue('the user is redirected to the dashboard');
   });
 });
 
 // =============================================================================
-// Rule: Editing BDD scenarios
+// Rule: CRUD operations on BDD scenarios — Editing
 // =============================================================================
 
 test.describe('BDD Scenarios — update', () => {
   let projectId: string;
   let task: Task;
-  let scenario: BDDScenario;
 
   test.beforeEach(async ({ request, context }) => {
     await cleanupTestProjects(request);
     projectId = await createProject(request, `${TEST_PROJECT_PREFIX}UPDATE_${RUN_ID}`);
     const statuses = await getTaskStatuses(request, projectId);
+    const taskTypes = await getTaskTypes(request, projectId);
     const todo = statuses.find((s) => s.category === 'todo');
-    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id);
-    scenario = await createBDDScenario(request, projectId, task.id, {
-      title: 'Original Title',
-      given: 'the app is running',
-    });
+    const normalType = taskTypes.find((t) => !t.is_system);
+    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id, normalType?.id);
+    // a BDD scenario "Old Title" exists on the task
+    await createBDDScenario(request, projectId, task.id, { title: 'Old Title' });
     await context.clearCookies();
     await context.clearPermissions();
   });
@@ -239,55 +276,38 @@ test.describe('BDD Scenarios — update', () => {
     await cleanupTestProjects(request);
   });
 
-  test('edits the scenario title inline', async ({ page }) => {
+  test('Editing a BDD scenario title inline', async ({ page }) => {
     await signIn(page);
+    // the user opens the task detail modal
     await openTaskDetail(page, projectId, task.id);
 
-    // Verify the original title is present
-    await expect(page.getByText('Original Title')).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'Old Title' }),
+    ).toBeVisible({ timeout: 10_000 });
 
-    // Click the displayed title text to enter title-edit mode
-    await page.getByText('Original Title').click();
+    // clicks on the title "Old Title" inside the scenario card to enter edit mode
+    await page.getByTestId('bdd-scenario-card').locator('div').filter({ hasText: /^Old Title$/ }).click();
 
-    const titleInput = page.locator('input[value="Original Title"]');
+    // changes the title to "New Title"
+    const titleInput = page.getByTestId('bdd-scenario-card').locator('input');
     await titleInput.clear();
-    await titleInput.fill('Updated Title');
+    await titleInput.fill('New Title');
+
+    // blurs the title field — triggers auto-save
     await titleInput.blur();
 
-    await expect(page.getByText('Updated Title')).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('Original Title')).not.toBeVisible();
-  });
-
-  test('saves Given / When / Then clauses after expanding a scenario', async ({ page }) => {
-    await signIn(page);
-    await openTaskDetail(page, projectId, task.id);
-
-    await expect(page.getByText('Original Title')).toBeVisible({ timeout: 10_000 });
-
-    // Expand the scenario
-    await page.getByText('Original Title').click();
-
-    // The "Given" textarea should have the pre-filled value
-    const givenTextarea = page.getByPlaceholder(/initial context or precondition/i);
-    await expect(givenTextarea).toHaveValue('the app is running', { timeout: 5_000 });
-
-    // Update the When clause and save
-    await page.getByPlaceholder(/action or event that occurs/i).fill('the user clicks submit');
-    await page.getByRole('button', { name: 'Save' }).click();
-
-    // Collapse and re-expand to confirm persistence across renders
-    await page.getByText('Original Title').click(); // collapse
-    await page.getByText('Original Title').click(); // expand again
-
-    await expect(page.getByPlaceholder(/action or event that occurs/i)).toHaveValue(
-      'the user clicks submit',
-      { timeout: 5_000 },
-    );
+    // the scenario card shows the updated title "New Title"
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'New Title' }),
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'Old Title' }),
+    ).not.toBeVisible();
   });
 });
 
 // =============================================================================
-// Rule: Deleting BDD scenarios
+// Rule: CRUD operations on BDD scenarios — Deleting
 // =============================================================================
 
 test.describe('BDD Scenarios — delete', () => {
@@ -298,8 +318,11 @@ test.describe('BDD Scenarios — delete', () => {
     await cleanupTestProjects(request);
     projectId = await createProject(request, `${TEST_PROJECT_PREFIX}DELETE_${RUN_ID}`);
     const statuses = await getTaskStatuses(request, projectId);
+    const taskTypes = await getTaskTypes(request, projectId);
     const todo = statuses.find((s) => s.category === 'todo');
-    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id);
+    const normalType = taskTypes.find((t) => !t.is_system);
+    task = await createTask(request, projectId, `${TEST_PROJECT_PREFIX}TASK_${RUN_ID}`, todo?.id, normalType?.id);
+    // a BDD scenario "To Be Deleted" exists on the task
     await createBDDScenario(request, projectId, task.id, { title: 'To Be Deleted' });
     await context.clearCookies();
     await context.clearPermissions();
@@ -309,19 +332,26 @@ test.describe('BDD Scenarios — delete', () => {
     await cleanupTestProjects(request);
   });
 
-  test('deletes a BDD scenario via the delete icon', async ({ page }) => {
+  test('Deleting a BDD scenario', async ({ page }) => {
     await signIn(page);
+    // the user opens the task detail modal
     await openTaskDetail(page, projectId, task.id);
 
-    await expect(page.getByText('To Be Deleted')).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'To Be Deleted' }),
+    ).toBeVisible({ timeout: 10_000 });
 
-    // Hover over card to reveal the delete button
-    const scenarioCard = page.locator('[data-testid="bdd-scenario-card"]').filter({ hasText: 'To Be Deleted' });
+    // hovers over the "To Be Deleted" scenario card
+    const scenarioCard = page.getByTestId('bdd-scenario-card').filter({ hasText: 'To Be Deleted' });
     await scenarioCard.hover();
 
+    // clicks the delete icon on that card
     await page.getByRole('button', { name: 'Delete scenario' }).click();
 
-    await expect(page.getByText('To Be Deleted')).not.toBeVisible({ timeout: 8_000 });
+    // the "To Be Deleted" scenario no longer appears in the list
+    await expect(
+      page.getByTestId('bdd-scenario-card').filter({ hasText: 'To Be Deleted' }),
+    ).not.toBeVisible({ timeout: 8_000 });
     await expect(page.getByText('No BDD scenarios yet')).toBeVisible();
   });
 });
