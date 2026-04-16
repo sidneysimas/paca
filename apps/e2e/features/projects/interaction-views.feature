@@ -6,10 +6,11 @@ Feature: Interaction views (board and list layouts)
   items.  Each view also stores display settings (visible fields, column
   grouping, swimlanes, sort order, field sum, and slice dimension).  The
   default view opened when entering the product backlog is the Table view
-  grouped by sprint (column_by = "sprint"); for sprint interactions it is the
-  first view in the tab bar.  On the product backlog Table view every sprint
-  column header shows a "Start sprint" button for planned sprints, allowing
-  the user to open the Start Sprint modal without leaving the backlog.  The
+  grouped by sprint (column_by = "sprint"); for sprint interactions the default
+  view is the Board view (kanban layout grouped by status).  On the product
+  backlog Table view every sprint column header shows a "Start sprint" button
+  for planned sprints, allowing the user to open the Start Sprint modal without
+  leaving the backlog.  The
   product backlog page header and each sprint-column header also contain a
   "New sprint" button that quick-creates a sprint with a system-generated
   default name (no modal).  Epic and Subtask tasks are excluded from both
@@ -41,7 +42,7 @@ Feature: Interaction views (board and list layouts)
       When the user clicks "Product Backlog" in the project sidebar
       Then the table should be grouped into sprint columns
       And each sprint column should display the sprint name as its header
-      And an "Unassigned" column should be visible for tasks with no sprint
+      And a "Backlog" column should be visible for tasks with no sprint assigned
 
     Scenario: The view header shows the interaction name and a description
       When the user clicks "Product Backlog" in the project sidebar
@@ -69,11 +70,13 @@ Feature: Interaction views (board and list layouts)
       Then the roadmap timeline layout should be displayed
       And each task should appear as a horizontal bar spanning its scheduled date range
 
-    Scenario: Navigating to a sprint opens that sprint's default view
+    Scenario: Navigating to a sprint opens the default Board view
       Given the project has an active sprint named "E2E_SPRINT_1"
       When the user clicks "E2E_SPRINT_1" in the project sidebar
       Then the interaction page for "E2E_SPRINT_1" should be visible
       And the view tab bar should be shown
+      And the "Board" view tab should be active
+      And the kanban board layout should be displayed grouped by status
 
   @authenticated
   Rule: Product backlog Table view sprint-column headers
@@ -91,7 +94,7 @@ Feature: Interaction views (board and list layouts)
     Scenario: Each sprint appears as a named column in the product backlog table view
       Then a column header named "E2E_PLANNED_SPRINT_COL" should be visible
       And a column header named "E2E_ACTIVE_SPRINT_COL" should be visible
-      And an "Unassigned" column header should be visible for tasks with no sprint
+      And a "Backlog" column header should be visible for tasks with no sprint
 
     Scenario: A "Start sprint" button appears in the column header of a planned sprint
       Then the column header for "E2E_PLANNED_SPRINT_COL" should contain a "Start sprint" button
@@ -99,24 +102,24 @@ Feature: Interaction views (board and list layouts)
     Scenario: The "Start sprint" button is not present on an already-active sprint column
       Then the column header for "E2E_ACTIVE_SPRINT_COL" should not contain a "Start sprint" button
 
-    Scenario: Clicking "Start sprint" in a column header opens the Start Sprint modal
+    Scenario: Clicking "Start sprint" in a column header opens the Start Sprint inline form
       When the user clicks "Start sprint" in the "E2E_PLANNED_SPRINT_COL" column header
-      Then the "Start sprint" modal should open
-      And the modal should display the sprint name "E2E_PLANNED_SPRINT_COL" in an editable field
-      And the modal should contain an optional "Goal" field
-      And the modal should contain an optional "Start date" date picker
-      And the modal should contain an optional "Due date" date picker
-      And the modal should contain a "Start sprint" submit button
-      And the modal should contain a "Cancel" button
+      Then the Start sprint inline form should open within the sprint column
+      And the form should display the sprint name "E2E_PLANNED_SPRINT_COL" in an editable "Name" field
+      And the form should contain an optional "Goal" field
+      And the form should contain a "Start date" field pre-populated with today's date
+      And the form should contain an optional "End date" field
+      And the form should contain a "Start sprint" submit button
+      And the form should contain a "Cancel" button
 
-    Scenario: Submitting the Start Sprint modal transitions the sprint to active
+    Scenario: Submitting the Start Sprint inline form transitions the sprint to active
       When the user clicks "Start sprint" in the "E2E_PLANNED_SPRINT_COL" column header
       And the user fills the goal with "Deliver login feature"
       And the user sets the start date to "2026-04-14"
-      And the user sets the due date to "2026-04-27"
-      And the user clicks "Start sprint" in the modal
-      Then the modal should close
-      And the sprint "E2E_PLANNED_SPRINT_COL" should have status "active"
+      And the user sets the end date to "2026-04-27"
+      And the user clicks "Start sprint" in the form
+      Then the inline form should close
+      And the browser should navigate to the "E2E_PLANNED_SPRINT_COL" sprint interaction page
       And the "Start sprint" button should no longer appear on that column header
 
   @authenticated
@@ -274,9 +277,9 @@ Feature: Interaction views (board and list layouts)
       And each group heading should show the status name and task count
       And each row should display the task title
 
-    Scenario: Each table row shows columns for title, assignee, task type, priority, and status
+    Scenario: Each table row shows the standard column set
       Given the interaction has at least one task
-      Then each task row should have visible columns for "Title", "Assignee", "Type", "Priority", and "Status"
+      Then each task row should have visible columns for "ID", "Title", "Assignee", "Importance", and "Type"
 
     Scenario: Status groups in the table can be collapsed and expanded
       Given a status group "In Progress" is expanded and has tasks
@@ -684,3 +687,66 @@ Feature: Interaction views (board and list layouts)
     Scenario: User without "Edit Tasks" permission cannot manually reorder tasks
       Given the user does not have the "Edit Tasks" project permission
       Then task rows in the manual-sort table view should not show drag handles
+
+  @authenticated
+  Rule: Sprint interaction page header and view defaults
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_SPRINT_PAGE_PROJECT" exists
+      And the project has an active sprint named "E2E_ACTIVE_SPRINT_PAGE"
+      And the user has the "View Sprints" project permission in "E2E_SPRINT_PAGE_PROJECT"
+      And the user has the "Manage Sprints" project permission in "E2E_SPRINT_PAGE_PROJECT"
+      And the user has navigated to the "E2E_ACTIVE_SPRINT_PAGE" sprint page inside "E2E_SPRINT_PAGE_PROJECT"
+
+    Scenario: Sprint interaction page title shows the sprint name
+      Then the page heading should display "E2E_ACTIVE_SPRINT_PAGE"
+
+    Scenario: Sprint interaction page subtitle shows active state and start date
+      Then the subtitle should contain "Active sprint"
+      And the subtitle should contain the sprint's start date
+
+    Scenario: Active sprint page shows a "Complete sprint" button in the header
+      Then the page header should contain a "Complete sprint" button
+
+    Scenario: Default view on a sprint interaction page is the Board view
+      Then the "Board" view tab should be active
+      And the kanban board layout should be visible
+
+    Scenario: Sprint Board view contains a column for each project task status
+      Then the board should display a column for each configured task status
+      And a "Backlog" column should also be present for tasks with no status advancement
+
+    Scenario: Sprint Board view columns each have an "Add task" inline button
+      Then every status column should show an "Add task" button
+
+    Scenario: Sprint Table view groups tasks by status with visible column headers
+      When the user clicks the "Table" view tab
+      Then tasks should be grouped by status heading
+      And each group row should show columns "ID", "Title", "Assignee", "Importance", and "Type"
+
+    Scenario: Switching from Board to Table view persists after page refresh
+      When the user clicks the "Table" view tab
+      And the user refreshes the page
+      Then the "Table" view tab should still be active
+
+  @authenticated
+  Rule: Product backlog table view column structure
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_BACKLOG_COLS_PROJECT" exists
+      And the project has a "Product Backlog" interaction with a "Table" view
+      And the user has the "View Sprints" project permission in "E2E_BACKLOG_COLS_PROJECT"
+      And the user has navigated to the "Product Backlog" table view inside "E2E_BACKLOG_COLS_PROJECT"
+
+    Scenario: Product backlog table view columns are ID, Title, Assignee, Importance, and Type
+      Given the interaction has at least one task
+      Then each task row should have visible columns for "ID", "Title", "Assignee", "Importance", and "Type"
+
+    Scenario: Product backlog table view description reads "All work items not assigned to a sprint"
+      Then the page subtitle should read "All work items not assigned to a sprint."
+
+    Scenario: Sprint columns appear before the Backlog column in the table view
+      Given the project has a planned sprint "E2E_SPRINT_COL_A" and an active sprint "E2E_SPRINT_COL_B"
+      Then the sprint columns for "E2E_SPRINT_COL_A" and "E2E_SPRINT_COL_B" should appear before the "Backlog" column

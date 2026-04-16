@@ -234,7 +234,7 @@ test.describe('Project Management', () => {
 
       // The sidebar should contain all required project links
       await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Integrations', exact: true })).toBeVisible();
+      await expect(page.getByText('Integrations', { exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Docs', exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Team', exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();

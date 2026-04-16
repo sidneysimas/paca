@@ -25,7 +25,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   Rule: View settings panel includes all built-in and custom field options
   ═══════════════════════════════════════════════════════════════════════════
 
-  Scenario: The view settings panel opens with all six setting rows
+  Scenario: The view settings panel opens with all five setting rows
     When the user clicks the "View settings" button in the view toolbar
     Then a settings panel should appear
     And the panel should display a "Fields" row
@@ -33,7 +33,6 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And the panel should display a "Swimlanes" row
     And the panel should display a "Sort by" row
     And the panel should display a "Field sum" row
-    And the panel should display a "Slice by" row
     And the panel should contain a "Save" button
     And the panel should contain a "Reset" button
 
@@ -41,11 +40,12 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     Given the project has no custom fields
     When the user clicks the "View settings" button in the view toolbar
     Then the "Column by" dropdown should include the following options:
-      | Status    |
-      | Assignee  |
+      | Status     |
+      | Sprint     |
+      | Assignee   |
       | Importance |
-      | Type      |
-      | Reporter  |
+      | Type       |
+      | Reporter   |
 
   Scenario: "Column by" dropdown includes project custom fields of selectable types
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High,Critical"
@@ -91,15 +91,6 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     Then the "Field sum" dropdown should include the option "Count"
     And the "Field sum" dropdown should include the option "Story Points"
     And the "Field sum" dropdown should include the option "Time Estimate"
-
-  Scenario: "Slice by" dropdown includes None plus all selectable fields
-    Given the project has a custom field "Component" of type "select" with options "Frontend,Backend,API"
-    When the user clicks the "View settings" button in the view toolbar
-    Then the "Slice by" dropdown should include the option "None"
-    And the "Slice by" dropdown should include the option "Assignee"
-    And the "Slice by" dropdown should include the option "Importance"
-    And the "Slice by" dropdown should include the option "Type"
-    And the "Slice by" dropdown should include the option "Component"
 
   Scenario: The settings panel uses "Importance" label instead of "Priority"
     When the user clicks the "View settings" button in the view toolbar

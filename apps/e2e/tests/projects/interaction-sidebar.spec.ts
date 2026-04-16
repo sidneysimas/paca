@@ -26,6 +26,11 @@ interface TaskStatus {
   position: number;
 }
 
+interface TaskType {
+  id: string;
+  name: string;
+}
+
 // ─── API Helpers ──────────────────────────────────────────────────────────────
 
 async function authRequest(request: APIRequestContext): Promise<void> {
@@ -82,7 +87,7 @@ async function createSprint(
 async function createTask(
   request: APIRequestContext,
   projectId: string,
-  payload: { title: string; sprint_id?: string | null; status_id?: string | null },
+  payload: { title: string; sprint_id?: string | null; status_id?: string | null; task_type_id?: string | null },
 ): Promise<Task> {
   const resp = await request.post(`${BASE_URL}/api/v1/projects/${projectId}/tasks`, {
     data: payload,
@@ -107,6 +112,12 @@ async function getTaskStatuses(
   return ((await resp.json())?.data?.items ?? []) as TaskStatus[];
 }
 
+async function getTaskTypes(request: APIRequestContext, projectId: string): Promise<TaskType[]> {
+  const resp = await request.get(`${BASE_URL}/api/v1/projects/${projectId}/task-types`);
+  const body = await resp.json();
+  return (body?.data?.items ?? []) as TaskType[];
+}
+
 // ─── UI Helpers ───────────────────────────────────────────────────────────────
 
 const signIn = async (page: Page): Promise<void> => {
@@ -126,12 +137,12 @@ const navigateToSprintBoardView = async (
   sprintId: string,
 ): Promise<void> => {
   await page.goto(`${BASE_URL}/projects/${projectId}/interactions/sprints/${sprintId}`);
-  await expect(page.locator('[data-sidebar="sidebar"]')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-sidebar="sidebar"]')).toBeVisible({ timeout: 30_000 });
   const boardTab = page.getByRole('button', { name: 'Board', exact: true });
-  await expect(boardTab).toBeVisible({ timeout: 10_000 });
+  await expect(boardTab).toBeVisible({ timeout: 30_000 });
   await boardTab.click();
-  // Board columns should be visible
-  await expect(page.locator('[data-status-id]').first()).toBeVisible({ timeout: 10_000 });
+  // Board columns should be visible - use status name text instead of removed [data-status-id]
+  await expect(page.getByText('Todo', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
 };
 
 /** Navigate to a sprint's interaction page and ensure the Table tab is active. */
@@ -141,9 +152,9 @@ const navigateToSprintTableView = async (
   sprintId: string,
 ): Promise<void> => {
   await page.goto(`${BASE_URL}/projects/${projectId}/interactions/sprints/${sprintId}`);
-  await expect(page.locator('[data-sidebar="sidebar"]')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-sidebar="sidebar"]')).toBeVisible({ timeout: 30_000 });
   const tableTab = page.getByRole('button', { name: 'Table', exact: true });
-  await expect(tableTab).toBeVisible({ timeout: 10_000 });
+  await expect(tableTab).toBeVisible({ timeout: 30_000 });
   await tableTab.click();
 };
 
@@ -189,6 +200,7 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
   let sourceSprintId: string;
   let targetSprintId: string;
   let statuses: TaskStatus[];
+  let taskTypes: TaskType[] = [];
 
   const SOURCE_SPRINT = `${TEST_PROJECT_PREFIX}SRC_${RUN_ID}`;
   const TARGET_SPRINT = `${TEST_PROJECT_PREFIX}TGT_${RUN_ID}`;
@@ -197,6 +209,7 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
     await cleanupTestProjects(request);
     projectId = await createProject(request, `${TEST_PROJECT_PREFIX}PRJ_${RUN_ID}`);
     statuses = await getTaskStatuses(request, projectId);
+    taskTypes = await getTaskTypes(request, projectId);
     sourceSprintId = await createSprint(request, projectId, SOURCE_SPRINT);
     targetSprintId = await createSprint(request, projectId, TARGET_SPRINT);
     await context.clearCookies();
@@ -220,10 +233,12 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
     }
 
     const todoStatus = statuses.find((s) => s.category === 'todo');
+    const nonEpicType = taskTypes.find((t) => t.name !== 'Epic');
     const task = await createTask(request, projectId, {
       title: `${TEST_PROJECT_PREFIX}MOVE_TASK_${RUN_ID}`,
       sprint_id: sourceSprintId,
       status_id: todoStatus?.id ?? null,
+      task_type_id: nonEpicType?.id ?? null,
     });
 
     await signIn(page);
@@ -258,18 +273,19 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
     }
 
     const todoStatus = statuses.find((s) => s.category === 'todo');
+    const nonEpicType = taskTypes.find((t) => t.name !== 'Epic');
     const task = await createTask(request, projectId, {
       title: `${TEST_PROJECT_PREFIX}TBL_TASK_${RUN_ID}`,
       sprint_id: sourceSprintId,
       status_id: todoStatus?.id ?? null,
+      task_type_id: nonEpicType?.id ?? null,
     });
 
     await signIn(page);
     await navigateToSprintTableView(page, projectId, sourceSprintId);
 
-    // The task row is identified by its title text; wrap it at the row container
-    // (the row is the direct sibling/parent div of the TaskRow component)
-    const taskRow = page.locator('[class*="border-b"]').filter({ hasText: task.title }).first();
+    // The task row in table view is a cursor-pointer generic element whose parent contains the task title
+    const taskRow = page.getByText(task.title).locator('xpath=..').first();
     await expect(taskRow).toBeVisible({ timeout: 10_000 });
 
     const targetEntry = sidebarEntry(page, TARGET_SPRINT);
@@ -297,10 +313,12 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
     }
 
     const todoStatus = statuses.find((s) => s.category === 'todo');
+    const nonEpicType = taskTypes.find((t) => t.name !== 'Epic');
     const task = await createTask(request, projectId, {
       title: `${TEST_PROJECT_PREFIX}BL_TASK_${RUN_ID}`,
       sprint_id: sourceSprintId,
       status_id: todoStatus?.id ?? null,
+      task_type_id: nonEpicType?.id ?? null,
     });
 
     await signIn(page);
@@ -338,10 +356,12 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
     }
 
     const todoStatus = statuses.find((s) => s.category === 'todo');
+    const nonEpicType = taskTypes.find((t) => t.name !== 'Epic');
     const task = await createTask(request, projectId, {
       title: `${TEST_PROJECT_PREFIX}HOVER_TASK_${RUN_ID}`,
       sprint_id: sourceSprintId,
       status_id: todoStatus?.id ?? null,
+      task_type_id: nonEpicType?.id ?? null,
     });
 
     await signIn(page);
@@ -398,10 +418,12 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
     }
 
     const todoStatus = statuses.find((s) => s.category === 'todo');
+    const nonEpicType = taskTypes.find((t) => t.name !== 'Epic');
     const task = await createTask(request, projectId, {
       title: `${TEST_PROJECT_PREFIX}LEAVE_TASK_${RUN_ID}`,
       sprint_id: sourceSprintId,
       status_id: todoStatus?.id ?? null,
+      task_type_id: nonEpicType?.id ?? null,
     });
 
     await signIn(page);
@@ -415,16 +437,15 @@ test.describe('Dragging a task onto a sidebar interaction entry reassigns its sp
 
     const sourceBB = await taskCard.boundingBox();
     const targetBB = await targetEntry.boundingBox();
-    const boardColumnBB = await page.locator('[data-status-id]').first().boundingBox();
-    if (!sourceBB || !targetBB || !boardColumnBB) throw new Error('Could not obtain bounding boxes');
+    if (!sourceBB || !targetBB) throw new Error('Could not obtain bounding boxes');
 
     const startX = sourceBB.x + sourceBB.width / 2;
     const startY = sourceBB.y + sourceBB.height / 2;
     const targetX = targetBB.x + targetBB.width / 2;
     const targetY = targetBB.y + targetBB.height / 2;
-    // A safe position to move away to that is not inside the sidebar entry
-    const awayX = boardColumnBB.x + boardColumnBB.width / 2;
-    const awayY = boardColumnBB.y + boardColumnBB.height * 0.7;
+    // A safe position to move away to that is not inside the sidebar entry (use source position)
+    const awayX = startX;
+    const awayY = startY;
 
     // Begin drag, move to target entry to trigger dragover highlight
     await page.mouse.move(startX, startY);

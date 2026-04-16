@@ -31,6 +31,11 @@ interface IntegrationView {
   view_type: string;
 }
 
+interface TaskType {
+  id: string;
+  name: string;
+}
+
 // ─── API Helpers ──────────────────────────────────────────────────────────────
 
 async function authRequest(request: APIRequestContext): Promise<void> {
@@ -81,7 +86,7 @@ async function getTaskStatuses(request: APIRequestContext, projectId: string): P
 async function createTask(
   request: APIRequestContext,
   projectId: string,
-  payload: { title: string; status_id?: string; sprint_id?: string },
+  payload: { title: string; status_id?: string; sprint_id?: string; task_type_id?: string },
 ): Promise<Task> {
   const resp = await request.post(`${BASE_URL}/api/v1/projects/${projectId}/tasks`, {
     data: payload,
@@ -101,6 +106,22 @@ async function createBacklogView(
   });
   const body = await resp.json();
   return body.data as IntegrationView;
+}
+
+async function listBacklogViews(request: APIRequestContext, projectId: string): Promise<IntegrationView[]> {
+  const resp = await request.get(`${BASE_URL}/api/v1/projects/${projectId}/views?context=backlog`);
+  const body = await resp.json();
+  return (body?.data?.items ?? []) as IntegrationView[];
+}
+
+async function deleteBacklogView(request: APIRequestContext, projectId: string, viewId: string): Promise<void> {
+  await request.delete(`${BASE_URL}/api/v1/projects/${projectId}/views/${viewId}?context=backlog`);
+}
+
+async function getTaskTypes(request: APIRequestContext, projectId: string): Promise<TaskType[]> {
+  const resp = await request.get(`${BASE_URL}/api/v1/projects/${projectId}/task-types`);
+  const body = await resp.json();
+  return (body?.data?.items ?? []) as TaskType[];
 }
 
 // ─── UI Helpers ───────────────────────────────────────────────────────────────
@@ -141,12 +162,21 @@ test.describe('Opening task detail from board view', () => {
     await cleanupTestProjects(request);
     projectId = await createProject(request, `${TEST_PROJECT_PREFIX}BOARD_${RUN_ID}`);
     statuses = await getTaskStatuses(request, projectId);
+    const taskTypes = await getTaskTypes(request, projectId);
+    const nonEpicType = taskTypes.find((t) => t.name !== 'Epic');
+    // Delete the auto-created default views so we control exactly which views exist
+    const existingViews = await listBacklogViews(request, projectId);
+    // Smart-delete: create new views before deleting old ones to avoid server auto-recreation
     await createBacklogView(request, projectId, 'Board', 'board');
     await createBacklogView(request, projectId, 'Table', 'table');
+    for (const v of existingViews) {
+      await deleteBacklogView(request, projectId, v.id);
+    }
     const todoStatus = statuses.find((s) => s.category === 'todo');
     task = await createTask(request, projectId, {
       title: `${TEST_PROJECT_PREFIX}MODAL_TASK_${RUN_ID}`,
       status_id: todoStatus?.id,
+      task_type_id: nonEpicType?.id,
     });
     await context.clearCookies();
     await context.clearPermissions();
@@ -243,7 +273,9 @@ test.describe('Task detail page via direct URL', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
+    // Use filter({ visible: true }) because on mobile the breadcrumb span is CSS-hidden;
+    // the title should still be visible in the main content heading.
+    await expect(page.getByText(task.title).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Task detail page shows project breadcrumb context', async ({ page }) => {
@@ -293,8 +325,8 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    // The content area for description should be visible
-    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
+    // Use filter({ visible: true }) because on mobile the breadcrumb span is CSS-hidden
+    await expect(page.getByText(task.title).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
     // A description or add-description affordance should exist
     await expect(
       page.getByText(/description|add a description/i).first(),
@@ -305,7 +337,8 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
+    // Use filter({ visible: true }) because on mobile the breadcrumb span is CSS-hidden
+    await expect(page.getByText(task.title).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
     // Activity / comment input should be visible
     await expect(
       page.getByPlaceholder(/write a comment/i).or(page.getByText(/write a comment/i).first()),
@@ -316,7 +349,8 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
+    // Use filter({ visible: true }) because on mobile the breadcrumb span is CSS-hidden
+    await expect(page.getByText(task.title).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Status', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
@@ -324,7 +358,8 @@ test.describe('Task detail two-pane layout', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
+    // Use filter({ visible: true }) because on mobile the breadcrumb span is CSS-hidden
+    await expect(page.getByText(task.title).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -367,7 +402,8 @@ test.describe('Sprint task detail — sprint_id preservation', () => {
     await signIn(page);
     await page.goto(`${BASE_URL}/projects/${projectId}/tasks/${task.id}`);
 
-    await expect(page.getByText(task.title).first()).toBeVisible({ timeout: 10_000 });
+    // Use filter({ visible: true }) because on mobile the breadcrumb span is CSS-hidden
+    await expect(page.getByText(task.title).filter({ visible: true }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Patching only the status from the task detail does not move task to backlog', async ({ request }) => {
