@@ -104,6 +104,9 @@ func (r *fakeProjectRepo) UpdateMemberRole(_ context.Context, _, _, _ uuid.UUID)
 	return nil
 }
 func (r *fakeProjectRepo) RemoveMember(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (r *fakeProjectRepo) FindMemberByUserProject(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+	return nil, projectdom.ErrMemberNotFound
+}
 
 var _ projectdom.Repository = (*fakeProjectRepo)(nil)
 

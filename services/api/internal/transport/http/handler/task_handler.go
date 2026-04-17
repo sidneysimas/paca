@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,14 +19,15 @@ import (
 
 // TaskHandler handles task management endpoints.
 type TaskHandler struct {
-	svc     taskdom.Service
-	viewSvc sprintdom.ViewService
+	svc         taskdom.Service
+	viewSvc     sprintdom.ViewService
+	activitySvc taskdom.ActivityService
 }
 
-// NewTaskHandler returns a TaskHandler wired to the task service and the view
-// service.
-func NewTaskHandler(svc taskdom.Service, viewSvc sprintdom.ViewService) *TaskHandler {
-	return &TaskHandler{svc: svc, viewSvc: viewSvc}
+// NewTaskHandler returns a TaskHandler wired to the task service, view service,
+// and activity service.
+func NewTaskHandler(svc taskdom.Service, viewSvc sprintdom.ViewService, activitySvc taskdom.ActivityService) *TaskHandler {
+	return &TaskHandler{svc: svc, viewSvc: viewSvc, activitySvc: activitySvc}
 }
 
 // --- Task Types -------------------------------------------------------------
@@ -410,6 +414,19 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Record creation activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		content, _ := json.Marshal(map[string]any{"title": t.Title})
+		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
+			TaskID:       t.ID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActivityType: taskdom.ActivityTypeTaskCreated,
+			Content:      content,
+		})
+	}
+
 	presenter.Created(c, dto.TaskFromEntity(t))
 }
 
@@ -425,6 +442,9 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	if !middleware.BindJSON(c, &req) {
 		return
 	}
+
+	// Fetch old state before mutating so we can record before/after values.
+	oldTask, _ := h.svc.GetTask(c.Request.Context(), taskID)
 
 	t, err := h.svc.UpdateTask(c.Request.Context(), taskID, taskdom.UpdateTaskInput{
 		TaskTypeID:   req.TaskTypeID.Ptr(),
@@ -445,7 +465,163 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Record update activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok && oldTask != nil {
+		changes := h.taskChangedFields(c.Request.Context(), oldTask, req)
+		if len(changes) > 0 {
+			content, _ := json.Marshal(map[string]any{"changes": changes})
+			projectID, _ := parseProjectID(c)
+			_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
+				TaskID:       taskID,
+				ProjectID:    projectID,
+				ActorID:      &actorID,
+				ActivityType: taskdom.ActivityTypeTaskUpdated,
+				Content:      content,
+			})
+		}
+	}
+
 	presenter.OK(c, dto.TaskFromEntity(t))
+}
+
+// taskChangedFields compares the old task snapshot against the patch request
+// and returns a FieldChange for each field that actually changed.  Old and New
+// values are populated so activity consumers can render before/after messages.
+// Status and type names are resolved via the service; for ID-only references
+// (assignee, reporter, sprint, parent) the UUID string is stored.
+func (h *TaskHandler) taskChangedFields(ctx context.Context, old *taskdom.Task, req dto.UpdateTaskRequest) []taskdom.FieldChange {
+	var changes []taskdom.FieldChange
+
+	if req.Title != "" && req.Title != old.Title {
+		changes = append(changes, taskdom.FieldChange{Field: "title", Old: old.Title, New: req.Title})
+	}
+
+	if req.StatusID.Set {
+		oldName := h.resolveStatusName(ctx, old.StatusID)
+		newName := h.resolveStatusName(ctx, req.StatusID.Value)
+		if fmt.Sprint(oldName) != fmt.Sprint(newName) {
+			changes = append(changes, taskdom.FieldChange{Field: "status", Old: oldName, New: newName})
+		}
+	}
+
+	if req.TaskTypeID.Set {
+		oldName := h.resolveTaskTypeName(ctx, old.TaskTypeID)
+		newName := h.resolveTaskTypeName(ctx, req.TaskTypeID.Value)
+		if fmt.Sprint(oldName) != fmt.Sprint(newName) {
+			changes = append(changes, taskdom.FieldChange{Field: "task_type", Old: oldName, New: newName})
+		}
+	}
+
+	if req.Importance != nil && *req.Importance != old.Importance {
+		changes = append(changes, taskdom.FieldChange{Field: "importance", Old: old.Importance, New: *req.Importance})
+	}
+
+	if req.AssigneeID.Set {
+		oldVal := uuidPtrToStr(old.AssigneeID)
+		newVal := uuidPtrToStr(req.AssigneeID.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "assignee", Old: oldVal, New: newVal})
+		}
+	}
+
+	if req.ReporterID.Set {
+		oldVal := uuidPtrToStr(old.ReporterID)
+		newVal := uuidPtrToStr(req.ReporterID.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "reporter", Old: oldVal, New: newVal})
+		}
+	}
+
+	if req.SprintID.Set {
+		oldVal := uuidPtrToStr(old.SprintID)
+		newVal := uuidPtrToStr(req.SprintID.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "sprint", Old: oldVal, New: newVal})
+		}
+	}
+
+	if req.ParentTaskID.Set {
+		oldVal := uuidPtrToStr(old.ParentTaskID)
+		newVal := uuidPtrToStr(req.ParentTaskID.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "parent_task", Old: oldVal, New: newVal})
+		}
+	}
+
+	if req.StartDate.Set {
+		oldVal := timePtrToStr(old.StartDate)
+		newVal := timePtrToStr(req.StartDate.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "start_date", Old: oldVal, New: newVal})
+		}
+	}
+
+	if req.DueDate.Set {
+		oldVal := timePtrToStr(old.DueDate)
+		newVal := timePtrToStr(req.DueDate.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "due_date", Old: oldVal, New: newVal})
+		}
+	}
+
+	if req.Description.Set && string(req.Description.Value) != string(old.Description) {
+		changes = append(changes, taskdom.FieldChange{Field: "description"})
+	}
+
+	if req.Tags != nil {
+		changes = append(changes, taskdom.FieldChange{Field: "tags", Old: old.Tags, New: req.Tags})
+	}
+
+	if req.CustomFields != nil {
+		oldJSON, oldErr := json.Marshal(old.CustomFields)
+		newJSON, newErr := json.Marshal(*req.CustomFields)
+		if oldErr != nil || newErr != nil || string(oldJSON) != string(newJSON) {
+			changes = append(changes, taskdom.FieldChange{Field: "custom_fields"})
+		}
+	}
+
+	return changes
+}
+
+// resolveStatusName looks up a status by ID and returns its name, falling back
+// to the UUID string if the lookup fails.  Returns nil for a nil ID.
+func (h *TaskHandler) resolveStatusName(ctx context.Context, id *uuid.UUID) any {
+	if id == nil {
+		return nil
+	}
+	if s, err := h.svc.GetTaskStatus(ctx, *id); err == nil {
+		return s.Name
+	}
+	return id.String()
+}
+
+// resolveTaskTypeName looks up a task type by ID and returns its name, falling
+// back to the UUID string if the lookup fails.  Returns nil for a nil ID.
+func (h *TaskHandler) resolveTaskTypeName(ctx context.Context, id *uuid.UUID) any {
+	if id == nil {
+		return nil
+	}
+	if t, err := h.svc.GetTaskType(ctx, *id); err == nil {
+		return t.Name
+	}
+	return id.String()
+}
+
+// uuidPtrToStr converts a *uuid.UUID to a string (empty string for nil).
+func uuidPtrToStr(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
+}
+
+// timePtrToStr formats a *time.Time as a date string (empty string for nil).
+func timePtrToStr(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02")
 }
 
 // DeleteTask handles DELETE /projects/:projectId/tasks/:taskId.
@@ -459,6 +635,19 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Record deletion activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		projectID, _ := parseProjectID(c)
+		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
+			TaskID:       taskID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActivityType: taskdom.ActivityTypeTaskDeleted,
+			Content:      json.RawMessage(`{}`),
+		})
+	}
+
 	presenter.OK(c, gin.H{"message": "task deleted"})
 }
 
@@ -813,6 +1002,20 @@ func (h *TaskHandler) CreateBDDScenario(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Record BDD scenario creation activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		content, _ := json.Marshal(map[string]any{"title": scenario.Title})
+		projectID, _ := parseProjectID(c)
+		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
+			TaskID:       taskID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActivityType: taskdom.ActivityTypeBDDScenarioCreated,
+			Content:      content,
+		})
+	}
+
 	presenter.Created(c, dto.BDDScenarioFromEntity(scenario))
 }
 
@@ -854,6 +1057,20 @@ func (h *TaskHandler) UpdateBDDScenario(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Record BDD scenario update activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		content, _ := json.Marshal(map[string]any{"title": scenario.Title})
+		projectID, _ := parseProjectID(c)
+		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
+			TaskID:       scenario.TaskID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActivityType: taskdom.ActivityTypeBDDScenarioUpdated,
+			Content:      content,
+		})
+	}
+
 	presenter.OK(c, dto.BDDScenarioFromEntity(scenario))
 }
 
@@ -864,9 +1081,159 @@ func (h *TaskHandler) DeleteBDDScenario(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Fetch scenario before deletion so we have the task_id for activity recording.
+	scenario, err := h.svc.GetBDDScenario(c.Request.Context(), scenarioID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
 	if err := h.svc.DeleteBDDScenario(c.Request.Context(), scenarioID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
+
+	// Record BDD scenario deletion activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		content, _ := json.Marshal(map[string]any{"title": scenario.Title})
+		projectID, _ := parseProjectID(c)
+		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
+			TaskID:       scenario.TaskID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActivityType: taskdom.ActivityTypeBDDScenarioDeleted,
+			Content:      content,
+		})
+	}
+
 	presenter.OK(c, gin.H{"message": "bdd scenario deleted"})
+}
+
+// --- Activities / Comments --------------------------------------------------
+
+// parseCommentID parses the :commentId path parameter.
+func parseCommentID(c *gin.Context) (uuid.UUID, error) {
+	id, err := uuid.Parse(c.Param("commentId"))
+	if err != nil {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid comment id")
+	}
+	return id, nil
+}
+
+// ListTaskActivities handles GET /projects/:projectId/tasks/:taskId/activities.
+func (h *TaskHandler) ListTaskActivities(c *gin.Context) {
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	activities, err := h.activitySvc.ListActivities(c.Request.Context(), taskID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	resp := make([]dto.ActivityResponse, 0, len(activities))
+	for _, a := range activities {
+		resp = append(resp, dto.ActivityFromEntity(a))
+	}
+	presenter.OK(c, gin.H{"items": resp})
+}
+
+// AddComment handles POST /projects/:projectId/tasks/:taskId/activities/comments.
+func (h *TaskHandler) AddComment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	actorID, ok := middleware.ActorIDFromContext(c.Request.Context())
+	if !ok {
+		presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "unauthenticated"))
+		return
+	}
+
+	var req dto.AddCommentRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	a, err := h.activitySvc.AddComment(c.Request.Context(), taskdom.AddCommentInput{
+		TaskID:    taskID,
+		ProjectID: projectID,
+		ActorID:   actorID,
+		Text:      req.Text,
+	})
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.Created(c, dto.ActivityFromEntity(a))
+}
+
+// UpdateComment handles PATCH /projects/:projectId/tasks/:taskId/activities/comments/:commentId.
+func (h *TaskHandler) UpdateComment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	commentID, err := parseCommentID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	actorID, ok := middleware.ActorIDFromContext(c.Request.Context())
+	if !ok {
+		presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "unauthenticated"))
+		return
+	}
+
+	var req dto.UpdateCommentRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, projectID, actorID, req.Text)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.ActivityFromEntity(a))
+}
+
+// DeleteComment handles DELETE /projects/:projectId/tasks/:taskId/activities/comments/:commentId.
+func (h *TaskHandler) DeleteComment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	commentID, err := parseCommentID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	actorID, ok := middleware.ActorIDFromContext(c.Request.Context())
+	if !ok {
+		presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "unauthenticated"))
+		return
+	}
+
+	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, projectID, actorID); err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.NoContent(c)
 }

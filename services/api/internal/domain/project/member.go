@@ -17,4 +17,5 @@ type ProjectMember struct {
 	FullName  string
 	RoleName  string
 	CreatedAt time.Time
+	DeletedAt *time.Time
 }

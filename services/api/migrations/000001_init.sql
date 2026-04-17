@@ -1,5 +1,5 @@
 -- 000001_init.sql
--- Full schema for the Paca API service (consolidated from previous migrations).
+-- Full schema for the Paca API service (consolidated from all previous migrations).
 -- Run via: psql "$DATABASE_URL" -f migrations/000001_init.sql
 
 BEGIN;
@@ -73,10 +73,12 @@ CREATE TABLE IF NOT EXISTS project_roles (
 );
 
 CREATE TABLE IF NOT EXISTS project_members (
-    id              UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id      UUID NOT NULL,
-    user_id         UUID NOT NULL,
-    project_role_id UUID NOT NULL,
+    id              UUID        NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id      UUID        NOT NULL,
+    user_id         UUID        NOT NULL,
+    project_role_id UUID        NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ,
     CONSTRAINT fk_project_members_project
         FOREIGN KEY (project_id)
         REFERENCES projects(id)
@@ -88,9 +90,13 @@ CREATE TABLE IF NOT EXISTS project_members (
     CONSTRAINT fk_project_members_role
         FOREIGN KEY (project_role_id)
         REFERENCES project_roles(id)
-        ON DELETE RESTRICT,
-    CONSTRAINT uq_project_members_project_user UNIQUE (project_id, user_id)
+        ON DELETE RESTRICT
 );
+
+-- Unique active membership per project+user (soft-deleted rows are excluded).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_project_members_active
+    ON project_members (project_id, user_id)
+    WHERE deleted_at IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_project_roles_project_role_name
     ON project_roles (project_id, role_name)
@@ -103,6 +109,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_project_roles_template_role_name
 CREATE INDEX IF NOT EXISTS idx_project_members_project_id ON project_members (project_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_user_id    ON project_members (user_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_role_id    ON project_members (project_role_id);
+CREATE INDEX IF NOT EXISTS idx_project_members_deleted_at ON project_members (deleted_at) WHERE deleted_at IS NOT NULL;
 
 -- -------------------------------------------------------------------------
 -- SEED DATA: global roles and template project roles
@@ -423,5 +430,34 @@ CREATE TABLE IF NOT EXISTS bdd_scenarios (
 );
 
 CREATE INDEX IF NOT EXISTS idx_bdd_scenarios_task_id ON bdd_scenarios (task_id);
+
+-- -------------------------------------------------------------------------
+-- TASK ACTIVITIES
+-- Unified log of system-generated change events and user comments on tasks.
+--
+-- actor_id:      References project_members(id) — the member who performed the
+--                action.  NULL for system events or when the member record has
+--                been hard-deleted.
+-- activity_type: discriminator; see ActivityType constants in the Go domain.
+-- content:       JSONB payload whose shape varies by activity_type.
+--                comments  → {"text": "..."}
+--                task.updated → {"changes": [{"field":"...","old":"...","new":"..."}]}
+--                etc.
+-- deleted_at:    soft-delete timestamp; only set for user comments.
+-- -------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS task_activities (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id       UUID        NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    actor_id      UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    activity_type TEXT        NOT NULL,
+    content       JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_activities_task_id ON task_activities (task_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_task_activities_actor_id ON task_activities (actor_id) WHERE actor_id IS NOT NULL;
 
 COMMIT;

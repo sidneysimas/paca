@@ -299,6 +299,10 @@ func (r *fakeProjectRepo) FindMember(_ context.Context, projectID, userID uuid.U
 	return cloneMember(m), nil
 }
 
+func (r *fakeProjectRepo) FindMemberByUserProject(_ context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error) {
+	return r.FindMember(context.Background(), projectID, userID)
+}
+
 func (r *fakeProjectRepo) AddMember(_ context.Context, m *projectdom.ProjectMember) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -374,7 +378,7 @@ func buildProjectTestRouterWithTaskRepo(repo *fakeProjectRepo, store *projectPer
 		User:         handler.NewUserHandler(userService),
 		GlobalRole:   handler.NewGlobalRoleHandler(&fakeGlobalRoleService{}),
 		Project:      handler.NewProjectHandler(projectService, authz.NewAuthorizer(store)),
-		Task:         handler.NewTaskHandler(tasksvc.New(taskRepo), sprintsvc.NewViewService(newFakeViewRepoIT())),
+		Task:         handler.NewTaskHandler(tasksvc.New(taskRepo), sprintsvc.NewViewService(newFakeViewRepoIT()), tasksvc.NewActivityService(newFakeTaskActivityRepo(), &fakeActivityMemberRepo{}, nil)),
 		Log:          log,
 	}), taskRepo
 }

@@ -8,8 +8,7 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `task_number`, `start_date`, `due_date`, `tags`, `description` as JSONB BlockNote blocks), `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios` (id, task_id, title, given_text, when_text, then_text, timestamps — no position field), seed data. On project creation the seed inserts three user-manageable task types (Bug, Story, Task — where Task is `is_default = true`) and two system task types (Epic, Subtask — where `is_system = true`). The API now seeds one backlog Table view with `config.column_by = "sprint"` and non-system task types, plus one timeline Roadmap view filtered to Epics; sprint creation seeds Board and Table views scoped to that sprint. |
-| `000002_add_view_context.sql` | Adds `view_context TEXT NOT NULL` to `sprint_views` with a `CHECK` constraint (`'sprint'\|'backlog'\|'timeline'`). Replaces the previous `is_timeline` boolean approach. Back-fills existing sprint rows to `'sprint'` and project-level (backlog) rows to `'backlog'`. Adds a partial index `idx_sprint_views_context` on `(project_id, view_context) WHERE sprint_id IS NULL` to speed up project-level view lookups. |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members (with `deleted_at` for soft-delete and a partial unique index on `(project_id, user_id) WHERE deleted_at IS NULL`), task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`, `view_context`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `task_number`, `start_date`, `due_date`, `tags`, `description` as JSONB BlockNote blocks), `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios` (id, task_id, title, given_text, when_text, then_text, timestamps — no position field), `task_activities` (`actor_id` references `project_members(id)`), seed data. On project creation the seed inserts three user-manageable task types (Bug, Story, Task — where Task is `is_default = true`) and two system task types (Epic, Subtask — where `is_system = true`). The API now seeds one backlog Table view with `config.column_by = "sprint"` and non-system task types, plus one timeline Roadmap view filtered to Epics; sprint creation seeds Board and Table views scoped to that sprint. |
 
 ## Schema (DBML)
 
@@ -57,9 +56,11 @@ Table project_members {
   project_id uuid
   user_id uuid
   project_role_id uuid
+  created_at timestamp [not null]
+  deleted_at timestamp [null, note: 'Soft-delete timestamp. Non-null rows are excluded from active-member queries. Re-adding a removed member restores the existing row (sets deleted_at = NULL) rather than inserting a new one.']
 
   indexes {
-    (project_id, user_id) [unique]
+    (project_id, user_id) [unique, note: 'Partial unique index: WHERE deleted_at IS NULL']
   }
 }
 
@@ -229,11 +230,13 @@ Table task_attachments {
 
 Table task_activities {
   id uuid [primary key]
-  task_id uuid
-  member_id uuid
-  activity_type varchar
-  content text
+  task_id uuid [not null, ref: > tasks.id]
+  actor_id uuid [null, ref: > project_members.id, note: 'References project_members(id). Resolved from the authenticated user UUID by the ActivityConsumer at consume-time using the task project_id. NULL for system events or if the member was removed before the stream message was processed.']
+  activity_type varchar [not null]
+  content jsonb [not null, default: '{}']
   created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null, note: 'Soft-delete for comments']
 }
 
 // --- TASK CHECKLISTS ---

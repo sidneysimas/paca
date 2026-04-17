@@ -62,7 +62,7 @@ type taskRecord struct {
 	Tags         []byte          `gorm:"type:jsonb;not null;column:tags"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    *time.Time `gorm:"index;column:deleted_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
 }
 
 func (taskRecord) TableName() string { return "tasks" }
@@ -264,7 +264,7 @@ func (r *TaskRepository) DeleteTaskStatus(ctx context.Context, id uuid.UUID) err
 // ListTasks returns a page of tasks for a project with optional filters.
 func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, offset, limit int) ([]*taskdom.Task, int64, error) {
 	q := r.db.WithContext(ctx).Model(&taskRecord{}).
-		Where("project_id = ? AND deleted_at IS NULL", projectID.String())
+		Where("project_id = ?", projectID.String())
 
 	switch {
 	case filter.ParentTaskID != nil:
@@ -317,7 +317,7 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 func (r *TaskRepository) FindTaskByID(ctx context.Context, id uuid.UUID) (*taskdom.Task, error) {
 	var rec taskRecord
 	err := r.db.WithContext(ctx).
-		Where("id = ? AND deleted_at IS NULL", id.String()).
+		Where("id = ?", id.String()).
 		First(&rec).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, taskdom.ErrTaskNotFound
@@ -333,7 +333,7 @@ func (r *TaskRepository) FindTaskByID(ctx context.Context, id uuid.UUID) (*taskd
 func (r *TaskRepository) FindTaskByNumber(ctx context.Context, projectID uuid.UUID, taskNumber int64) (*taskdom.Task, error) {
 	var rec taskRecord
 	err := r.db.WithContext(ctx).
-		Where("project_id = ? AND task_number = ? AND deleted_at IS NULL", projectID.String(), taskNumber).
+		Where("project_id = ? AND task_number = ?", projectID.String(), taskNumber).
 		First(&rec).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, taskdom.ErrTaskNotFound
@@ -433,7 +433,7 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, t *taskdom.Task) error 
 		"updated_at":     t.UpdatedAt,
 	}
 	res := r.db.WithContext(ctx).Model(&taskRecord{}).
-		Where("id = ? AND deleted_at IS NULL", t.ID.String()).
+		Where("id = ?", t.ID.String()).
 		Updates(updates)
 	if res.Error != nil {
 		return fmt.Errorf("task repo: update: %w", res.Error)
@@ -443,10 +443,9 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, t *taskdom.Task) error 
 
 // DeleteTask soft-deletes a task by setting deleted_at.
 func (r *TaskRepository) DeleteTask(ctx context.Context, id uuid.UUID) error {
-	now := time.Now()
-	res := r.db.WithContext(ctx).Model(&taskRecord{}).
-		Where("id = ? AND deleted_at IS NULL", id.String()).
-		Updates(map[string]any{"deleted_at": now, "updated_at": now})
+	res := r.db.WithContext(ctx).
+		Where("id = ?", id.String()).
+		Delete(&taskRecord{})
 	if res.Error != nil {
 		return fmt.Errorf("task repo: delete: %w", res.Error)
 	}
@@ -464,7 +463,7 @@ func (r *TaskRepository) BulkMoveSprintTasks(ctx context.Context, projectID, sou
 		Where("project_id = ? AND category = ?", projectID.String(), string(taskdom.StatusCategoryDone))
 
 	res := r.db.WithContext(ctx).Model(&taskRecord{}).
-		Where("project_id = ? AND sprint_id = ? AND deleted_at IS NULL", projectID.String(), sourceSprintID.String()).
+		Where("project_id = ? AND sprint_id = ?", projectID.String(), sourceSprintID.String()).
 		Where("status_id IS NULL OR status_id NOT IN (?)", doneStatusSubquery).
 		Updates(map[string]any{
 			"sprint_id":  uuidPtrToStrPtr(targetSprintID),
@@ -534,6 +533,11 @@ func toTaskEntity(r *taskRecord) (*taskdom.Task, error) {
 		tags = []string{}
 	}
 
+	var deletedAt *time.Time
+	if r.DeletedAt.Valid {
+		deletedAt = &r.DeletedAt.Time
+	}
+
 	return &taskdom.Task{
 		ID:           id,
 		ProjectID:    pid,
@@ -553,7 +557,7 @@ func toTaskEntity(r *taskRecord) (*taskdom.Task, error) {
 		Tags:         tags,
 		CreatedAt:    r.CreatedAt,
 		UpdatedAt:    r.UpdatedAt,
-		DeletedAt:    r.DeletedAt,
+		DeletedAt:    deletedAt,
 	}, nil
 }
 

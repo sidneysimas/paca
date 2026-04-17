@@ -54,6 +54,10 @@ func (m *memberServiceRepoMock) FindMember(ctx context.Context, projectID, userI
 	return nil, projectdom.ErrMemberNotFound
 }
 
+func (m *memberServiceRepoMock) FindMemberByUserProject(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+	return nil, projectdom.ErrMemberNotFound
+}
+
 func (m *memberServiceRepoMock) AddMember(context.Context, *projectdom.ProjectMember) error {
 	return nil
 }
