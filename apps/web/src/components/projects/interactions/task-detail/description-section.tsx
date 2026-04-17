@@ -125,7 +125,7 @@ export function DescriptionSection({
 
 	// Save when focus leaves the entire editor container (mirrors title onBlur).
 	const handleBlur = useCallback(
-		(e: React.FocusEvent<HTMLDivElement>) => {
+		(e: React.FocusEvent<HTMLFieldSetElement>) => {
 			// relatedTarget is the element receiving focus next.
 			// If it's still inside this container, it's an internal focus move — don't save.
 			if (e.currentTarget.contains(e.relatedTarget as Node)) return;
@@ -150,7 +150,10 @@ export function DescriptionSection({
 				</button>
 			</div>
 
-			<div className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 [&_.bn-editor]:min-h-20 [&_.bn-editor]:py-3 [&_.bn-editor]:text-[14px] [&_.bn-editor]:leading-relaxed" onBlur={handleBlur}>
+			<fieldset
+				className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 [&_.bn-editor]:min-h-20 [&_.bn-editor]:py-3 [&_.bn-editor]:text-[14px] [&_.bn-editor]:leading-relaxed"
+				onBlur={handleBlur}
+			>
 				<BlockNoteView
 					editor={editor}
 					editable={canEdit}
@@ -158,7 +161,7 @@ export function DescriptionSection({
 					theme={resolvedMode}
 					className="bn-shadcn"
 				/>
-			</div>
+			</fieldset>
 		</div>
 	);
 }
