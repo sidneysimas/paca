@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,7 +18,6 @@ import (
 
 const (
 	activityConsumerGroup = "api.activity_writer"
-	activityConsumerName  = "api.activity_writer.1"
 	activityReadBlock     = 5 * time.Second
 	activityReadCount     = 50
 )
@@ -34,23 +34,27 @@ const (
 // Comment operations (AddComment / UpdateComment / DeleteComment) write to the
 // database directly, so they are NOT handled here.
 type ActivityConsumer struct {
-	client     *redis.Client
-	repo       taskdom.ActivityRepository
-	memberRepo projectdom.MemberRepository
-	log        *slog.Logger
-	stopCh     chan struct{}
-	doneCh     chan struct{}
+	client       *redis.Client
+	repo         taskdom.ActivityRepository
+	memberRepo   projectdom.MemberRepository
+	log          *slog.Logger
+	consumerName string // unique per instance, derived from hostname
+	stopCh       chan struct{}
+	doneCh       chan struct{}
 }
 
 // NewActivityConsumer creates a consumer that is ready to be started.
+// The consumer name is derived from the hostname so it is unique per pod/instance.
 func NewActivityConsumer(client *redis.Client, repo taskdom.ActivityRepository, memberRepo projectdom.MemberRepository, log *slog.Logger) *ActivityConsumer {
+	hostname, _ := os.Hostname()
 	return &ActivityConsumer{
-		client:     client,
-		repo:       repo,
-		memberRepo: memberRepo,
-		log:        log,
-		stopCh:     make(chan struct{}),
-		doneCh:     make(chan struct{}),
+		client:       client,
+		repo:         repo,
+		memberRepo:   memberRepo,
+		log:          log,
+		consumerName: fmt.Sprintf("%s.%s", activityConsumerGroup, hostname),
+		stopCh:       make(chan struct{}),
+		doneCh:       make(chan struct{}),
 	}
 }
 
@@ -95,7 +99,7 @@ func (c *ActivityConsumer) run() {
 		ctx, cancel := context.WithTimeout(context.Background(), activityReadBlock+time.Second)
 		msgs, err := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 			Group:    activityConsumerGroup,
-			Consumer: activityConsumerName,
+			Consumer: c.consumerName,
 			Streams:  []string{events.StreamTaskActivities, ">"},
 			Count:    activityReadCount,
 			Block:    activityReadBlock,
@@ -125,7 +129,7 @@ func (c *ActivityConsumer) run() {
 func (c *ActivityConsumer) processPending(ctx context.Context) {
 	msgs, err := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    activityConsumerGroup,
-		Consumer: activityConsumerName,
+		Consumer: c.consumerName,
 		Streams:  []string{events.StreamTaskActivities, "0"},
 		Count:    activityReadCount,
 	}).Result()

@@ -200,60 +200,60 @@ Only the original author may delete their comment. Performs a soft-delete
 
 ## Valkey Event Stream
 
-Every activity record that is created also publishes to the Valkey stream
-`paca.analytics` (durable, for downstream consumers) and, for comment events,
-to the `paca.events` Pub/Sub channel (for real-time fan-out via
-`services/realtime`).
+System-generated activities (task created, updated, BDD changes, etc.) are
+published to the Valkey stream `paca.task_activities` for durable persistence.
+The `ActivityConsumer` worker reads that stream and writes each entry to
+PostgreSQL. All activity events also publish a real-time notification to the
+`paca.events` Pub/Sub channel for immediate fan-out via `services/realtime`.
+
+> **Note:** Comment operations (add/update/delete) write directly to the
+> database and publish only to the `paca.events` Pub/Sub channel — they are
+> **not** appended to the stream.
 
 ### Stream Entry Format
 
 ```
-Stream: paca.analytics
+Stream: paca.task_activities
 Fields:
-  type    = "task.created" | "task.updated" | ... | "comment"
-  payload = <JSON string of the event payload below>
+  type    = "task.created" | "task.updated" | ...  (system activities only)
+  payload = <JSON-encoded activity payload>
 ```
 
-### Event Payloads
+### Stream Payload
 
-#### `task.created`, `task.updated`, `task.deleted`
+The `payload` field contains a JSON-encoded object with the following shape:
+
 ```json
 {
-  "task_id":      "uuid",
-  "project_id":   "uuid",
-  "actor_id":     "uuid",
-  "activity_id":  "uuid",
-  "changes":      [...],  // only for task.updated
-  "task_number":  42,     // only for task.created / task.deleted
-  "title":        "..."   // only for task.created / task.deleted
+  "id":            "uuid",
+  "task_id":       "uuid",
+  "project_id":    "uuid",
+  "actor_id":      "uuid",
+  "activity_type": "task.updated",
+  "content":       "{\"changes\":[...]}",
+  "created_at":    "2026-04-01T10:00:00Z",
+  "updated_at":    "2026-04-01T10:00:00Z"
 }
 ```
 
-#### `comment`
-```json
-{
-  "task_id":     "uuid",
-  "project_id":  "uuid",
-  "actor_id":    "uuid",
-  "activity_id": "uuid",
-  "text":        "Comment text"
-}
-```
+`content` is a JSON-encoded string containing the activity-specific data (see
+[Content Shapes](#content-shapes-jsonb) above).  `actor_id` is the
+authenticated user's UUID; the consumer resolves it to `project_members.id`
+before persisting to the database.
 
 ---
 
 ## Stream Consumer
 
-A background goroutine (`internal/platform/messaging/consumer.go`) reads from
-`paca.analytics` using `XREADGROUP`. Currently it logs all task-related events
-and is the extension point for:
+A background worker (`internal/worker/activity_consumer.go`) reads from
+`paca.task_activities` using `XREADGROUP`. It:
 
-- Email / push notifications
-- Webhook delivery
-- Analytics aggregation
+1. Resolves the stream `actor_id` (user UUID) to `project_members.id`
+2. Writes the activity entry to `task_activities` in PostgreSQL
+3. Acknowledges the message
 
-Consumer group name: `paca-api-workers`  
-Consumer name: `paca-api-{hostname}`
+Consumer group name: `api.activity_writer`  
+Consumer name: `api.activity_writer.{hostname}`
 
 ---
 
