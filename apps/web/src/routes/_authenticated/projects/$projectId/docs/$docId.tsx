@@ -8,12 +8,13 @@ import {
 	MessageSquare,
 	PanelRight,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DocActivityPane } from "@/components/projects/docs/doc-activity-pane";
-import { DocEditor } from "@/components/projects/docs/doc-editor";
+import { DocEditor, type DocEditorHandle } from "@/components/projects/docs/doc-editor";
 import { DocHistoryPanel } from "@/components/projects/docs/doc-history-panel";
 import { Button } from "@/components/ui/button";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useProjectPermissions } from "@/hooks/use-project-permissions";
 import { currentUserQueryOptions } from "@/lib/auth-api";
 import {
@@ -50,7 +51,9 @@ function DocEditorPage() {
 	const [rightPanel, setRightPanel] = useState<RightPanel>(null);
 	const [editingTitle, setEditingTitle] = useState(false);
 	const [titleDraft, setTitleDraft] = useState("");
+	const [dirty, setDirty] = useState(false);
 	const titleInputRef = useRef<HTMLTextAreaElement>(null);
+	const editorRef = useRef<DocEditorHandle>(null);
 
 	const updateMutation = useMutation({
 		mutationFn: (payload: { title?: string; content?: unknown[] | null }) =>
@@ -69,24 +72,59 @@ function DocEditorPage() {
 		},
 	});
 
-	const handleTitleBlur = useCallback(() => {
-		const trimmed = (titleDraft ?? "").trim();
-		if (!trimmed || trimmed === doc?.title) {
+	const commitTitle = useCallback(
+		(value: string) => {
+			const trimmed = (value ?? "").trim();
+			if (!trimmed || trimmed === doc?.title) {
+				setEditingTitle(false);
+				setTitleDraft("");
+				return;
+			}
+			updateMutation.mutate({ title: trimmed });
 			setEditingTitle(false);
 			setTitleDraft("");
-			return;
-		}
-		updateMutation.mutate({ title: trimmed });
-		setEditingTitle(false);
-		setTitleDraft("");
-	}, [titleDraft, doc?.title, updateMutation]);
+		},
+		[doc?.title, updateMutation],
+	);
+
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+				e.preventDefault();
+				if (editingTitle) commitTitle(titleDraft);
+				editorRef.current?.save();
+			}
+		};
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, [editingTitle, titleDraft, commitTitle]);
+
+	const debouncedCommitTitle = useDebouncedCallback(
+		(value: unknown) => commitTitle(value as string),
+		5000,
+	);
+
+	const handleTitleChange = useCallback(
+		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+			const value = e.target.value;
+			setTitleDraft(value);
+			setDirty(true);
+			debouncedCommitTitle(value);
+		},
+		[debouncedCommitTitle],
+	);
 
 	const handleContentSave = useCallback(
 		(blocks: unknown[] | null) => {
+			setDirty(false);
 			updateMutation.mutate({ content: blocks });
 		},
 		[updateMutation],
 	);
+
+	const handleEditorDirtyChange = useCallback((isDirty: boolean) => {
+		setDirty(isDirty);
+	}, []);
 
 	const togglePanel = (panel: RightPanel) => {
 		setRightPanel((prev) => (prev === panel ? null : panel));
@@ -147,12 +185,17 @@ function DocEditorPage() {
 
 				{/* Right: save status + panel toggles */}
 				<div className="flex items-center gap-2 shrink-0">
+					{dirty && !updateMutation.isPending && (
+						<span className="text-[11px] text-muted-foreground/50">
+							Unsaved
+						</span>
+					)}
 					{updateMutation.isPending && (
 						<span className="text-[11px] text-muted-foreground/60">
 							Saving…
 						</span>
 					)}
-					{updateMutation.isSuccess && !updateMutation.isPending && (
+					{!dirty && updateMutation.isSuccess && !updateMutation.isPending && (
 						<span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
 							<Check className="size-3 text-emerald-500" />
 							Saved
@@ -209,8 +252,8 @@ function DocEditorPage() {
 							<textarea
 								ref={titleInputRef}
 								value={titleDraft}
-								onChange={(e) => setTitleDraft(e.target.value)}
-								onBlur={handleTitleBlur}
+								onChange={handleTitleChange}
+								onBlur={() => commitTitle(titleDraft)}
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
@@ -260,9 +303,11 @@ function DocEditorPage() {
 						{/* BlockNote editor */}
 						{doc && (
 							<DocEditor
+								ref={editorRef}
 								content={doc.content}
 								editable={canWrite}
 								onSave={handleContentSave}
+								onDirtyChange={handleEditorDirtyChange}
 								projectId={projectId}
 								docId={docId}
 							/>

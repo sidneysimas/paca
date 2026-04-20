@@ -3,8 +3,9 @@ import "@blocknote/shadcn/style.css";
 
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
-import { useCallback, useEffect, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { getDocFileDownloadURL, uploadDocFile } from "@/lib/doc-api";
 
@@ -16,7 +17,9 @@ interface DocEditorProps {
 	content?: unknown[] | null;
 	/** Whether the editor is interactive. */
 	editable?: boolean;
-	/** Called when the user stops editing (blur or Ctrl+S). Receives the new block array (null = empty). */
+	/** Called when unsaved-changes status changes. */
+	onDirtyChange?: (dirty: boolean) => void;
+	/** Called when content is saved (debounced, blur, or Ctrl+S). Receives the new block array (null = empty). */
 	onSave?: (blocks: unknown[] | null) => void;
 	/** Project ID — required for file uploads. */
 	projectId?: string;
@@ -24,18 +27,20 @@ interface DocEditorProps {
 	docId?: string;
 }
 
-export function DocEditor({
-	content,
-	editable = true,
-	onSave,
-	projectId,
-	docId,
-}: DocEditorProps) {
+export interface DocEditorHandle {
+	save: () => void;
+}
+
+export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(function DocEditor(
+	{ content, editable = true, onDirtyChange, onSave, projectId, docId },
+	ref,
+) {
 	const { resolvedMode } = useThemeMode();
 
 	const lastSavedRef = useRef<string | null>(null);
 	const initializedRef = useRef(false);
-	const pendingRef = useRef(false);
+	const localSaveRef = useRef(false);
+	const readyRef = useRef(false);
 
 	// Keep projectId / docId in refs so stable editor callbacks always
 	// reference the latest prop values without recreating the editor.
@@ -71,6 +76,13 @@ export function DocEditor({
 	useEffect(() => {
 		const normalized = content ?? null;
 		const normalizedStr = normalized ? JSON.stringify(normalized) : null;
+
+		if (initializedRef.current && localSaveRef.current) {
+			localSaveRef.current = false;
+			lastSavedRef.current = normalizedStr;
+			return;
+		}
+
 		if (initializedRef.current && normalizedStr === lastSavedRef.current)
 			return;
 		initializedRef.current = true;
@@ -81,11 +93,13 @@ export function DocEditor({
 			blocks = normalized as Parameters<typeof editor.replaceBlocks>[1];
 		}
 		editor.replaceBlocks(editor.document, blocks ?? []);
+		queueMicrotask(() => {
+			readyRef.current = true;
+		});
 	}, [content, editor]);
 
 	const save = useCallback(() => {
-		if (!editable || !pendingRef.current) return;
-		pendingRef.current = false;
+		if (!editable) return;
 		const blocks = editor.document;
 		const isEmpty =
 			blocks.length === 1 &&
@@ -97,22 +111,21 @@ export function DocEditor({
 		const valueStr = value ? JSON.stringify(value) : null;
 		if (valueStr !== lastSavedRef.current) {
 			lastSavedRef.current = valueStr;
+			localSaveRef.current = true;
+			onDirtyChange?.(false);
 			onSave?.(value);
 		}
-	}, [editable, editor, onSave]);
+	}, [editable, editor, onSave, onDirtyChange]);
+
+	useImperativeHandle(ref, () => ({ save }), [save]);
+
+	const debouncedSave = useDebouncedCallback(save, 3000);
 
 	const handleChange = useCallback(() => {
-		if (!editable) return;
-		pendingRef.current = true;
-	}, [editable]);
-
-	const handleBlur = useCallback(
-		(e: React.FocusEvent<HTMLDivElement>) => {
-			if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-			save();
-		},
-		[save],
-	);
+		if (!editable || !readyRef.current) return;
+		onDirtyChange?.(true);
+		debouncedSave();
+	}, [editable, debouncedSave, onDirtyChange]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -125,11 +138,11 @@ export function DocEditor({
 	);
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: wrapper captures blur/keydown from BlockNote rich-text editor
+		// biome-ignore lint/a11y/noStaticElementInteractions: wrapper captures keydown from BlockNote rich-text editor
 		<div
 			data-testid="blocknote-editor"
 			className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 overflow-hidden [&_.bn-editor]:min-h-80 [&_.bn-editor]:py-4 [&_.bn-editor]:px-6 [&_.bn-editor]:text-[14px] [&_.bn-editor]:leading-relaxed"
-			onBlur={handleBlur}
+			onBlur={save}
 			onKeyDown={handleKeyDown}
 		>
 			<BlockNoteView
@@ -140,4 +153,4 @@ export function DocEditor({
 			/>
 		</div>
 	);
-}
+});
