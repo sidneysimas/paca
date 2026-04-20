@@ -20,11 +20,12 @@ type DocFileService interface {
 	CompleteDocUpload(ctx context.Context, in DocCompleteUploadInput) (*File, error)
 
 	// GetDocFileDownloadURL returns a short-lived presigned GET URL for the
-	// given file.
-	GetDocFileDownloadURL(ctx context.Context, fileID uuid.UUID, ttl time.Duration) (string, error)
+	// given file. docID is used to verify the file belongs to the document.
+	GetDocFileDownloadURL(ctx context.Context, docID uuid.UUID, fileID uuid.UUID, ttl time.Duration) (string, error)
 
 	// DeleteDocFile removes the file record and its object from storage.
-	DeleteDocFile(ctx context.Context, fileID uuid.UUID) error
+	// docID is used to verify the file belongs to the document.
+	DeleteDocFile(ctx context.Context, docID uuid.UUID, fileID uuid.UUID) error
 }
 
 // DocUploadInput carries the client-supplied metadata for initiating a doc file upload.

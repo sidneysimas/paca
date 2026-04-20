@@ -94,13 +94,18 @@ func (h *DocFileHandler) CompleteDocUpload(c *gin.Context) {
 // GetDocFileDownloadURL handles GET /projects/:projectId/docs/:docId/files/:fileId/download-url.
 // Returns a short-lived presigned URL valid for 15 minutes.
 func (h *DocFileHandler) GetDocFileDownloadURL(c *gin.Context) {
+	docID, err := parseDocID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	fileID, err := parseDocFileID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	url, err := h.svc.GetDocFileDownloadURL(c.Request.Context(), fileID, 15*time.Minute)
+	url, err := h.svc.GetDocFileDownloadURL(c.Request.Context(), docID, fileID, 15*time.Minute)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -111,13 +116,18 @@ func (h *DocFileHandler) GetDocFileDownloadURL(c *gin.Context) {
 
 // DeleteDocFile handles DELETE /projects/:projectId/docs/:docId/files/:fileId.
 func (h *DocFileHandler) DeleteDocFile(c *gin.Context) {
+	docID, err := parseDocID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	fileID, err := parseDocFileID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	if err := h.svc.DeleteDocFile(c.Request.Context(), fileID); err != nil {
+	if err := h.svc.DeleteDocFile(c.Request.Context(), docID, fileID); err != nil {
 		presenter.Error(c, err)
 		return
 	}

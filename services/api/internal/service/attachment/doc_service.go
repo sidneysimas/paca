@@ -113,10 +113,16 @@ func (s *Service) CompleteDocUpload(ctx context.Context, in attachmentdom.DocCom
 }
 
 // GetDocFileDownloadURL returns a presigned GET URL for the given doc file.
-func (s *Service) GetDocFileDownloadURL(ctx context.Context, fileID uuid.UUID, ttl time.Duration) (string, error) {
+// docID is used to verify the file belongs to the document by checking the
+// storage key prefix (docs/{docId}/).
+func (s *Service) GetDocFileDownloadURL(ctx context.Context, docID uuid.UUID, fileID uuid.UUID, ttl time.Duration) (string, error) {
 	f, err := s.repo.FindFileByID(ctx, fileID)
 	if err != nil {
 		return "", err
+	}
+
+	if !docFileKeyHasDocPrefix(f.StorageKey, docID) {
+		return "", attachmentdom.ErrDocFileMismatch
 	}
 
 	bucket := f.Bucket
@@ -132,11 +138,16 @@ func (s *Service) GetDocFileDownloadURL(ctx context.Context, fileID uuid.UUID, t
 }
 
 // DeleteDocFile removes the file record from the database and deletes the
-// object from the object store.
-func (s *Service) DeleteDocFile(ctx context.Context, fileID uuid.UUID) error {
+// object from the object store. docID is used to verify the file belongs to
+// the document by checking the storage key prefix (docs/{docId}/).
+func (s *Service) DeleteDocFile(ctx context.Context, docID uuid.UUID, fileID uuid.UUID) error {
 	f, err := s.repo.FindFileByID(ctx, fileID)
 	if err != nil {
 		return err
+	}
+
+	if !docFileKeyHasDocPrefix(f.StorageKey, docID) {
+		return attachmentdom.ErrDocFileMismatch
 	}
 
 	bucket := f.Bucket
@@ -149,4 +160,10 @@ func (s *Service) DeleteDocFile(ctx context.Context, fileID uuid.UUID) error {
 	}
 
 	return s.repo.DeleteFile(ctx, fileID)
+}
+
+// docFileKeyHasDocPrefix returns true when storageKey starts with
+// the expected "docs/{docID}/" prefix, confirming the file belongs to the document.
+func docFileKeyHasDocPrefix(storageKey string, docID uuid.UUID) bool {
+	return strings.HasPrefix(storageKey, fmt.Sprintf("docs/%s/", docID.String()))
 }

@@ -74,6 +74,10 @@ func (s *Service) UpdateFolder(ctx context.Context, id uuid.UUID, in docdom.Upda
 		return nil, err
 	}
 
+	if f.ProjectID != in.ProjectID {
+		return nil, docdom.ErrFolderNotFound
+	}
+
 	if name := strings.TrimSpace(in.Name); name != "" {
 		f.Name = name
 	}
@@ -105,9 +109,13 @@ func (s *Service) UpdateFolder(ctx context.Context, id uuid.UUID, in docdom.Upda
 }
 
 // DeleteFolder deletes a folder.
-func (s *Service) DeleteFolder(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindFolderByID(ctx, id); err != nil {
+func (s *Service) DeleteFolder(ctx context.Context, id uuid.UUID, projectID uuid.UUID) error {
+	f, err := s.repo.FindFolderByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	if f.ProjectID != projectID {
+		return docdom.ErrFolderNotFound
 	}
 	return s.repo.DeleteFolder(ctx, id)
 }

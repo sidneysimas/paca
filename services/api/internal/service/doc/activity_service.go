@@ -29,7 +29,8 @@ type ActivitySvc struct {
 
 // NewActivityService creates a new ActivitySvc backed by repo.
 // memberRepo is used to resolve user UUIDs to project-member UUIDs for comment
-// operations; it may be nil (lookups will return ErrMemberNotFound).
+// operations; if nil, comment operations (AddComment, UpdateComment,
+// DeleteComment) will return ErrMemberNotFound.
 // publisher may be nil; stream events are then skipped silently.
 func NewActivityService(repo docdom.ActivityRepository, memberRepo memberLookup, publisher *messaging.Publisher) *ActivitySvc {
 	return &ActivitySvc{repo: repo, memberRepo: memberRepo, publisher: publisher}
@@ -73,6 +74,9 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in docdom.AddCommentInput)
 	if text == "" {
 		return nil, docdom.ErrCommentTextInvalid
 	}
+	if s.memberRepo == nil {
+		return nil, projectdom.ErrMemberNotFound
+	}
 	member, err := s.memberRepo.FindMemberByUserProject(ctx, in.ActorID, in.ProjectID)
 	if err != nil {
 		return nil, err
@@ -105,6 +109,9 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID
 		return nil, docdom.ErrActivityNotAComment
 	}
 
+	if s.memberRepo == nil {
+		return nil, projectdom.ErrMemberNotFound
+	}
 	member, err := s.memberRepo.FindMemberByUserProject(ctx, actorID, projectID)
 	if err != nil {
 		return nil, err
@@ -137,6 +144,9 @@ func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID
 		return docdom.ErrActivityNotAComment
 	}
 
+	if s.memberRepo == nil {
+		return projectdom.ErrMemberNotFound
+	}
 	member, err := s.memberRepo.FindMemberByUserProject(ctx, actorID, projectID)
 	if err != nil {
 		return err

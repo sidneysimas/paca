@@ -81,6 +81,11 @@ func (h *DocumentHandler) CreateFolder(c *gin.Context) {
 
 // UpdateFolder handles PATCH /projects/:projectId/docs/folders/:folderId.
 func (h *DocumentHandler) UpdateFolder(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	folderID, err := parseDocFolderID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -93,9 +98,10 @@ func (h *DocumentHandler) UpdateFolder(c *gin.Context) {
 	}
 
 	f, err := h.svc.UpdateFolder(c.Request.Context(), folderID, docdom.UpdateFolderInput{
-		Name:     req.Name,
-		ParentID: req.ParentID.Ptr(),
-		Position: req.Position,
+		ProjectID: projectID,
+		Name:      req.Name,
+		ParentID:  req.ParentID.Ptr(),
+		Position:  req.Position,
 	})
 	if err != nil {
 		presenter.Error(c, err)
@@ -106,12 +112,17 @@ func (h *DocumentHandler) UpdateFolder(c *gin.Context) {
 
 // DeleteFolder handles DELETE /projects/:projectId/docs/folders/:folderId.
 func (h *DocumentHandler) DeleteFolder(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	folderID, err := parseDocFolderID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteFolder(c.Request.Context(), folderID); err != nil {
+	if err := h.svc.DeleteFolder(c.Request.Context(), folderID, projectID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -155,6 +166,11 @@ func (h *DocumentHandler) ListDocuments(c *gin.Context) {
 
 // GetDocument handles GET /projects/:projectId/docs/:docId.
 func (h *DocumentHandler) GetDocument(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	docID, err := parseDocID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -163,6 +179,10 @@ func (h *DocumentHandler) GetDocument(c *gin.Context) {
 	d, err := h.svc.GetDocument(c.Request.Context(), docID)
 	if err != nil {
 		presenter.Error(c, err)
+		return
+	}
+	if d.ProjectID != projectID {
+		presenter.Error(c, docdom.ErrDocNotFound)
 		return
 	}
 	presenter.OK(c, dto.DocumentFromEntity(d))

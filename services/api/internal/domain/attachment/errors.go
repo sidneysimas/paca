@@ -20,6 +20,9 @@ var (
 	// ErrUploadIDMismatch is returned when the provided upload_id does not
 	// match the upload session stored on the file record.
 	ErrUploadIDMismatch = errors.New("upload_id does not match the recorded multipart upload session")
+	// ErrDocFileMismatch is returned when a file does not belong to the
+	// specified document (storage key prefix mismatch).
+	ErrDocFileMismatch = errors.New("file does not belong to the specified document")
 	// ErrMultipartPartsEmpty is returned when a multipart complete request
 	// contains no parts.
 	ErrMultipartPartsEmpty = errors.New("multipart upload requires at least one part")

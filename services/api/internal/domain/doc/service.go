@@ -25,7 +25,8 @@ type DocFolderService interface {
 	// UpdateFolder updates the mutable fields of an existing folder.
 	UpdateFolder(ctx context.Context, id uuid.UUID, in UpdateFolderInput) (*DocFolder, error)
 	// DeleteFolder deletes a folder. Child documents have their folder_id set to NULL.
-	DeleteFolder(ctx context.Context, id uuid.UUID) error
+	// projectID is used to verify the folder belongs to the expected project.
+	DeleteFolder(ctx context.Context, id uuid.UUID, projectID uuid.UUID) error
 }
 
 // CreateFolderInput carries fields required to create a folder.
@@ -39,10 +40,12 @@ type CreateFolderInput struct {
 // UpdateFolderInput carries mutable folder fields.
 // Double-pointer for ParentID: nil = absent (no change), &nil = move to root,
 // &&id = move under another folder.
+// ProjectID is used to verify the folder belongs to the expected project.
 type UpdateFolderInput struct {
-	Name     string
-	ParentID **uuid.UUID
-	Position *int
+	ProjectID uuid.UUID
+	Name      string
+	ParentID  **uuid.UUID
+	Position  *int
 }
 
 // --- Document Service -------------------------------------------------------

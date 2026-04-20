@@ -378,8 +378,9 @@ func TestUpdateFolder_OK(t *testing.T) {
 
 	pos := 5
 	updated, err := svc.UpdateFolder(ctx, f.ID, docdom.UpdateFolderInput{
-		Name:     "New Name",
-		Position: &pos,
+		ProjectID: projectID,
+		Name:      "New Name",
+		Position:  &pos,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -403,6 +404,25 @@ func TestUpdateFolder_NotFound(t *testing.T) {
 	}
 }
 
+func TestUpdateFolder_WrongProject(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeDocRepo()
+	svc := docsvc.New(repo, nil)
+	projectA := uuid.New()
+	projectB := uuid.New()
+
+	f, _ := svc.CreateFolder(ctx, docdom.CreateFolderInput{ProjectID: projectA, Name: "Folder"})
+
+	// Attempt to update with the wrong projectID — should return 404 (not leak existence).
+	_, err := svc.UpdateFolder(ctx, f.ID, docdom.UpdateFolderInput{
+		ProjectID: projectB,
+		Name:      "Hacked",
+	})
+	if err != docdom.ErrFolderNotFound {
+		t.Errorf("expected ErrFolderNotFound, got %v", err)
+	}
+}
+
 func TestUpdateFolder_NewParentNotInProject(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeDocRepo()
@@ -420,7 +440,8 @@ func TestUpdateFolder_NewParentNotInProject(t *testing.T) {
 	// Attempt to move folder (project A) under parentB (project B) — should fail.
 	parentPtr := &parentB.ID
 	_, err := svc.UpdateFolder(ctx, folder.ID, docdom.UpdateFolderInput{
-		ParentID: &parentPtr,
+		ProjectID: projectA,
+		ParentID:  &parentPtr,
 	})
 	if err != docdom.ErrFolderNotInProject {
 		t.Errorf("expected ErrFolderNotInProject, got %v", err)
@@ -438,7 +459,8 @@ func TestUpdateFolder_SelfParent(t *testing.T) {
 	// Attempt to set the folder as its own parent — should fail.
 	selfPtr := &folder.ID
 	_, err := svc.UpdateFolder(ctx, folder.ID, docdom.UpdateFolderInput{
-		ParentID: &selfPtr,
+		ProjectID: projectID,
+		ParentID:  &selfPtr,
 	})
 	if err != docdom.ErrFolderSelfParent {
 		t.Errorf("expected ErrFolderSelfParent, got %v", err)
@@ -452,7 +474,7 @@ func TestDeleteFolder_OK(t *testing.T) {
 	projectID := uuid.New()
 
 	f, _ := svc.CreateFolder(ctx, docdom.CreateFolderInput{ProjectID: projectID, Name: "TBD"})
-	if err := svc.DeleteFolder(ctx, f.ID); err != nil {
+	if err := svc.DeleteFolder(ctx, f.ID, projectID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -462,12 +484,29 @@ func TestDeleteFolder_OK(t *testing.T) {
 	}
 }
 
+func TestDeleteFolder_WrongProject(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeDocRepo()
+	svc := docsvc.New(repo, nil)
+	projectA := uuid.New()
+	projectB := uuid.New()
+
+	f, _ := svc.CreateFolder(ctx, docdom.CreateFolderInput{ProjectID: projectA, Name: "TBD"})
+
+	// Attempt to delete with wrong projectID — should return 404.
+	err := svc.DeleteFolder(ctx, f.ID, projectB)
+	if err != docdom.ErrFolderNotFound {
+		t.Errorf("expected ErrFolderNotFound, got %v", err)
+	}
+}
+
 func TestDeleteFolder_NotFound(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeDocRepo()
 	svc := docsvc.New(repo, nil)
+	projectID := uuid.New()
 
-	err := svc.DeleteFolder(ctx, uuid.New())
+	err := svc.DeleteFolder(ctx, uuid.New(), projectID)
 	if err != docdom.ErrFolderNotFound {
 		t.Errorf("expected ErrFolderNotFound, got %v", err)
 	}

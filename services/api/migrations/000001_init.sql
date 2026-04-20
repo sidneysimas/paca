@@ -506,6 +506,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uni_doc_snapshots_doc_number
 CREATE OR REPLACE FUNCTION fn_doc_snapshot_number()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
+    -- Lock the parent document row to serialize concurrent inserts and
+    -- prevent duplicate snapshot_number values due to race conditions.
+    PERFORM id FROM documents WHERE id = NEW.document_id FOR UPDATE;
     NEW.snapshot_number := COALESCE(
         (SELECT MAX(snapshot_number) FROM doc_snapshots WHERE document_id = NEW.document_id),
         0

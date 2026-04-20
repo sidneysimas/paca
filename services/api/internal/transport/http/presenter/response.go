@@ -182,6 +182,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		errors.Is(err, attachmentdom.ErrFileNameEmpty),
 		errors.Is(err, attachmentdom.ErrContentTypeEmpty):
 		return http.StatusBadRequest, apierr.CodeAttachmentInvalid
+	case errors.Is(err, attachmentdom.ErrDocFileMismatch):
+		return http.StatusNotFound, apierr.CodeFileNotFound
 	case errors.Is(err, attachmentdom.ErrMultipartUploadIDRequired):
 		return http.StatusBadRequest, apierr.CodeMultipartUploadIDRequired
 	case errors.Is(err, attachmentdom.ErrNotMultipartUpload):
