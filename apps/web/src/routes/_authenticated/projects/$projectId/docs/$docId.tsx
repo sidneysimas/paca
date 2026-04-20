@@ -39,6 +39,10 @@ const TITLE_CLASSES =
 
 type RightPanel = "activity" | "history" | null;
 
+type ProjectMemberMeResponse = {
+	id: string;
+};
+
 function DocEditorPage() {
 	const { projectId, docId } = Route.useParams();
 	const { hasProjectPermission } = useProjectPermissions(projectId);
@@ -46,7 +50,19 @@ function DocEditorPage() {
 	const qc = useQueryClient();
 
 	const { data: currentUser } = useQuery(currentUserQueryOptions);
-	const currentUserId = currentUser?.id;
+	const currentAuthenticatedUserId = currentUser?.id;
+	const { data: currentProjectMember } = useQuery<ProjectMemberMeResponse>({
+		queryKey: ["projects", projectId, "members", "me"],
+		enabled: !!projectId && !!currentAuthenticatedUserId,
+		queryFn: async () => {
+			const response = await fetch(`/api/projects/${projectId}/members/me`);
+			if (!response.ok) {
+				throw new Error("Failed to load current project member");
+			}
+			return (await response.json()) as ProjectMemberMeResponse;
+		},
+	});
+	const currentUserId = currentProjectMember?.id;
 
 	const { data: doc, isError } = useQuery(docQueryOptions(projectId, docId));
 	const { data: allFolders = [] } = useQuery(docFoldersQueryOptions(projectId));
