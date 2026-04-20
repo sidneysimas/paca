@@ -6,12 +6,12 @@ import type { SuccessEnvelope } from "./api-error";
 // ── Shapes ────────────────────────────────────────────────────────────────────
 
 export interface DocFolder {
-	id: string;
-	project_id: string;
-	parent_id: string | null;
+	id?: string | null;
+	project_id?: string | null;
+	parent_id?: string | null;
 	name: string;
 	position: number;
-	created_by: string;
+	created_by?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -21,14 +21,14 @@ export interface DocFolderListResult {
 }
 
 export interface Document {
-	id: string;
-	project_id: string;
-	folder_id: string | null;
+	id?: string | null;
+	project_id?: string | null;
+	folder_id?: string | null;
 	title: string;
 	content: unknown[] | null;
 	position: number;
-	created_by: string;
-	updated_by: string | null;
+	created_by?: string | null;
+	updated_by?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -38,12 +38,12 @@ export interface DocumentListResult {
 }
 
 export interface DocSnapshot {
-	id: string;
-	document_id: string;
+	id?: string | null;
+	document_id?: string | null;
 	title: string;
 	content: unknown[] | null;
 	snapshot_number: number;
-	created_by: string;
+	created_by?: string | null;
 	created_at: string;
 }
 
