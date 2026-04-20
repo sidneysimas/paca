@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import {
-	ActivityPane,
-} from "@/components/shared/activity-pane";
+import { ActivityPane } from "@/components/shared/activity-pane";
 import {
 	type Activity,
 	addComment,
