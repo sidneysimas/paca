@@ -599,7 +599,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 				<SidebarGroupContent>
 					<SidebarMenu>
 						<SidebarMenuItem>
-							<SidebarMenuButton tooltip="Documentations">
+							<SidebarMenuButton tooltip="Documentation">
 								<BookOpen className="size-4" />
 							</SidebarMenuButton>
 						</SidebarMenuItem>
@@ -616,7 +616,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 				className="flex cursor-pointer items-center justify-between hover:text-sidebar-foreground transition-colors px-3"
 				onClick={toggleCollapse}
 			>
-				<span>Documentations</span>
+				<span>Documentation</span>
 				<ChevronRight
 					className={cn(
 						"size-3.5 transition-transform duration-200 text-sidebar-foreground/40",
