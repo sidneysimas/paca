@@ -104,7 +104,8 @@ function decodePayload(token: string): JwtPayload {
 	// Standard base64url decode; Buffer is available in Bun.
 	if (!parts[1]) throw new Error("malformed JWT: empty payload");
 	const raw = parts[1];
-	const padded = raw + "=".repeat((4 - (raw.length % 4)) % 4);
+	const base64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+	const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
 	const json = Buffer.from(padded, "base64").toString("utf8");
 
 	const payload = JSON.parse(json) as Record<string, unknown>;
