@@ -54,7 +54,7 @@ export async function saveSession(
 }
 
 // getSession fetches a session record.  Returns null when the session has
-// expired or was never created.
+// expired or was never created, or when the stored value is malformed.
 export async function getSession(
 	redis: Redis,
 	socketId: string,
@@ -70,7 +70,8 @@ export async function getSession(
 }
 
 // getSessionsBatch fetches multiple sessions in a single Valkey round-trip
-// using MGET.  Entries for missing/expired sessions are null.
+// using MGET.  Entries for missing/expired sessions are null.  Entries whose
+// stored value is malformed JSON are treated as null and deleted.
 export async function getSessionsBatch(
 	redis: Redis,
 	socketIds: string[],

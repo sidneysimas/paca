@@ -6,9 +6,9 @@ to the `paca.events` Valkey Pub/Sub channel published by `services/api`.
 ## Responsibilities
 
 - Accept authenticated Socket.IO client connections (JWT via cookie or handshake auth).
-- Validate access tokens using the shared `JWT_SECRET` (HS256, same as the API).
+- Delegate access-token verification to `services/api` (`GET /api/v1/users/me/global-permissions`) — no local JWT validation.
 - Subscribe to the `paca.events` Valkey Pub/Sub channel.
-- Route incoming events to project-scoped Socket.IO rooms (`project:<id>`).
+- Route incoming events to namespace-scoped Socket.IO rooms (`project:<projectId>:tasks`, `project:<projectId>:docs`).
 - Expose a `/healthz` endpoint for container health checks.
 
 ## Stack
@@ -51,7 +51,7 @@ The service is reachable through the nginx gateway at `http://localhost/ws/`.
 |----------------|----------|-----------------------|--------------------------------------------------|
 | `PORT`         | No       | `3001`                | HTTP port the server listens on.                 |
 | `REDIS_URL`    | **Yes**  | —                     | Valkey/Redis connection URL (same as API).       |
-| `JWT_SECRET`   | **Yes**  | —                     | HS256 secret shared with `services/api`.         |
+| `API_URL`      | **Yes**  | —                     | Internal base URL of `services/api` used for token verification and permissions. |
 | `CORS_ORIGINS` | No       | `http://localhost:3000` | Comma-separated allowed origins.               |
 | `LOG_LEVEL`    | No       | `info`                | Pino log level (`trace`…`fatal`).                |
 | `NODE_ENV`     | No       | `development`         | `production` enables structured JSON logging.    |
