@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-	type Notification,
 	markAllNotificationsAsRead,
 	markNotificationAsRead,
+	type Notification,
 	notificationsQueryOptions,
 } from "@/lib/notification-api";
 
@@ -78,11 +78,7 @@ export function NotificationBell() {
 					</span>
 				)}
 			</PopoverTrigger>
-			<PopoverContent
-				align="end"
-				sideOffset={8}
-				className="w-80 p-0 shadow-lg"
-			>
+			<PopoverContent align="end" sideOffset={8} className="w-80 p-0 shadow-lg">
 				<div className="flex items-center justify-between px-4 py-3 border-b">
 					<span className="text-sm font-semibold">Notifications</span>
 					{unreadCount > 0 && (

@@ -156,7 +156,10 @@ export function createSocketServer(
 		// Auto-join the user's personal notification room so notification.* events
 		// can be delivered without an explicit join from the client.
 		socket.join(`user:${userId}:notifications`);
-		logger.debug({ userId, room: `user:${userId}:notifications` }, "joined user notification room");
+		logger.debug(
+			{ userId, room: `user:${userId}:notifications` },
+			"joined user notification room",
+		);
 
 		// Join namespace-scoped rooms for a project.  Fetches project permissions
 		// once and joins only the rooms the user is allowed to see:

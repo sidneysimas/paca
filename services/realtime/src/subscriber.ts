@@ -93,7 +93,10 @@ function routeEvent(io: Server, msg: RealtimeMessage, logger: Logger): void {
 	if (type.startsWith("notification.")) {
 		const recipientUserId = payload.recipient_user_id;
 		if (typeof recipientUserId !== "string" || !recipientUserId) {
-			logger.debug({ type }, "notification event has no recipient_user_id — skipped");
+			logger.debug(
+				{ type },
+				"notification event has no recipient_user_id — skipped",
+			);
 			return;
 		}
 		const room = `user:${recipientUserId}:notifications`;

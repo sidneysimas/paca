@@ -1,6 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useEffect } from "react";
-
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { NotificationBell } from "@/components/app-shell/notification-bell";
 import {
@@ -11,7 +11,6 @@ import {
 import { isPasswordChangeRequired } from "@/lib/api-error";
 import { currentUserQueryOptions } from "@/lib/auth-api";
 import { connectSocket, disconnectSocket } from "@/lib/socket-client";
-import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Pathless layout route that guards every route nested under it.
