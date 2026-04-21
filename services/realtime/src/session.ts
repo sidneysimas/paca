@@ -71,7 +71,8 @@ export async function getSession(
 
 // getSessionsBatch fetches multiple sessions in a single Valkey round-trip
 // using MGET.  Entries for missing/expired sessions are null.  Entries whose
-// stored value is malformed JSON are treated as null and deleted.
+// stored value is malformed JSON are treated as null; all corrupt keys are
+// removed in a single DEL call after parsing.
 export async function getSessionsBatch(
 	redis: Redis,
 	socketIds: string[],
@@ -79,17 +80,20 @@ export async function getSessionsBatch(
 	if (socketIds.length === 0) return [];
 	const keys = socketIds.map(sessionKey);
 	const values = await redis.mget(...keys);
-	return Promise.all(
-		values.map(async (v, i) => {
-			if (!v) return null;
-			try {
-				return JSON.parse(v) as Session;
-			} catch {
-				await redis.del(keys[i]);
-				return null;
-			}
-		}),
-	);
+	const corruptKeys: string[] = [];
+	const results = values.map((v, i) => {
+		if (!v) return null;
+		try {
+			return JSON.parse(v) as Session;
+		} catch {
+			corruptKeys.push(keys[i]);
+			return null;
+		}
+	});
+	if (corruptKeys.length > 0) {
+		void redis.del(...corruptKeys);
+	}
+	return results;
 }
 
 // setProjectPermissions merges the project permission map into the existing
