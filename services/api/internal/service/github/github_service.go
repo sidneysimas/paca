@@ -12,12 +12,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/paca/api/internal/apierr"
 	githubdom "github.com/paca/api/internal/domain/github"
 	"github.com/paca/api/internal/platform/githubclient"
 	"github.com/paca/api/internal/platform/secret"
@@ -360,6 +362,20 @@ func (s *Service) CreateBranch(ctx context.Context, projectID, taskID, repoID uu
 
 	ghClient := s.newClient(token)
 	if err := ghClient.CreateBranch(ctx, linked.Owner, linked.RepoName, branchName, sourceBranch); err != nil {
+		slog.ErrorContext(ctx, "github: create branch API call failed",
+			"project_id", projectID,
+			"task_id", taskID,
+			"repo", linked.FullName,
+			"branch_name", branchName,
+			"source_branch", sourceBranch,
+			"error", err,
+		)
+		var apiErr *githubclient.APIError
+		if errors.As(err, &apiErr) {
+			// Forward GitHub API errors as structured apierr so the presenter
+			// returns the GitHub message to the client instead of a 500.
+			return "", apierr.New(apierr.CodeBadRequest, apiErr.Error())
+		}
 		return "", fmt.Errorf("github: create branch: %w", err)
 	}
 
@@ -374,8 +390,13 @@ func (s *Service) CreateBranch(ctx context.Context, projectID, taskID, repoID uu
 		CreatedAt:  now,
 	})
 	if linkErr != nil && !errors.Is(linkErr, githubdom.ErrBranchAlreadyLinked) {
-		// Non-fatal: branch was created, just log the link failure.
-		_ = linkErr
+		// Non-fatal: branch was created on GitHub but the DB link failed.
+		slog.ErrorContext(ctx, "github: link branch to task failed after branch creation",
+			"task_id", taskID,
+			"repo_id", linked.ID,
+			"branch_name", branchName,
+			"error", linkErr,
+		)
 	}
 	return branchName, nil
 }
