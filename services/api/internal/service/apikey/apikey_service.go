@@ -1,3 +1,4 @@
+// Package apikeysvc implements services for API key operations.
 package apikeysvc
 
 import (

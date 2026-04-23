@@ -30,9 +30,9 @@ import {
 } from "@/components/ui/table";
 import {
 	apiKeysQueryOptions,
+	type CreateAPIKeyResponse,
 	createAPIKey,
 	revokeAPIKey,
-	type CreateAPIKeyResponse,
 } from "@/lib/apikey-api";
 
 export const Route = createFileRoute("/_authenticated/profile/api-keys")({
@@ -126,8 +126,8 @@ function APIKeysPage() {
 			<div>
 				<h1 className="text-2xl font-semibold tracking-tight">API Keys</h1>
 				<p className="text-sm text-muted-foreground mt-1">
-					API keys let you authenticate API requests without using your
-					session cookies. Treat them like passwords — never share them.
+					API keys let you authenticate API requests without using your session
+					cookies. Treat them like passwords — never share them.
 				</p>
 			</div>
 
@@ -173,9 +173,7 @@ function APIKeysPage() {
 							<TableBody>
 								{keys.map((key) => (
 									<TableRow key={key.id}>
-										<TableCell className="font-medium">
-											{key.name}
-										</TableCell>
+										<TableCell className="font-medium">{key.name}</TableCell>
 										<TableCell className="font-mono text-xs text-muted-foreground">
 											paca_{key.key_prefix}…
 										</TableCell>
@@ -261,9 +259,7 @@ function APIKeysPage() {
 						</Button>
 						<Button
 							onClick={() => createMutation.mutate()}
-							disabled={
-								createMutation.isPending || !newKeyName.trim()
-							}
+							disabled={createMutation.isPending || !newKeyName.trim()}
 						>
 							{createMutation.isPending ? "Creating…" : "Create key"}
 						</Button>
@@ -335,8 +331,8 @@ function APIKeysPage() {
 						<DialogTitle>Revoke API key</DialogTitle>
 						<DialogDescription>
 							Are you sure you want to revoke{" "}
-							<strong>{revokeTarget?.name}</strong>? Any requests using
-							this key will stop working immediately.
+							<strong>{revokeTarget?.name}</strong>? Any requests using this key
+							will stop working immediately.
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>

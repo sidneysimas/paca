@@ -207,7 +207,6 @@ function ProfilePage() {
 
 			{/* Change Password card */}
 			<ChangePasswordCard mustChange={user.must_change_password} />
-
 		</div>
 	);
 }

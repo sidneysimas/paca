@@ -22,9 +22,10 @@ export interface CreateAPIKeyResponse extends APIKey {
 }
 
 export async function listAPIKeys(): Promise<APIKey[]> {
-	const { data } = await apiClient.instance.get<SuccessEnvelope<APIKey[]>>(
-		"/users/me/api-keys",
-	);
+	const { data } =
+		await apiClient.instance.get<SuccessEnvelope<APIKey[]>>(
+			"/users/me/api-keys",
+		);
 	return data.data;
 }
 

@@ -105,7 +105,9 @@ export function UserMenu() {
 							<User className="size-4" />
 							My Profile
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => void navigate({ to: "/profile/api-keys" })}>
+						<DropdownMenuItem
+							onClick={() => void navigate({ to: "/profile/api-keys" })}
+						>
 							<Key className="size-4" />
 							API Keys
 						</DropdownMenuItem>

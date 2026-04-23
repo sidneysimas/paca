@@ -1,3 +1,4 @@
+// Package apikeydom provides domain entities for API key management.
 package apikeydom
 
 import (

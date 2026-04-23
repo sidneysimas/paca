@@ -77,7 +77,7 @@ func TestE2EAPIKey_CRUD(t *testing.T) {
 
 		// The raw key must start with the paca_ prefix.
 		if !strings.HasPrefix(rawKey, "paca_") {
-			t.Errorf("expected raw key to start with paca_, got %q", rawKey[:min(10, len(rawKey))])
+			t.Errorf("expected raw key to start with paca_, got %q", rawKey[:minInt(10, len(rawKey))])
 		}
 	})
 
@@ -309,7 +309,7 @@ func TestE2EAPIKey_MultipleKeys(t *testing.T) {
 // helpers
 // ---------------------------------------------------------------------------
 
-func min(a, b int) int {
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
