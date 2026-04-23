@@ -75,6 +75,9 @@ type TaskPRLinkRepository interface {
 	// UnlinkPRFromTask removes a task-PR association.
 	// Returns ErrPRLinkNotFound when the link does not exist.
 	UnlinkPRFromTask(ctx context.Context, taskID, prID uuid.UUID) error
+
+	// FindTaskIDsByPR returns all task IDs linked to the given pull request.
+	FindTaskIDsByPR(ctx context.Context, prID uuid.UUID) ([]uuid.UUID, error)
 }
 
 // TaskBranchRepository manages task ↔ git-branch associations.

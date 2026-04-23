@@ -555,6 +555,24 @@ func (s *Service) handlePREvent(ctx context.Context, linked *githubdom.LinkedRep
 		}
 	}
 
+	// Publish a PR-updated event for ALL actions so that connected clients
+	// see state changes (merged, closed, etc.) without reloading the page.
+	if s.publisher != nil {
+		taskIDs, _ := s.repo.FindTaskIDsByPR(ctx, pr.ID)
+		for _, tid := range taskIDs {
+			_ = s.publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
+				"type": events.TopicGitHubPRUpdated,
+				"payload": map[string]any{
+					"project_id": linked.ProjectID.String(),
+					"task_id":    tid.String(),
+					"repo_id":    linked.ID.String(),
+					"pr_number":  pr.PRNumber,
+					"action":     event.Action,
+				},
+			})
+		}
+	}
+
 	return nil
 }
 

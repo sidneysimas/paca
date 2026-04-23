@@ -308,6 +308,24 @@ func (r *GitHubRepository) UnlinkPRFromTask(ctx context.Context, taskID, prID uu
 	return nil
 }
 
+func (r *GitHubRepository) FindTaskIDsByPR(ctx context.Context, prID uuid.UUID) ([]uuid.UUID, error) {
+	var links []githubTaskPRLinkModel
+	if err := r.db.WithContext(ctx).
+		Where("pull_request_id = ?", prID.String()).
+		Find(&links).Error; err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, 0, len(links))
+	for _, l := range links {
+		id, err := uuid.Parse(l.TaskID)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 // -------------------------------------------------------------------------
 // TaskBranchRepository
 // -------------------------------------------------------------------------

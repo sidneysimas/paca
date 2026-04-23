@@ -93,4 +93,9 @@ const (
 	// — either automatically on "opened"/"reopened" webhook events.
 	// Payload includes project_id, task_id, repo_id and pr_number.
 	TopicGitHubPRLinked = "github.pr.linked"
+
+	// TopicGitHubPRUpdated is published when a cached pull request is updated
+	// via a webhook event (state change such as merged/closed/reopened, etc.).
+	// Payload includes project_id, task_id, repo_id, pr_number and action.
+	TopicGitHubPRUpdated = "github.pr.updated"
 )
