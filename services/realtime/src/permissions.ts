@@ -34,6 +34,9 @@ export function projectRoomName(
 export function eventNamespace(type: string): EventNamespace | undefined {
 	if (type.startsWith("task.")) return "tasks";
 	if (type.startsWith("doc.")) return "docs";
+	// github.branch.* and github.pr.* events are delivered to the tasks room
+	// because they are task-scoped and require the same tasks.read permission.
+	if (type.startsWith("github.")) return "tasks";
 	return undefined;
 }
 

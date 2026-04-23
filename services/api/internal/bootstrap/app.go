@@ -4,6 +4,7 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/paca/api/internal/platform/database"
 	"github.com/paca/api/internal/platform/logger"
 	"github.com/paca/api/internal/platform/messaging"
+	"github.com/paca/api/internal/platform/secret"
 	"github.com/paca/api/internal/platform/storage"
 	jwttoken "github.com/paca/api/internal/platform/token"
 	pgRepo "github.com/paca/api/internal/repository/postgres"
@@ -28,6 +30,7 @@ import (
 	attachmentsvc "github.com/paca/api/internal/service/attachment"
 	authsvc "github.com/paca/api/internal/service/auth"
 	docsvc "github.com/paca/api/internal/service/doc"
+	githubsvc "github.com/paca/api/internal/service/github"
 	globalrolesvc "github.com/paca/api/internal/service/globalrole"
 	notificationsvc "github.com/paca/api/internal/service/notification"
 	projectsvc "github.com/paca/api/internal/service/project"
@@ -149,6 +152,24 @@ func New(cfg *config.Config) (*App, error) {
 
 	attachmentService := attachmentsvc.New(attachmentRepo, attachmentsvc.NewTaskOwnerChecker(taskRepo), storageClient, cfg.Storage.Bucket)
 
+	// GitHub integration — optional; only wired when GITHUB_ENCRYPTION_KEY is set.
+	var githubHandler *handler.GitHubHandler
+	if cfg.GitHub.EncryptionKey != "" {
+		ghKeyBytes, err := hex.DecodeString(cfg.GitHub.EncryptionKey)
+		if err != nil {
+			return nil, fmt.Errorf("bootstrap: github: invalid GITHUB_ENCRYPTION_KEY (must be 64 hex chars): %w", err)
+		}
+		ghEncryptor, err := secret.NewEncryptor(ghKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("bootstrap: github: %w", err)
+		}
+		githubRepo := pgRepo.NewGitHubRepository(db)
+		githubService := githubsvc.New(githubRepo, ghEncryptor, cfg.GitHub.WebhookURL).
+			WithTaskLookup(&projectTaskLookup{projectRepo: projectRepo, taskRepo: taskRepo}).
+			WithPublisher(publisher)
+		githubHandler = handler.NewGitHubHandler(githubService)
+	}
+
 	// --- Handlers -----------------------------------------------------------
 	cookieCfg := handler.CookieConfig{
 		Secure:            cfg.Server.CookieSecure,
@@ -173,6 +194,7 @@ func New(cfg *config.Config) (*App, error) {
 		Document:     handler.NewDocumentHandler(docService, docActivityService),
 		DocFile:      handler.NewDocFileHandler(attachmentService),
 		Notification: handler.NewNotificationHandler(notificationService),
+		GitHub:       githubHandler,
 		Log:          log,
 	}
 
@@ -276,6 +298,26 @@ func seedAdmin(ctx context.Context, repo userdom.Repository, globalRoleRepo *pgR
 
 	log.Info("admin account created", "username", cfg.Username)
 	return nil
+}
+
+// projectTaskLookup implements githubsvc.TaskLookup using the project and task
+// repositories.  It is used by the GitHub service to resolve a task-ID-prefix
+// pattern (e.g. "PROJ-42") found in a branch name to the corresponding task.
+type projectTaskLookup struct {
+	projectRepo *pgRepo.ProjectRepository
+	taskRepo    *pgRepo.TaskRepository
+}
+
+func (l *projectTaskLookup) FindTaskByProjectPrefixAndNumber(ctx context.Context, prefix string, number int64) (uuid.UUID, uuid.UUID, error) {
+	project, err := l.projectRepo.FindByTaskIDPrefix(ctx, prefix)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, err
+	}
+	task, err := l.taskRepo.FindTaskByNumber(ctx, project.ID, number)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, err
+	}
+	return task.ID, task.ProjectID, nil
 }
 
 func seedDefaultRoles(

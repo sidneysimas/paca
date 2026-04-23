@@ -148,6 +148,23 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id uuid.UUID) (*projec
 	return toProjectEntity(&record)
 }
 
+// FindByTaskIDPrefix returns the first project whose task_id_prefix matches
+// the given prefix (case-insensitive).  Returns projectdom.ErrNotFound when
+// no match exists.
+func (r *ProjectRepository) FindByTaskIDPrefix(ctx context.Context, prefix string) (*projectdom.Project, error) {
+	var record projectRecord
+	err := r.db.WithContext(ctx).
+		Where("upper(task_id_prefix) = upper(?)", prefix).
+		First(&record).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, projectdom.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("project repo: find by task id prefix: %w", err)
+	}
+	return toProjectEntity(&record)
+}
+
 // Create persists a new project.
 func (r *ProjectRepository) Create(ctx context.Context, p *projectdom.Project) error {
 	rec, err := fromProjectEntity(p)

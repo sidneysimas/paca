@@ -59,6 +59,21 @@ export function useProjectRealtime(projectId: string): void {
 				});
 				return;
 			}
+
+			// github.branch.linked / github.pr.linked — refresh the affected
+			// task's branch and PR lists using the task_id from the payload.
+			if (type.startsWith("github.")) {
+				const taskId =
+					typeof event.payload.task_id === "string"
+						? event.payload.task_id
+						: null;
+				if (taskId) {
+					void queryClient.invalidateQueries({
+						queryKey: ["projects", projectId, "tasks", taskId, "github"],
+					});
+				}
+				return;
+			}
 		}
 
 		socket.on("event", handleEvent);

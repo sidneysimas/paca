@@ -4,6 +4,7 @@ package presenter
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 	attachmentdom "github.com/paca/api/internal/domain/attachment"
 	domainauth "github.com/paca/api/internal/domain/auth"
 	docdom "github.com/paca/api/internal/domain/doc"
+	githubdom "github.com/paca/api/internal/domain/github"
 	globalroledom "github.com/paca/api/internal/domain/globalrole"
 	notificationdom "github.com/paca/api/internal/domain/notification"
 	projectdom "github.com/paca/api/internal/domain/project"
@@ -60,6 +62,7 @@ func Error(c *gin.Context, err error) {
 	// For internal/unexpected errors, avoid leaking implementation details to clients.
 	publicMsg := err.Error()
 	if status == http.StatusInternalServerError || code == apierr.CodeInternalError {
+		slog.Error("unhandled error", "error", err, "request_id", requestID(c))
 		publicMsg = "internal server error"
 	}
 
@@ -227,6 +230,32 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeDocCommentTextInvalid
 	case errors.Is(err, notificationdom.ErrNotificationNotFound):
 		return http.StatusNotFound, apierr.CodeNotificationNotFound
+	case errors.Is(err, githubdom.ErrIntegrationNotFound):
+		return http.StatusNotFound, apierr.CodeGitHubIntegrationNotFound
+	case errors.Is(err, githubdom.ErrRepositoryNotFound):
+		return http.StatusNotFound, apierr.CodeGitHubRepositoryNotFound
+	case errors.Is(err, githubdom.ErrPRNotFound):
+		return http.StatusNotFound, apierr.CodeGitHubPRNotFound
+	case errors.Is(err, githubdom.ErrPRLinkNotFound):
+		return http.StatusNotFound, apierr.CodeGitHubPRLinkNotFound
+	case errors.Is(err, githubdom.ErrPRAlreadyLinked):
+		return http.StatusConflict, apierr.CodeGitHubPRAlreadyLinked
+	case errors.Is(err, githubdom.ErrInvalidToken):
+		return http.StatusUnprocessableEntity, apierr.CodeGitHubInvalidToken
+	case errors.Is(err, githubdom.ErrWebhookURLRequired):
+		return http.StatusInternalServerError, apierr.CodeGitHubWebhookURLRequired
+	case errors.Is(err, githubdom.ErrRepoNotAccessible):
+		return http.StatusNotFound, apierr.CodeGitHubRepoNotAccessible
+	case errors.Is(err, githubdom.ErrRepoAlreadyLinked):
+		return http.StatusConflict, apierr.CodeGitHubRepoAlreadyLinked
+	case errors.Is(err, githubdom.ErrWebhookCreationFailed):
+		return http.StatusBadRequest, apierr.CodeGitHubWebhookCreationFailed
+	case errors.Is(err, githubdom.ErrWebhookURLNotPublic):
+		return http.StatusUnprocessableEntity, apierr.CodeGitHubWebhookURLNotPublic
+	case errors.Is(err, githubdom.ErrBranchAlreadyLinked):
+		return http.StatusConflict, apierr.CodeGitHubBranchAlreadyLinked
+	case errors.Is(err, githubdom.ErrTokenInsufficientPermissions):
+		return http.StatusForbidden, apierr.CodeGitHubTokenInsufficientPermissions
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -332,6 +361,28 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusForbidden
 	case apierr.CodeNotificationNotFound:
 		return http.StatusNotFound
+	case apierr.CodeGitHubIntegrationNotFound,
+		apierr.CodeGitHubRepositoryNotFound,
+		apierr.CodeGitHubPRNotFound,
+		apierr.CodeGitHubPRLinkNotFound:
+		return http.StatusNotFound
+	case apierr.CodeGitHubPRAlreadyLinked,
+		apierr.CodeGitHubBranchAlreadyLinked:
+		return http.StatusConflict
+	case apierr.CodeGitHubInvalidToken:
+		return http.StatusUnprocessableEntity
+	case apierr.CodeGitHubWebhookURLRequired:
+		return http.StatusInternalServerError
+	case apierr.CodeGitHubRepoNotAccessible:
+		return http.StatusNotFound
+	case apierr.CodeGitHubRepoAlreadyLinked:
+		return http.StatusConflict
+	case apierr.CodeGitHubWebhookCreationFailed:
+		return http.StatusBadRequest
+	case apierr.CodeGitHubWebhookURLNotPublic:
+		return http.StatusUnprocessableEntity
+	case apierr.CodeGitHubTokenInsufficientPermissions:
+		return http.StatusForbidden
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
 	case apierr.CodePasswordChangeRequired:

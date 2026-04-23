@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { linkedRepositoriesQueryOptions } from "@/lib/github-api";
 import {
 	createTask,
 	epicTasksQueryOptions,
@@ -25,10 +26,12 @@ import { getPriority } from "../priority";
 import { TaskActivityPane as ActivityPane } from "./activity-pane";
 import { AttachmentsSection } from "./attachments-section";
 import { BDDScenariosSection } from "./bdd-scenarios-section";
+import { BranchesSection } from "./branches-section";
 import { ChecklistsSection } from "./checklists-section";
 import { DescriptionSection } from "./description-section";
 import { mapApiFieldToUi } from "./helpers";
 import { PropertiesPanel } from "./properties-panel";
+import { PullRequestsSection } from "./pull-requests-section";
 import { SubtasksSection } from "./subtasks-section";
 import { TaskHeader } from "./task-header";
 import type { TaskDetailModalProps } from "./types";
@@ -131,6 +134,13 @@ export function TaskDetailModal({
 		...taskQueryOptions(projectId ?? "", task?.parent_task_id ?? ""),
 		enabled: !!projectId && !!task?.parent_task_id && (open || mode === "page"),
 	});
+
+	// Fetch linked repos to determine whether GitHub sections should be shown
+	const { data: linkedRepos = [] } = useQuery({
+		...linkedRepositoriesQueryOptions(projectId ?? ""),
+		enabled: !!projectId && (open || mode === "page"),
+	});
+	const hasLinkedRepo = linkedRepos.length > 0;
 
 	// ── Title inline edit ─────────────────────────────────────────────────────
 	const [editingTitle, setEditingTitle] = useState(false);
@@ -382,6 +392,27 @@ export function TaskDetailModal({
 							taskId={task.id}
 							canEdit={canEdit}
 						/>
+
+						{/* Branches */}
+						{projectId && hasLinkedRepo && (
+							<BranchesSection
+								projectId={projectId}
+								taskId={task.id}
+								taskIdPrefix={taskIdPrefix}
+								taskNumber={task.task_number ?? 0}
+								taskTitle={task.title}
+								canEdit={canEdit}
+							/>
+						)}
+
+						{/* Pull Requests */}
+						{projectId && hasLinkedRepo && (
+							<PullRequestsSection
+								projectId={projectId}
+								taskId={task.id}
+								canEdit={canEdit}
+							/>
+						)}
 
 						{/* Bottom breathing room */}
 						<div className="h-8" />
