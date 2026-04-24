@@ -17,12 +17,12 @@ vi.mock("./api-client", () => ({
 }));
 
 import {
+	type APIKey,
 	apiKeysQueryOptions,
+	type CreateAPIKeyResponse,
 	createAPIKey,
 	listAPIKeys,
 	revokeAPIKey,
-	type APIKey,
-	type CreateAPIKeyResponse,
 } from "./apikey-api";
 
 describe("apikey-api", () => {
@@ -47,6 +47,11 @@ describe("apikey-api", () => {
 
 			await expect(listAPIKeys()).resolves.toEqual([mockKey]);
 			expect(mockGet).toHaveBeenCalledWith("/users/me/api-keys");
+		});
+
+		it("throws when the API returns an error", async () => {
+			mockGet.mockRejectedValue(new Error("Network Error"));
+			await expect(listAPIKeys()).rejects.toThrow("Network Error");
 		});
 	});
 
@@ -75,9 +80,19 @@ describe("apikey-api", () => {
 				data: { data: created, error_code: null, message: "ok" },
 			});
 
-			const payload = { name: "Expiring Key", expires_at: "2027-01-01T00:00:00.000Z" };
+			const payload = {
+				name: "Expiring Key",
+				expires_at: "2027-01-01T00:00:00.000Z",
+			};
 			await expect(createAPIKey(payload)).resolves.toEqual(created);
 			expect(mockPost).toHaveBeenCalledWith("/users/me/api-keys", payload);
+		});
+
+		it("throws when creation fails", async () => {
+			mockPost.mockRejectedValue(new Error("Validation Failed"));
+			await expect(createAPIKey({ name: "" })).rejects.toThrow(
+				"Validation Failed",
+			);
 		});
 	});
 
@@ -88,6 +103,11 @@ describe("apikey-api", () => {
 			await expect(revokeAPIKey("key-1")).resolves.toBeUndefined();
 			expect(mockDelete).toHaveBeenCalledWith("/users/me/api-keys/key-1");
 		});
+
+		it("throws when revocation fails", async () => {
+			mockDelete.mockRejectedValue(new Error("Not Found"));
+			await expect(revokeAPIKey("invalid")).rejects.toThrow("Not Found");
+		});
 	});
 
 	describe("apiKeysQueryOptions", () => {
@@ -95,8 +115,22 @@ describe("apikey-api", () => {
 			expect(apiKeysQueryOptions.queryKey).toEqual(["api-keys"]);
 		});
 
-		it("uses listAPIKeys as the query function", () => {
-			expect(typeof apiKeysQueryOptions.queryFn).toBe("function");
+		it("uses listAPIKeys as the query function", async () => {
+			mockGet.mockResolvedValue({
+				data: { data: [mockKey], error_code: null, message: "ok" },
+			});
+
+			if (typeof apiKeysQueryOptions.queryFn !== "function") {
+				throw new Error("queryFn is not a function");
+			}
+
+			// @ts-expect-error - queryFn type can be complex but it's a function here
+			const result = await apiKeysQueryOptions.queryFn({
+				queryKey: ["api-keys"],
+				meta: undefined,
+			});
+			expect(result).toEqual([mockKey]);
+			expect(mockGet).toHaveBeenCalledWith("/users/me/api-keys");
 		});
 	});
 });
