@@ -1,5 +1,5 @@
+import type { Document, Project, Sprint, Task } from "../types/index.js";
 import { blocknoteToMarkdown } from "./converters.js";
-import type { Task, Document, Project, Sprint } from "../types/index.js";
 
 /**
  * Formats a task object into a readable string.
@@ -7,11 +7,11 @@ import type { Task, Document, Project, Sprint } from "../types/index.js";
  * @returns Formatted task string with description in Markdown
  */
 export function formatTask(task: Task): string {
-  const description = task.description
-    ? blocknoteToMarkdown(task.description)
-    : "No description";
+	const description = task.description
+		? blocknoteToMarkdown(task.description)
+		: "No description";
 
-  return `Task #${task.task_number}: ${task.title}
+	return `Task #${task.task_number}: ${task.title}
 ID: ${task.id}
 Status: ${task.status_id || "None"}
 Type: ${task.task_type_id || "None"}
@@ -35,9 +35,9 @@ ${description}`;
  * @returns Formatted document string with content in Markdown
  */
 export function formatDocument(doc: Document): string {
-  const content = doc.content ? blocknoteToMarkdown(doc.content) : "No content";
+	const content = doc.content ? blocknoteToMarkdown(doc.content) : "No content";
 
-  return `Document: ${doc.title}
+	return `Document: ${doc.title}
 ID: ${doc.id}
 Project: ${doc.project_id || "None"}
 Folder: ${doc.folder_id || "None"}
@@ -57,7 +57,7 @@ ${content}`;
  * @returns Formatted project string
  */
 export function formatProject(project: Project): string {
-  return `Project: ${project.name}
+	return `Project: ${project.name}
 ID: ${project.id}
 Description: ${project.description || "No description"}
 Task ID Prefix: ${project.task_id_prefix || "None"}
@@ -71,7 +71,7 @@ Created: ${project.created_at}`;
  * @returns Formatted sprint string
  */
 export function formatSprint(sprint: Sprint): string {
-  return `Sprint: ${sprint.name}
+	return `Sprint: ${sprint.name}
 ID: ${sprint.id}
 Project: ${sprint.project_id}
 Start Date: ${sprint.start_date || "None"}
@@ -90,9 +90,9 @@ Updated: ${sprint.updated_at}`;
  * @returns Formatted string with all items
  */
 export function formatList<T>(
-  items: T[],
-  formatter: (item: T) => string,
-  separator: string = "\n\n---\n\n"
+	items: T[],
+	formatter: (item: T) => string,
+	separator: string = "\n\n---\n\n",
 ): string {
-  return items.map(formatter).join(separator);
+	return items.map(formatter).join(separator);
 }
