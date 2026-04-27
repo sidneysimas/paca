@@ -1,7 +1,6 @@
 import type {
 	Attachment,
 	BulkMoveTasksInput,
-	CompleteUploadInput,
 	CreateCustomFieldInput,
 	CreateViewInput,
 	CustomFieldDefinition,
@@ -276,36 +275,6 @@ export class PacaAPIViewsClient {
 			return response;
 		}
 		return response.items || response.attachments || response.data || [];
-	}
-
-	async initiateUpload(
-		projectId: string,
-		taskId: string,
-		fileName: string,
-		fileSize: number,
-		mimeType: string,
-	): Promise<any> {
-		return this.post(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/attachments/initiate-upload`,
-			{ file_name: fileName, content_type: mimeType, file_size: fileSize },
-		);
-	}
-
-	async completeUpload(
-		projectId: string,
-		taskId: string,
-		input: CompleteUploadInput,
-	): Promise<Attachment> {
-		const body: any = {
-			file_id: input.upload_id,
-			upload_id: input.upload_id,
-			parts: input.parts,
-		};
-
-		return this.post(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/attachments/complete-upload`,
-			body,
-		);
 	}
 
 	async getAttachmentDownloadURL(

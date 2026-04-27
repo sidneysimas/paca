@@ -597,24 +597,6 @@ export interface UploadSession {
 	};
 }
 
-export interface InitiateUploadResponse {
-	upload_id: string;
-	upload_url: string;
-	key: string;
-}
-
-export interface CompleteUploadInput {
-	upload_id: string;
-	key: string;
-	file_name: string;
-	file_size: number;
-	content_type: string;
-	parts?: Array<{
-		part_number: number;
-		etag: string;
-	}>;
-}
-
 // ==================== Task Activities & Comments ====================
 
 export interface TaskActivity {
