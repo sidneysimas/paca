@@ -62,6 +62,7 @@ export interface Task {
 	parent_task_id?: string | null;
 	description?: unknown[] | null;
 	importance: number;
+	story_points?: number | null;
 	assignee_id?: string | null;
 	reporter_id?: string | null;
 	custom_fields: Record<string, unknown>;
@@ -91,6 +92,7 @@ export interface CreateTaskInput {
 	assignee_id?: string | null;
 	parent_task_id?: string | null;
 	importance?: number;
+	story_points?: number | null;
 	tags?: string[];
 	start_date?: string | null;
 	due_date?: string | null;
@@ -106,6 +108,7 @@ export interface UpdateTaskInput {
 	reporter_id?: string | null;
 	parent_task_id?: string | null;
 	importance?: number;
+	story_points?: number | null;
 	tags?: string[];
 	start_date?: string | null;
 	due_date?: string | null;

@@ -137,6 +137,37 @@ func (o OptionalJSON) Ptr() *json.RawMessage {
 	return &o.Value
 }
 
+// OptionalInt is a JSON-decodable field for nullable integer columns.
+type OptionalInt struct {
+	Set   bool
+	Value *int
+}
+
+// UnmarshalJSON implements json.Unmarshaler. It marks the field as Set and
+// decodes the value, treating JSON null as a nil pointer.
+func (o *OptionalInt) UnmarshalJSON(data []byte) error {
+	o.Set = true
+	if string(data) == "null" {
+		o.Value = nil
+		return nil
+	}
+	var n int
+	if err := json.Unmarshal(data, &n); err != nil {
+		return fmt.Errorf("invalid int value: %w", err)
+	}
+	o.Value = &n
+	return nil
+}
+
+// Ptr returns a **int for use in patch inputs: nil when absent, &nil when
+// explicitly null, or a pointer-to-pointer when set to a value.
+func (o OptionalInt) Ptr() **int {
+	if !o.Set {
+		return nil
+	}
+	return &o.Value
+}
+
 // --- Task Type DTOs ---------------------------------------------------------
 
 // CreateTaskTypeRequest is the body for POST /projects/:projectId/task-types.
@@ -242,6 +273,7 @@ type CreateTaskRequest struct {
 	ParentTaskID *uuid.UUID       `json:"parent_task_id"`
 	Description  *json.RawMessage `json:"description"`
 	Importance   int              `json:"importance"`
+	StoryPoints  *int             `json:"story_points"`
 	AssigneeID   *uuid.UUID       `json:"assignee_id"`
 	ReporterID   *uuid.UUID       `json:"reporter_id"`
 	CustomFields map[string]any   `json:"custom_fields"`
@@ -272,6 +304,7 @@ type UpdateTaskRequest struct {
 	ParentTaskID OptionalUUID    `json:"parent_task_id"`
 	Description  OptionalJSON    `json:"description"`
 	Importance   *int            `json:"importance"`
+	StoryPoints  OptionalInt     `json:"story_points"`
 	AssigneeID   OptionalUUID    `json:"assignee_id"`
 	ReporterID   OptionalUUID    `json:"reporter_id"`
 	CustomFields *map[string]any `json:"custom_fields"`
@@ -295,6 +328,7 @@ type TaskResponse struct {
 	ParentTaskID *uuid.UUID      `json:"parent_task_id,omitempty"`
 	Description  json.RawMessage `json:"description,omitempty"`
 	Importance   int             `json:"importance"`
+	StoryPoints  *int            `json:"story_points,omitempty"`
 	AssigneeID   *uuid.UUID      `json:"assignee_id,omitempty"`
 	ReporterID   *uuid.UUID      `json:"reporter_id,omitempty"`
 	CustomFields map[string]any  `json:"custom_fields"`
@@ -328,6 +362,7 @@ func TaskFromEntity(t *taskdom.Task) TaskResponse {
 		ParentTaskID: t.ParentTaskID,
 		Description:  t.Description,
 		Importance:   t.Importance,
+		StoryPoints:  t.StoryPoints,
 		AssigneeID:   t.AssigneeID,
 		ReporterID:   t.ReporterID,
 		CustomFields: cf,

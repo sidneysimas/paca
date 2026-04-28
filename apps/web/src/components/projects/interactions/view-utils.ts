@@ -247,6 +247,14 @@ export function sortTasksByConfig(
 			if (!bd) return -1;
 			return ad.localeCompare(bd);
 		}
+		if (sortBy === "story_points") {
+			const av = a.story_points ?? null;
+			const bv = b.story_points ?? null;
+			if (av === null && bv === null) return 0;
+			if (av === null) return 1; // nulls last
+			if (bv === null) return -1;
+			return bv - av; // descending (higher points first)
+		}
 
 		// Custom field sort
 		const cf = ctx.customFields.find((f) => f.field_key === sortBy);
@@ -285,6 +293,8 @@ export function computeFieldSum(
 	customFields: CustomFieldDefinition[],
 ): number {
 	if (!fieldSum || fieldSum === "count") return tasks.length;
+	if (fieldSum === "story_points")
+		return tasks.reduce((acc, t) => acc + (t.story_points ?? 0), 0);
 	const cf = customFields.find((f) => f.field_key === fieldSum);
 	if (!cf) return tasks.length;
 	return tasks.reduce((acc, t) => {
@@ -307,6 +317,7 @@ export const BUILTIN_COLUMN_BY: { key: string; label: string }[] = [
 export const BUILTIN_SORT_BY: { key: string; label: string }[] = [
 	{ key: "manual", label: "Manual" },
 	{ key: "importance", label: "Importance" },
+	{ key: "story_points", label: "Story Points" },
 	{ key: "title", label: "Title" },
 	{ key: "created", label: "Created" },
 	{ key: "start_date", label: "Start Date" },
@@ -337,6 +348,7 @@ export const BUILTIN_FIELDS: { key: string; label: string }[] = [
 	{ key: "assignee", label: "Assignee" },
 	{ key: "status", label: "Status" },
 	{ key: "importance", label: "Importance" },
+	{ key: "story_points", label: "Story Points" },
 	{ key: "type", label: "Type" },
 	{ key: "epic", label: "Epic" },
 	{ key: "reporter", label: "Reporter" },
@@ -349,7 +361,12 @@ export const BUILTIN_FIELDS: { key: string; label: string }[] = [
  * Default visible fields (excluding title, which is always shown).
  * Used when a view has no field config saved yet.
  */
-export const DEFAULT_VISIBLE_FIELDS = ["assignee", "importance", "type"];
+export const DEFAULT_VISIBLE_FIELDS = [
+	"assignee",
+	"importance",
+	"story_points",
+	"type",
+];
 
 export function buildColumnByOptions(
 	customFields: CustomFieldDefinition[],
@@ -388,7 +405,11 @@ export function buildFieldSumOptions(
 	const custom = customFields
 		.filter((cf) => cf.field_type === "number")
 		.map((cf) => ({ key: cf.field_key, label: cf.display_name }));
-	return [FIELD_SUM_COUNT, ...custom];
+	return [
+		FIELD_SUM_COUNT,
+		{ key: "story_points", label: "Story Points" },
+		...custom,
+	];
 }
 
 export function buildSliceByOptions(
@@ -416,6 +437,7 @@ export type TaskFieldUpdate = Partial<{
 	status_id: string | null;
 	assignee_id: string | null;
 	importance: number;
+	story_points: number | null;
 	task_type_id: string | null;
 	custom_fields: Record<string, unknown>;
 	sprint_id: string | null;

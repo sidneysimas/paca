@@ -1014,6 +1014,121 @@ func TestUpdateTask_StatusChangePreservesSprintID(t *testing.T) {
 	}
 }
 
+func TestCreateTask_StoryPoints(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	sp := 5
+	task, err := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID:   projectID,
+		Title:       "Implement login",
+		Importance:  3,
+		StoryPoints: &sp,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if task.StoryPoints == nil || *task.StoryPoints != 5 {
+		t.Errorf("expected StoryPoints=5, got %v", task.StoryPoints)
+	}
+}
+
+func TestCreateTask_StoryPoints_Nil(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	task, err := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID: projectID,
+		Title:     "No estimates task",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if task.StoryPoints != nil {
+		t.Errorf("expected StoryPoints=nil, got %v", task.StoryPoints)
+	}
+}
+
+func TestUpdateTask_StoryPoints(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	task, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID: projectID,
+		Title:     "Task",
+	})
+
+	sp := 8
+	spPtr := &sp
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
+		StoryPoints: &spPtr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.StoryPoints == nil || *updated.StoryPoints != 8 {
+		t.Errorf("expected StoryPoints=8, got %v", updated.StoryPoints)
+	}
+}
+
+func TestUpdateTask_StoryPointsClearedToNil(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	sp := 3
+	task, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID:   projectID,
+		Title:       "Task with SP",
+		StoryPoints: &sp,
+	})
+
+	// Explicitly set story_points to null.
+	nilPtr := (*int)(nil)
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
+		StoryPoints: &nilPtr,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.StoryPoints != nil {
+		t.Errorf("expected StoryPoints=nil after clear, got %v", updated.StoryPoints)
+	}
+}
+
+func TestUpdateTask_AbsentStoryPointsPreservesValue(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	sp := 13
+	task, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{
+		ProjectID:   projectID,
+		Title:       "Task",
+		StoryPoints: &sp,
+	})
+
+	// Update importance only — story_points must remain unchanged.
+	newImportance := 2
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
+		Importance: &newImportance,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.StoryPoints == nil || *updated.StoryPoints != 13 {
+		t.Errorf("expected StoryPoints=13 to be preserved, got %v", updated.StoryPoints)
+	}
+}
+
 func TestUpdateTaskStatus_NameUpdate(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeTaskRepo()

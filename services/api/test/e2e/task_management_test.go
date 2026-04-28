@@ -175,7 +175,8 @@ func TestE2ETaskManagement_CRUD(t *testing.T) {
 					"children": []any{},
 				},
 			},
-			"importance": 3,
+			"importance":   3,
+			"story_points": 5,
 		})
 		req := mustRequest(env.ctx, t, http.MethodPost,
 			fmt.Sprintf("%s/api/v1/projects/%s/tasks", env.base, projID), body)
@@ -194,6 +195,9 @@ func TestE2ETaskManagement_CRUD(t *testing.T) {
 		taskNumber, _ = data["task_number"].(float64)
 		if taskNumber < 1 {
 			t.Errorf("expected task_number >= 1, got %v", taskNumber)
+		}
+		if sp, _ := data["story_points"].(float64); sp != 5 {
+			t.Errorf("expected story_points=5 in create response, got %v", data["story_points"])
 		}
 	})
 

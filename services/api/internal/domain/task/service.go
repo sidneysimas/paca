@@ -107,6 +107,7 @@ type CreateTaskInput struct {
 	Title        string
 	Description  json.RawMessage
 	Importance   int
+	StoryPoints  *int
 	AssigneeID   *uuid.UUID
 	ReporterID   *uuid.UUID
 	CustomFields map[string]any
@@ -133,6 +134,7 @@ type UpdateTaskInput struct {
 	Title        string
 	Description  *json.RawMessage
 	Importance   *int
+	StoryPoints  **int
 	AssigneeID   **uuid.UUID
 	ReporterID   **uuid.UUID
 	CustomFields *map[string]any

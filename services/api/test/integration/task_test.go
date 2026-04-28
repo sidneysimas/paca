@@ -647,6 +647,18 @@ func taskIDFrom(t *testing.T, field string, body []byte) string {
 	return id
 }
 
+// decodeTaskData decodes data (map) from a handler JSON response.
+func decodeTaskData(t *testing.T, body []byte) map[string]any {
+	t.Helper()
+	var env struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(body, &env); err != nil {
+		t.Fatalf("decode task response: %v", err)
+	}
+	return env.Data
+}
+
 // taskListCount decodes data.items and returns its length.
 func taskListCount(t *testing.T, body []byte) int {
 	t.Helper()
@@ -1125,12 +1137,19 @@ func TestIntegrationTasks_CRUD(t *testing.T) {
 				"children": []any{},
 			},
 		},
-		"importance": 3,
+		"importance":   3,
+		"story_points": 5,
 	}))
 	if createW.Code != http.StatusCreated {
 		t.Fatalf("create task: expected 201, got %d (%s)", createW.Code, createW.Body.String())
 	}
 	taskID := taskIDFrom(t, "task", createW.Body.Bytes())
+
+	// Verify story_points in create response.
+	createData := decodeTaskData(t, createW.Body.Bytes())
+	if sp, _ := createData["story_points"].(float64); sp != 5 {
+		t.Errorf("expected story_points=5 in create response, got %v", createData["story_points"])
+	}
 
 	// List
 	listW := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
@@ -1149,10 +1168,27 @@ func TestIntegrationTasks_CRUD(t *testing.T) {
 
 	// Update
 	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+taskID, tok, map[string]any{
-		"title": "Implement secure login",
+		"title":        "Implement secure login",
+		"story_points": 8,
 	}))
 	if patchW.Code != http.StatusOK {
 		t.Fatalf("update task: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+	patchData := decodeTaskData(t, patchW.Body.Bytes())
+	if sp, _ := patchData["story_points"].(float64); sp != 8 {
+		t.Errorf("expected story_points=8 after patch, got %v", patchData["story_points"])
+	}
+
+	// Clear story_points with null.
+	clearPatchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+taskID, tok, map[string]any{
+		"story_points": nil,
+	}))
+	if clearPatchW.Code != http.StatusOK {
+		t.Fatalf("clear story_points: expected 200, got %d (%s)", clearPatchW.Code, clearPatchW.Body.String())
+	}
+	clearData := decodeTaskData(t, clearPatchW.Body.Bytes())
+	if _, ok := clearData["story_points"]; ok && clearData["story_points"] != nil {
+		t.Errorf("expected story_points=null after clear, got %v", clearData["story_points"])
 	}
 
 	// Delete

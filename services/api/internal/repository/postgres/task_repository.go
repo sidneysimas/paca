@@ -55,6 +55,7 @@ type taskRecord struct {
 	Title        string          `gorm:"not null"`
 	Description  json.RawMessage `gorm:"type:jsonb"`
 	Importance   int             `gorm:"not null;default:0"`
+	StoryPoints  *int            `gorm:"column:story_points"`
 	AssigneeID   *string         `gorm:"type:uuid;column:assignee_id"`
 	ReporterID   *string         `gorm:"type:uuid;column:reporter_id"`
 	CustomFields []byte          `gorm:"type:jsonb;not null;column:custom_fields"`
@@ -441,6 +442,7 @@ func (r *TaskRepository) CreateTask(ctx context.Context, t *taskdom.Task) error 
 			Title:        t.Title,
 			Description:  t.Description,
 			Importance:   t.Importance,
+			StoryPoints:  t.StoryPoints,
 			AssigneeID:   uuidPtrToStrPtr(t.AssigneeID),
 			ReporterID:   uuidPtrToStrPtr(t.ReporterID),
 			CustomFields: cf,
@@ -479,6 +481,7 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, t *taskdom.Task) error 
 		"title":          t.Title,
 		"description":    t.Description,
 		"importance":     t.Importance,
+		"story_points":   t.StoryPoints,
 		"assignee_id":    uuidPtrToStrPtr(t.AssigneeID),
 		"reporter_id":    uuidPtrToStrPtr(t.ReporterID),
 		"custom_fields":  cf,
@@ -605,6 +608,7 @@ func toTaskEntity(r *taskRecord) (*taskdom.Task, error) {
 		Title:        r.Title,
 		Description:  r.Description,
 		Importance:   r.Importance,
+		StoryPoints:  r.StoryPoints,
 		AssigneeID:   strPtrToUUIDPtr(r.AssigneeID),
 		ReporterID:   strPtrToUUIDPtr(r.ReporterID),
 		CustomFields: cf,

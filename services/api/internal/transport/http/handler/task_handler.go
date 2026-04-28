@@ -466,6 +466,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		Title:        req.Title,
 		Description:  req.NormalizedDescription(),
 		Importance:   req.Importance,
+		StoryPoints:  req.StoryPoints,
 		AssigneeID:   req.AssigneeID,
 		ReporterID:   req.ReporterID,
 		CustomFields: req.CustomFields,
@@ -533,6 +534,7 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		Title:        req.Title,
 		Description:  req.Description.Ptr(),
 		Importance:   req.Importance,
+		StoryPoints:  req.StoryPoints.Ptr(),
 		AssigneeID:   req.AssigneeID.Ptr(),
 		ReporterID:   req.ReporterID.Ptr(),
 		CustomFields: req.CustomFields,
@@ -609,6 +611,14 @@ func (h *TaskHandler) taskChangedFields(ctx context.Context, old *taskdom.Task, 
 
 	if req.Importance != nil && *req.Importance != old.Importance {
 		changes = append(changes, taskdom.FieldChange{Field: "importance", Old: old.Importance, New: *req.Importance})
+	}
+
+	if req.StoryPoints.Set {
+		oldVal := intPtrToStr(old.StoryPoints)
+		newVal := intPtrToStr(req.StoryPoints.Value)
+		if oldVal != newVal {
+			changes = append(changes, taskdom.FieldChange{Field: "story_points", Old: old.StoryPoints, New: req.StoryPoints.Value})
+		}
 	}
 
 	if req.AssigneeID.Set {
@@ -716,6 +726,14 @@ func timePtrToStr(t *time.Time) string {
 		return ""
 	}
 	return t.Format("2006-01-02")
+}
+
+// intPtrToStr converts a *int to a string (empty string for nil).
+func intPtrToStr(n *int) string {
+	if n == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", *n)
 }
 
 // DeleteTask handles DELETE /projects/:projectId/tasks/:taskId.

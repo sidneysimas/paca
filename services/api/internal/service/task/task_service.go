@@ -285,6 +285,7 @@ func (s *Service) CreateTask(ctx context.Context, in taskdom.CreateTaskInput) (*
 		Title:        title,
 		Description:  in.Description,
 		Importance:   in.Importance,
+		StoryPoints:  in.StoryPoints,
 		AssigneeID:   in.AssigneeID,
 		ReporterID:   in.ReporterID,
 		CustomFields: cf,
@@ -331,6 +332,9 @@ func (s *Service) UpdateTask(ctx context.Context, projectID, id uuid.UUID, in ta
 	}
 	if in.Importance != nil {
 		t.Importance = *in.Importance
+	}
+	if in.StoryPoints != nil {
+		t.StoryPoints = *in.StoryPoints
 	}
 	if in.AssigneeID != nil {
 		t.AssigneeID = *in.AssigneeID

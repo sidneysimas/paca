@@ -19,6 +19,7 @@ Sprint: ${task.sprint_id || "None"}
 Assignee: ${task.assignee_id || "Unassigned"}
 Parent Task: ${task.parent_task_id || "None"}
 Importance: ${task.importance}
+Story Points: ${task.story_points ?? "None"}
 Tags: ${task.tags && task.tags.length > 0 ? task.tags.join(", ") : "None"}
 Start Date: ${task.start_date || "None"}
 Due Date: ${task.due_date || "None"}

@@ -49,6 +49,12 @@ export function getRowColConfig(
 				headerLabel: "Importance",
 				responsive: true,
 			};
+		case "story_points":
+			return {
+				className: "w-14 shrink-0",
+				headerLabel: "SP",
+				responsive: true,
+			};
 		case "status":
 			return {
 				className: "w-24 shrink-0",
@@ -545,6 +551,26 @@ export function TaskRow({
 						<span className="text-[11px] text-muted-foreground/70 truncate">
 							{task.due_date ? formatDate(task.due_date) : "—"}
 						</span>
+					</div>
+				);
+
+			case "story_points":
+				return (
+					<div
+						key="story_points"
+						className={cn(
+							col.className,
+							responsiveClass,
+							"items-center justify-center",
+						)}
+					>
+						{task.story_points != null ? (
+							<span className="text-[11px] font-medium tabular-nums">
+								{task.story_points}
+							</span>
+						) : (
+							<span className="text-[11px] text-muted-foreground/50">—</span>
+						)}
 					</div>
 				);
 

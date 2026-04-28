@@ -34,6 +34,7 @@ export interface Task {
 	parent_task_id?: string | null;
 	description?: unknown[] | null;
 	importance: number;
+	story_points?: number | null;
 	assignee_id?: string | null;
 	reporter_id?: string | null;
 	custom_fields: Record<string, unknown>;
@@ -487,6 +488,7 @@ export async function updateTask(
 		parent_task_id: string | null;
 		description: unknown[] | null;
 		importance: number;
+		story_points?: number | null;
 		start_date: string | null;
 		due_date: string | null;
 		tags: string[];

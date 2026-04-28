@@ -311,6 +311,19 @@ export function TaskCard({
 					</span>
 				) : null;
 
+			case "story_points": {
+				if (task.story_points == null) return null;
+				return (
+					<span
+						key="story_points"
+						title="Story Points"
+						className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary/80 shrink-0 tabular-nums"
+					>
+						{task.story_points}
+					</span>
+				);
+			}
+
 			case "importance": {
 				if (!task.importance && !canEdit) return null;
 				const p = getPriority(task.importance);

@@ -33,6 +33,7 @@ import { FieldRow, FieldValue } from "./primitives";
 import type { SelectOption, UserOption } from "./property-field";
 import { PropertyField } from "./property-field";
 import { NumberEditor } from "./property-field/number-editor";
+import { StoryPointsEditor } from "./property-field/story-points-editor";
 import type { CustomFieldDef } from "./types";
 
 type UpdatePayload = Partial<{
@@ -41,6 +42,7 @@ type UpdatePayload = Partial<{
 	assignee_id: string | null;
 	reporter_id: string | null;
 	importance: number;
+	story_points: number | null;
 	start_date: string | null;
 	due_date: string | null;
 	tags: string[];
@@ -288,6 +290,19 @@ export function PropertiesPanel({
 								</div>
 							);
 						})()
+					)}
+				</FieldRow>
+
+				<FieldRow label="Story Points">
+					{canEdit ? (
+						<StoryPointsEditor
+							value={task.story_points ?? null}
+							onChange={(v) => onUpdate?.({ story_points: v })}
+						/>
+					) : (
+						<span className="text-[13px] font-medium tabular-nums">
+							{task.story_points != null ? task.story_points : "—"}
+						</span>
 					)}
 				</FieldRow>
 

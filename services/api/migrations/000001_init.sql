@@ -1,5 +1,6 @@
 -- 000001_init.sql
 -- Full schema for the Paca API service (consolidated from all previous migrations).
+-- This is the baseline schema for v0.1.1 and earlier. For upgrades, apply subsequent migrations (e.g. 000002_add_story_points.sql) after this file.
 -- Run via: psql "$DATABASE_URL" -f migrations/000001_init.sql
 
 BEGIN;
