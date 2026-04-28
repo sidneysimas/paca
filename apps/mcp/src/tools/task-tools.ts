@@ -65,7 +65,7 @@ export function getTaskTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -79,11 +79,11 @@ export function getTaskTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
@@ -97,7 +97,7 @@ export function getTaskTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskNumber: {
 						type: "number",
@@ -115,7 +115,7 @@ export function getTaskTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					title: {
 						type: "string",
@@ -128,19 +128,19 @@ export function getTaskTools(): Tool[] {
 					},
 					statusId: {
 						type: "string",
-						description: "The ID of the status",
+						description: "The technical UUID of the task status (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_statuses to get the status ID.",
 					},
 					typeId: {
 						type: "string",
-						description: "The ID of the task type",
+						description: "The technical UUID of the task type (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_types to get the type ID.",
 					},
 					sprintId: {
 						type: "string",
-						description: "The ID of the sprint",
+						description: "The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
 					},
 					assigneeId: {
 						type: "string",
-						description: "The ID of the assignee",
+						description: "The technical UUID of the user to assign the task to (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
 					},
 					importance: {
 						type: "number",
@@ -171,11 +171,11 @@ export function getTaskTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					title: {
 						type: "string",
@@ -188,19 +188,19 @@ export function getTaskTools(): Tool[] {
 					},
 					statusId: {
 						type: "string",
-						description: "The ID of the status",
+						description: "The technical UUID of the task status (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_statuses to get the status ID.",
 					},
 					typeId: {
 						type: "string",
-						description: "The ID of the task type",
+						description: "The technical UUID of the task type (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_types to get the type ID.",
 					},
 					sprintId: {
 						type: "string",
-						description: "The ID of the sprint",
+						description: "The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
 					},
 					assigneeId: {
 						type: "string",
-						description: "The ID of the assignee",
+						description: "The technical UUID of the user to assign the task to (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
 					},
 					importance: {
 						type: "number",
@@ -231,11 +231,11 @@ export function getTaskTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],

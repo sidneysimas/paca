@@ -82,7 +82,7 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -96,7 +96,7 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					name: {
 						type: "string",
@@ -118,11 +118,11 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					folderId: {
 						type: "string",
-						description: "The ID of the folder",
+						description: "The technical UUID of the folder (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_folders to get the folder ID.",
 					},
 					name: {
 						type: "string",
@@ -148,11 +148,11 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					folderId: {
 						type: "string",
-						description: "The ID of the folder",
+						description: "The technical UUID of the folder (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_folders to get the folder ID.",
 					},
 				},
 				required: ["projectId", "folderId"],
@@ -166,11 +166,11 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					docId: {
 						type: "string",
-						description: "The ID of the document",
+						description: "The technical UUID of the document (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_documents to get the document ID.",
 					},
 				},
 				required: ["projectId", "docId"],
@@ -184,15 +184,15 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					docId: {
 						type: "string",
-						description: "The ID of the document",
+						description: "The technical UUID of the document (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_documents to get the document ID.",
 					},
 					snapshotId: {
 						type: "string",
-						description: "The ID of the snapshot",
+						description: "The technical UUID of the snapshot (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_snapshots to get the snapshot ID.",
 					},
 				},
 				required: ["projectId", "docId", "snapshotId"],
@@ -214,7 +214,7 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -228,7 +228,7 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					token: {
 						type: "string",
@@ -246,7 +246,7 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -260,7 +260,7 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -274,7 +274,7 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -288,11 +288,11 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					owner: {
 						type: "string",
-						description: "The repository owner",
+						description: "The repository owner (GitHub username)",
 					},
 					repo: {
 						type: "string",
@@ -310,11 +310,11 @@ export function getGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					repoId: {
 						type: "number",
-						description: "The repository ID",
+						description: "The numeric ID of the linked repository (e.g., 123456789). Use list_linked_github_repos to get the repository ID.",
 					},
 				},
 				required: ["projectId", "repoId"],

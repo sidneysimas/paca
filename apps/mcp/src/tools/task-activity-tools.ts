@@ -70,11 +70,11 @@ export function getTaskActivityTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
@@ -88,11 +88,11 @@ export function getTaskActivityTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					content: {
 						type: "string",
@@ -110,15 +110,15 @@ export function getTaskActivityTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					commentId: {
 						type: "string",
-						description: "The ID of the comment",
+						description: "The technical UUID of the comment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_activities to find comment IDs in the activity list.",
 					},
 					content: {
 						type: "string",
@@ -136,15 +136,15 @@ export function getTaskActivityTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					commentId: {
 						type: "string",
-						description: "The ID of the comment",
+						description: "The technical UUID of the comment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_activities to find comment IDs in the activity list.",
 					},
 				},
 				required: ["projectId", "taskId", "commentId"],
@@ -166,11 +166,11 @@ export function getTaskGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
@@ -184,19 +184,19 @@ export function getTaskGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					prId: {
 						type: "number",
-						description: "The pull request number",
+						description: "The GitHub pull request number (e.g., 123)",
 					},
 					repoId: {
 						type: "string",
-						description: "The ID of the repository",
+						description: "The technical UUID of the repository (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_linked_github_repos to get the repo ID.",
 					},
 				},
 				required: ["projectId", "taskId", "prId", "repoId"],
@@ -210,15 +210,15 @@ export function getTaskGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					prId: {
 						type: "string",
-						description: "The ID of the pull request (UUID)",
+						description: "The technical UUID of the linked pull request (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_prs to get the PR ID.",
 					},
 				},
 				required: ["projectId", "taskId", "prId"],
@@ -232,15 +232,15 @@ export function getTaskGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					repoId: {
 						type: "string",
-						description: "The ID of the repository",
+						description: "The technical UUID of the repository (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_linked_github_repos to get the repo ID.",
 					},
 					branchName: {
 						type: "string",
@@ -262,11 +262,11 @@ export function getTaskGitHubTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],

@@ -74,11 +74,11 @@ export function getAttachmentTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
@@ -92,15 +92,15 @@ export function getAttachmentTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					attachmentId: {
 						type: "string",
-						description: "The ID of the attachment",
+						description: "The technical UUID of the attachment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_attachments to get the attachment ID.",
 					},
 				},
 				required: ["projectId", "taskId", "attachmentId"],
@@ -114,15 +114,15 @@ export function getAttachmentTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					attachmentId: {
 						type: "string",
-						description: "The ID of the attachment",
+						description: "The technical UUID of the attachment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_attachments to get the attachment ID.",
 					},
 				},
 				required: ["projectId", "taskId", "attachmentId"],
@@ -144,11 +144,11 @@ export function getBDDScenarioTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
@@ -162,11 +162,11 @@ export function getBDDScenarioTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					title: {
 						type: "string",
@@ -197,15 +197,15 @@ export function getBDDScenarioTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					scenarioId: {
 						type: "string",
-						description: "The ID of the scenario",
+						description: "The technical UUID of the BDD scenario (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_bdd_scenarios to get the scenario ID.",
 					},
 				},
 				required: ["projectId", "taskId", "scenarioId"],
@@ -219,15 +219,15 @@ export function getBDDScenarioTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					scenarioId: {
 						type: "string",
-						description: "The ID of the scenario",
+						description: "The technical UUID of the BDD scenario (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_bdd_scenarios to get the scenario ID.",
 					},
 					title: {
 						type: "string",
@@ -258,15 +258,15 @@ export function getBDDScenarioTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The ID of the project",
+						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The ID of the task",
+						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					scenarioId: {
 						type: "string",
-						description: "The ID of the scenario",
+						description: "The technical UUID of the BDD scenario (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_bdd_scenarios to get the scenario ID.",
 					},
 				},
 				required: ["projectId", "taskId", "scenarioId"],
