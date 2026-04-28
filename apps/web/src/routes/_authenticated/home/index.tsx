@@ -433,7 +433,6 @@ function HomePage() {
 								variant="secondary"
 								className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold border border-border/60"
 							>
-								<span className="size-1.5 rounded-full bg-secondary inline-block" />
 								Scrumban workspace
 							</Badge>
 						</div>
