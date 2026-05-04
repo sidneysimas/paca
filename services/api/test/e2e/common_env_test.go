@@ -103,7 +103,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	seq := testDBSeq.Add(1)
 	testDBName := fmt.Sprintf("e2e_%04d", seq)
 	adminLog := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
-	adminGORM, adminErr := database.Open(sharedPGDSN, adminLog)
+	adminGORM, adminErr := database.Open(database.Config{DSN: sharedPGDSN}, adminLog)
 	if adminErr != nil {
 		t.Fatalf("open admin db for test isolation: %v", adminErr)
 	}
@@ -127,7 +127,8 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	db, err := database.Open(pgDSN, log)
+	dbCfg := database.Config{DSN: pgDSN}
+	db, err := database.Open(dbCfg, log)
 	if err != nil {
 		// Postgres in fresh containers can briefly accept TCP before it is fully ready.
 		deadline := time.Now().Add(15 * time.Second)
@@ -139,7 +140,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 			}
 
 			time.Sleep(300 * time.Millisecond)
-			db, err = database.Open(pgDSN, log)
+			db, err = database.Open(dbCfg, log)
 			if err == nil {
 				break
 			}
