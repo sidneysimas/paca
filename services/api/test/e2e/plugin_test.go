@@ -37,7 +37,7 @@ func newPluginE2EEnv(t *testing.T) *pluginE2EEnv {
 	authzStore := pgRepo.NewAuthzPermissionStore(db)
 	pluginRepo := pgRepo.NewPluginRepository(db)
 	pluginService := pluginsvc.New(pluginRepo)
-	pluginHandler := handler.NewPluginHandler(pluginService, nil)
+	pluginHandler := handler.NewPluginHandler(pluginService, nil, env.projectRepo)
 
 	tm := jwttoken.New(e2eJWTSecret, e2eAccessTTL, e2eRefreshTTL)
 

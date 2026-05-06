@@ -1,5 +1,7 @@
 package plugin
 
+import "strings"
+
 // dispatcher wires the WASM host exports to the Plugin implementation.
 // It is package-private; the host entry points in wasm_exports.go call it
 // through the globalDispatcher variable.
@@ -33,6 +35,8 @@ func (d *dispatcher) init() error {
 
 // handleRequest deserialises the JSON-encoded host request, dispatches it to
 // the matching route handler, and returns a JSON-encoded host response.
+//
+//nolint:unused // used by wasm_exports.go in WASM builds
 func (d *dispatcher) handleRequest(payload []byte) []byte {
 	type hostRequest struct {
 		Method     string            `json:"method"`
@@ -51,8 +55,14 @@ func (d *dispatcher) handleRequest(payload []byte) []byte {
 		return errorResponse(400, "bad request payload: "+err.Error())
 	}
 
+	if err := d.init(); err != nil {
+		return errorResponse(500, "plugin init failed: "+err.Error())
+	}
+
+	httpMethod := strings.ToUpper(hr.Method)
+
 	req := &Request{
-		Method:     hr.Method,
+		Method:     httpMethod,
 		Path:       hr.Path,
 		PathParams: hr.PathParams,
 		Query:      hr.Query,
@@ -71,9 +81,14 @@ func (d *dispatcher) handleRequest(payload []byte) []byte {
 		req.Query = make(map[string]string)
 	}
 
-	handler, ok := d.ctx.routes[routeKey{req.Method, req.Path}]
+	handler, matchedParams, ok := d.ctx.matchRoute(req.Method, req.Path)
 	if !ok {
 		return errorResponse(404, "no handler for "+req.Method+" "+req.Path)
+	}
+	for key, value := range matchedParams {
+		if _, exists := req.PathParams[key]; !exists {
+			req.PathParams[key] = value
+		}
 	}
 
 	res := NewResponse()
@@ -83,7 +98,13 @@ func (d *dispatcher) handleRequest(payload []byte) []byte {
 
 // handleEvent deserialises the topic + JSON payload and calls the matching
 // event handler.
+//
+//nolint:unused // used by wasm_exports.go in WASM builds
 func (d *dispatcher) handleEvent(topic string, payload []byte) {
+	if err := d.init(); err != nil {
+		return
+	}
+
 	handler, ok := d.ctx.events[topic]
 	if !ok {
 		return

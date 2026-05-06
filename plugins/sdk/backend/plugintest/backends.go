@@ -70,10 +70,18 @@ func (db *InMemoryDB) Query(sql string, params []any) (*plugin.DBQueryResult, er
 	defer db.mu.Unlock()
 
 	upper := strings.TrimSpace(strings.ToUpper(sql))
-	if !strings.HasPrefix(upper, "SELECT") {
-		return nil, fmt.Errorf("InMemoryDB.Query: only SELECT is supported (got %q)", sql)
+	switch {
+	case strings.HasPrefix(upper, "SELECT"):
+		return db.querySelect(sql, params)
+	case strings.HasPrefix(upper, "INSERT"):
+		return db.queryInsert(sql, params)
+	default:
+		return nil, fmt.Errorf("InMemoryDB.Query: only SELECT and INSERT ... RETURNING are supported (got %q)", sql)
 	}
 
+}
+
+func (db *InMemoryDB) querySelect(sql string, params []any) (*plugin.DBQueryResult, error) {
 	tableName, whereCol, whereParam, err := parseSimpleSelect(sql)
 	if err != nil {
 		return nil, err
@@ -96,6 +104,31 @@ func (db *InMemoryDB) Query(sql string, params []any) (*plugin.DBQueryResult, er
 	return result, nil
 }
 
+func (db *InMemoryDB) queryInsert(sql string, params []any) (*plugin.DBQueryResult, error) {
+	returningCols, err := parseReturningColumns(sql)
+	if err != nil {
+		return nil, err
+	}
+	if len(returningCols) == 0 {
+		return nil, fmt.Errorf("InMemoryDB.Query: INSERT queries must include RETURNING (got %q)", sql)
+	}
+
+	t, row, err := db.insertRow(sql, params)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &plugin.DBQueryResult{Columns: returningCols, Rows: [][]any{{}}}
+	for _, col := range returningCols {
+		colIdx := colIndex(t.columns, col)
+		if colIdx < 0 || colIdx >= len(row) {
+			return nil, fmt.Errorf("InMemoryDB.queryInsert: column %q not found in table %q", col, parseInsertTableName(sql))
+		}
+		result.Rows[0] = append(result.Rows[0], row[colIdx])
+	}
+	return result, nil
+}
+
 // Exec implements plugin.DBBackend.
 // Supports INSERT INTO <table> VALUES (...) and DELETE FROM <table> WHERE <col> = $N.
 func (db *InMemoryDB) Exec(sql string, params []any) (int64, error) {
@@ -106,6 +139,8 @@ func (db *InMemoryDB) Exec(sql string, params []any) (int64, error) {
 	switch {
 	case strings.HasPrefix(upper, "INSERT"):
 		return db.execInsert(sql, params)
+	case strings.HasPrefix(upper, "UPDATE"):
+		return db.execUpdate(sql, params)
 	case strings.HasPrefix(upper, "DELETE"):
 		return db.execDelete(sql, params)
 	default:
@@ -114,18 +149,49 @@ func (db *InMemoryDB) Exec(sql string, params []any) (int64, error) {
 }
 
 func (db *InMemoryDB) execInsert(sql string, params []any) (int64, error) {
-	tableName, err := parseInsertTable(sql)
+	_, _, err := db.insertRow(sql, params)
 	if err != nil {
 		return 0, err
 	}
+	return 1, nil
+}
+
+func (db *InMemoryDB) insertRow(sql string, params []any) (*table, []any, error) {
+	tableName, insertCols, err := parseInsertColumns(sql)
+	if err != nil {
+		return nil, nil, err
+	}
 	t, ok := db.tables[strings.ToLower(tableName)]
 	if !ok {
-		return 0, fmt.Errorf("InMemoryDB: table %q not found", tableName)
+		return nil, nil, fmt.Errorf("InMemoryDB: table %q not found", tableName)
 	}
-	row := make([]any, len(params))
-	copy(row, params)
+
+	row := make([]any, len(t.columns))
+	if len(insertCols) == 0 {
+		if len(params) != len(t.columns) {
+			return nil, nil, fmt.Errorf("InMemoryDB.insertRow: expected %d params for table %q, got %d", len(t.columns), tableName, len(params))
+		}
+		copy(row, params)
+	} else {
+		if len(params) != len(insertCols) {
+			return nil, nil, fmt.Errorf("InMemoryDB.insertRow: expected %d params for table %q, got %d", len(insertCols), tableName, len(params))
+		}
+		for i, col := range insertCols {
+			colIdx := colIndex(t.columns, col)
+			if colIdx < 0 {
+				return nil, nil, fmt.Errorf("InMemoryDB.insertRow: column %q not found in table %q", col, tableName)
+			}
+			row[colIdx] = params[i]
+		}
+	}
+
+	idIdx := colIndex(t.columns, "id")
+	if idIdx >= 0 && row[idIdx] == nil {
+		row[idIdx] = fmt.Sprintf("generated-id-%d", len(t.rows)+1)
+	}
+
 	t.rows = append(t.rows, row)
-	return 1, nil
+	return t, row, nil
 }
 
 func (db *InMemoryDB) execDelete(sql string, params []any) (int64, error) {
@@ -156,7 +222,45 @@ func (db *InMemoryDB) execDelete(sql string, params []any) (int64, error) {
 	return deleted, nil
 }
 
+func (db *InMemoryDB) execUpdate(sql string, params []any) (int64, error) {
+	tableName, assignments, conditions, err := parseSimpleUpdate(sql)
+	if err != nil {
+		return 0, err
+	}
+
+	t, ok := db.tables[strings.ToLower(tableName)]
+	if !ok {
+		return 0, nil
+	}
+
+	updated := int64(0)
+	for _, row := range t.rows {
+		matches, matchErr := rowMatchesConditions(t.columns, row, conditions, params)
+		if matchErr != nil {
+			return 0, matchErr
+		}
+		if !matches {
+			continue
+		}
+		for _, assignment := range assignments {
+			colIdx := colIndex(t.columns, assignment.column)
+			if colIdx < 0 || colIdx >= len(row) {
+				return 0, fmt.Errorf("InMemoryDB.execUpdate: column %q not found in table %q", assignment.column, tableName)
+			}
+			row[colIdx] = params[assignment.paramIdx-1]
+		}
+		updated++
+	}
+
+	return updated, nil
+}
+
 // ── Simple SQL parser helpers ─────────────────────────────────────────────────
+
+type colParam struct {
+	column   string
+	paramIdx int
+}
 
 // parseSimpleSelect extracts table name and optional WHERE col = $N.
 // Only supports: SELECT ... FROM <table> [WHERE <col> = $N]
@@ -196,6 +300,78 @@ func parseSimpleWhere(sql string) (tableName, whereCol string, whereParam int, e
 	return tableName, col, wp, e
 }
 
+// parseSimpleUpdate extracts the table name, SET assignments, and WHERE conditions.
+// Only supports: UPDATE <table> SET <col> = $N[, <col> = $N ...] WHERE <col> = $N [AND <col> = $N ...]
+func parseSimpleUpdate(sql string) (tableName string, assignments []colParam, conditions []colParam, err error) {
+	trimmed := strings.TrimSpace(sql)
+	upper := strings.ToUpper(trimmed)
+	if !strings.HasPrefix(upper, "UPDATE ") {
+		return "", nil, nil, fmt.Errorf("parseSimpleUpdate: no UPDATE in %q", sql)
+	}
+
+	setIdx := strings.Index(upper, " SET ")
+	if setIdx < 0 {
+		return "", nil, nil, fmt.Errorf("parseSimpleUpdate: no SET in %q", sql)
+	}
+	whereIdx := strings.Index(upper, " WHERE ")
+	if whereIdx < 0 {
+		return "", nil, nil, fmt.Errorf("parseSimpleUpdate: no WHERE in %q", sql)
+	}
+
+	tableName = strings.TrimSpace(trimmed[len("UPDATE "):setIdx])
+	assignments, err = parseAssignments(trimmed[setIdx+5 : whereIdx])
+	if err != nil {
+		return "", nil, nil, err
+	}
+	conditions, err = parseConditions(trimmed[whereIdx+7:])
+	if err != nil {
+		return "", nil, nil, err
+	}
+	return tableName, assignments, conditions, nil
+}
+
+func parseAssignments(s string) ([]colParam, error) {
+	parts := strings.Split(s, ",")
+	assignments := make([]colParam, 0, len(parts))
+	for _, part := range parts {
+		col, paramIdx, err := parseColParam(strings.TrimSpace(part))
+		if err != nil {
+			return nil, err
+		}
+		assignments = append(assignments, colParam{column: col, paramIdx: paramIdx})
+	}
+	return assignments, nil
+}
+
+func parseConditions(s string) ([]colParam, error) {
+	parts := strings.Split(s, "AND")
+	conditions := make([]colParam, 0, len(parts))
+	for _, part := range parts {
+		col, paramIdx, err := parseColParam(strings.TrimSpace(part))
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, colParam{column: col, paramIdx: paramIdx})
+	}
+	return conditions, nil
+}
+
+func rowMatchesConditions(columns []string, row []any, conditions []colParam, params []any) (bool, error) {
+	for _, condition := range conditions {
+		colIdx := colIndex(columns, condition.column)
+		if colIdx < 0 || colIdx >= len(row) {
+			return false, fmt.Errorf("rowMatchesConditions: column %q not found", condition.column)
+		}
+		if condition.paramIdx <= 0 || condition.paramIdx > len(params) {
+			return false, fmt.Errorf("rowMatchesConditions: param index %d out of range", condition.paramIdx)
+		}
+		if fmt.Sprint(row[colIdx]) != fmt.Sprint(params[condition.paramIdx-1]) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // parseColParam parses "<col> = $N" into col name and param index (1-based).
 func parseColParam(s string) (col string, paramIdx int, err error) {
 	parts := strings.Fields(s)
@@ -216,13 +392,59 @@ func parseColParam(s string) (col string, paramIdx int, err error) {
 
 // parseInsertTable extracts the table name from INSERT INTO <table> ...
 func parseInsertTable(sql string) (string, error) {
+	tableName, _, err := parseInsertColumns(sql)
+	return tableName, err
+}
+
+func parseInsertTableName(sql string) string {
+	tableName, _ := parseInsertTable(sql)
+	return tableName
+}
+
+func parseInsertColumns(sql string) (tableName string, columns []string, err error) {
 	upper := strings.ToUpper(sql)
 	intoIdx := strings.Index(upper, " INTO ")
 	if intoIdx < 0 {
-		return "", fmt.Errorf("parseInsertTable: no INTO in %q", sql)
+		return "", nil, fmt.Errorf("parseInsertColumns: no INTO in %q", sql)
 	}
 	rest := strings.TrimSpace(sql[intoIdx+6:])
-	return strings.FieldsFunc(rest, func(r rune) bool { return r == ' ' || r == '(' })[0], nil
+	openIdx := strings.Index(rest, "(")
+	if openIdx < 0 {
+		return strings.Fields(rest)[0], nil, nil
+	}
+	tableName = strings.TrimSpace(rest[:openIdx])
+	closeIdx := strings.Index(rest[openIdx:], ")")
+	if closeIdx < 0 {
+		return "", nil, fmt.Errorf("parseInsertColumns: no closing ')' in %q", sql)
+	}
+	columnList := rest[openIdx+1 : openIdx+closeIdx]
+	for _, col := range strings.Split(columnList, ",") {
+		trimmed := strings.TrimSpace(col)
+		if trimmed != "" {
+			columns = append(columns, trimmed)
+		}
+	}
+	return tableName, columns, nil
+}
+
+func parseReturningColumns(sql string) ([]string, error) {
+	upper := strings.ToUpper(sql)
+	returningIdx := strings.Index(upper, " RETURNING ")
+	if returningIdx < 0 {
+		return nil, nil
+	}
+	colsPart := strings.TrimSpace(sql[returningIdx+11:])
+	if colsPart == "" {
+		return nil, fmt.Errorf("parseReturningColumns: missing RETURNING columns in %q", sql)
+	}
+	var cols []string
+	for _, col := range strings.Split(colsPart, ",") {
+		trimmed := strings.TrimSpace(col)
+		if trimmed != "" {
+			cols = append(cols, trimmed)
+		}
+	}
+	return cols, nil
 }
 
 func colIndex(columns []string, col string) int {

@@ -39,21 +39,6 @@ const (
 	// ActivityTypeBDDScenarioDeleted is recorded when a BDD scenario is removed.
 	ActivityTypeBDDScenarioDeleted ActivityType = "task.bdd_scenario.deleted"
 
-	// --- Checklist events ----------------------------------------------------
-
-	// ActivityTypeChecklistCreated is recorded when a checklist group is added.
-	ActivityTypeChecklistCreated ActivityType = "task.checklist.created"
-	// ActivityTypeChecklistUpdated is recorded when a checklist group is renamed.
-	ActivityTypeChecklistUpdated ActivityType = "task.checklist.updated"
-	// ActivityTypeChecklistDeleted is recorded when a checklist group is removed.
-	ActivityTypeChecklistDeleted ActivityType = "task.checklist.deleted"
-	// ActivityTypeChecklistItemCreated is recorded when a checklist item is added.
-	ActivityTypeChecklistItemCreated ActivityType = "task.checklist_item.created"
-	// ActivityTypeChecklistItemUpdated is recorded when a checklist item is edited.
-	ActivityTypeChecklistItemUpdated ActivityType = "task.checklist_item.updated"
-	// ActivityTypeChecklistItemDeleted is recorded when a checklist item is removed.
-	ActivityTypeChecklistItemDeleted ActivityType = "task.checklist_item.deleted"
-
 	// --- Comment -------------------------------------------------------------
 
 	// ActivityTypeComment is a user-authored comment on the task.

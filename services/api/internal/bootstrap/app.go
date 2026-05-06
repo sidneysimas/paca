@@ -231,7 +231,7 @@ func New(cfg *config.Config) (*App, error) {
 		log.Error("plugin: some plugins failed to load", "error", err)
 	}
 
-	pluginHandler := handler.NewPluginHandler(pluginService, pluginRuntime)
+	pluginHandler := handler.NewPluginHandler(pluginService, pluginRuntime, projectRepo)
 
 	// --- Handlers -----------------------------------------------------------
 	cookieCfg := handler.CookieConfig{

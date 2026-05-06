@@ -118,7 +118,7 @@ export function buildRegistryMap(
 			const point = reg.point as ExtensionPointId;
 			if (!map.has(point)) map.set(point, []);
 			map.get(point)!.push({
-				pluginId: plugin.id,
+				pluginId: plugin.manifest.id,
 				pluginName: plugin.manifest.displayName,
 				remoteEntryUrl,
 				component: reg.component,

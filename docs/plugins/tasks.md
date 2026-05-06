@@ -40,11 +40,11 @@
 
 ## Epic 4 — Plugin: Checklist (`com.paca.checklist`)
 
-- [ ] **PLUG-CL-01** Write `com.paca.checklist` backend WASM plugin (`plugins/first-party/checklist/backend/` — CRUD routes for checklists and checklist items, `task.deleted` event handler for cascade delete, migration `0001_create_task_checklists.sql`)
-- [ ] **PLUG-CL-02** Write `com.paca.checklist` frontend micro-frontend (`plugins/first-party/checklist/frontend/` — extract `checklist-section.tsx` and `checklists-section.tsx`, use `sdk.api` for all HTTP calls)
-- [ ] **PLUG-CL-03** Migrate checklist tables out of core (new core DB migration moving `task_checklists` and `task_checklist_items` into `plugin_data_com_paca_checklist` schema; remove checklist entity, service methods, repository, handler methods, DTOs, and router routes from core)
-- [ ] **PLUG-CL-04** Replace `<ChecklistsSection>` with `<ExtensionPoint>` in `task-detail/index.tsx`
-- [ ] **PLUG-CL-05** Update e2e tests for checklist plugin paths (update API paths in page objects and spec files, ensure checklist plugin is seeded as enabled in `seed.spec.ts`)
+- [x] **PLUG-CL-01** Write `com.paca.checklist` backend WASM plugin (`plugins/first-party/checklist/backend/` — CRUD routes for checklists and checklist items, `task.deleted` event handler for cascade delete, migration `0001_create_task_checklists.sql`)
+- [x] **PLUG-CL-02** Write `com.paca.checklist` frontend micro-frontend (`plugins/first-party/checklist/frontend/` — extract `checklist-section.tsx` and `checklists-section.tsx`, use `sdk.api` for all HTTP calls)
+- [x] **PLUG-CL-03** Migrate checklist tables out of core (new core DB migration moving `task_checklists` and `task_checklist_items` into `plugin_data_com_paca_checklist` schema; remove checklist entity, service methods, repository, handler methods, DTOs, and router routes from core)
+- [x] **PLUG-CL-04** Replace `<ChecklistsSection>` with `<ExtensionPoint>` in `task-detail/index.tsx`
+- [x] **PLUG-CL-05** Update e2e tests for checklist plugin paths (update API paths in page objects and spec files, ensure checklist plugin is seeded as enabled in `seed.spec.ts`)
 
 ---
 

@@ -32,7 +32,7 @@ type ResourceLimits struct {
 func DefaultResourceLimits() ResourceLimits {
 	return ResourceLimits{
 		MaxCallDuration: 5 * time.Second,
-		MaxMemoryPages:  256, // 16 MiB
+		MaxMemoryPages:  1024, // 64 MiB
 	}
 }
 
@@ -135,7 +135,8 @@ func (r *Runtime) Load(ctx context.Context, p plugindom.Plugin) error {
 		wasmRT.Close(ctx)
 		return fmt.Errorf("runtime load %q: compile: %w", p.Name, err)
 	}
-	mod, err := wasmRT.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName(p.Name))
+	// For WASI reactor builds, _initialize must be called before exported functions
+	mod, err := wasmRT.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName(p.Name).WithStartFunctions("_initialize"))
 	if err != nil {
 		wasmRT.Close(ctx)
 		return fmt.Errorf("runtime load %q: instantiate: %w", p.Name, err)
@@ -144,12 +145,17 @@ func (r *Runtime) Load(ctx context.Context, p plugindom.Plugin) error {
 	// Call Init if exported.
 	if fn := mod.ExportedFunction("Init"); fn != nil {
 		callCtx, cancel := context.WithTimeout(ctx, r.limits.MaxCallDuration)
-		_, callErr := fn.Call(callCtx)
+		results, callErr := fn.Call(callCtx)
 		cancel()
 		if callErr != nil {
 			mod.Close(ctx)
 			wasmRT.Close(ctx)
 			return fmt.Errorf("runtime load %q: Init: %w", p.Name, callErr)
+		}
+		if len(results) > 0 && results[0] != 0 {
+			mod.Close(ctx)
+			wasmRT.Close(ctx)
+			return fmt.Errorf("runtime load %q: Init returned status %d", p.Name, results[0])
 		}
 	}
 
@@ -218,11 +224,18 @@ func (r *Runtime) HandleRequest(ctx context.Context, pluginName string, reqPaylo
 	if callErr != nil {
 		return nil, fmt.Errorf("plugin %q: HandleRequest: %w", pluginName, callErr)
 	}
-	if len(results) < 2 {
+	if len(results) < 1 {
 		return nil, fmt.Errorf("plugin %q: HandleRequest returned wrong number of values", pluginName)
 	}
 
-	return readFromMemory(inst.mod, results[0], results[1])
+	combined := results[0]
+	outPtr := uint64(combined) >> 32
+	outLen := uint64(combined) & 0xFFFFFFFF
+	resp, readErr := readFromMemory(inst.mod, outPtr, outLen)
+	if readErr != nil {
+		return nil, readErr
+	}
+	return resp, nil
 }
 
 // EmitEvent serialises the event payload and dispatches it to every loaded
@@ -340,44 +353,41 @@ type dbQueryResult struct {
 func (r *Runtime) registerDBFunctions(b wazero.HostModuleBuilder, p plugindom.Plugin) {
 	schema := schemaName(p.Name)
 
-	// paca.db_query(sqlPtr, sqlLen, paramsPtr, paramsLen) -> (resultPtr, resultLen)
+	// paca.db_query(sqlPtr, sqlLen, paramsPtr, paramsLen, resultPtrPtr, resultLenPtr)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
 			sqlStr, err := readString(m, stack[0], stack[1])
 			if err != nil {
 				r.log.Error("paca.db_query: read sql", "plugin", p.Name, "error", err)
-				copy(stack, writeErrorResult(m, err))
 				return
 			}
 			paramsJSON, err := readString(m, stack[2], stack[3])
 			if err != nil {
 				r.log.Error("paca.db_query: read params", "plugin", p.Name, "error", err)
-				copy(stack, writeErrorResult(m, err))
 				return
 			}
 
 			result, err := r.execQuery(ctx, schema, sqlStr, paramsJSON)
 			if err != nil {
 				r.log.Error("paca.db_query: exec", "plugin", p.Name, "error", err)
-				copy(stack, writeErrorResult(m, err))
 				return
 			}
-			copy(stack, writeJSONResult(m, result))
-		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
-			[]api.ValueType{api.ValueTypeI64, api.ValueTypeI64}).
+			resultPtrLen := writeJSONResult(m, result)
+			m.Memory().WriteUint32Le(uint32(stack[4]), uint32(resultPtrLen[0]))
+			m.Memory().WriteUint32Le(uint32(stack[5]), uint32(resultPtrLen[1]))
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
+			nil).
 		Export("db_query")
 
-	// paca.db_exec(sqlPtr, sqlLen, paramsPtr, paramsLen) -> (rowsAffected i64, errPtr i64, errLen i64)
+	// paca.db_exec(sqlPtr, sqlLen, paramsPtr, paramsLen, rowsAffectedPtr, errPtrPtr, errLenPtr)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
 			sqlStr, err := readString(m, stack[0], stack[1])
 			if err != nil {
-				stack[0], stack[1], stack[2] = 0, 0, 0
 				return
 			}
 			paramsJSON, err := readString(m, stack[2], stack[3])
 			if err != nil {
-				stack[0], stack[1], stack[2] = 0, 0, 0
 				return
 			}
 
@@ -385,20 +395,23 @@ func (r *Runtime) registerDBFunctions(b wazero.HostModuleBuilder, p plugindom.Pl
 			if err != nil {
 				errBytes := []byte(err.Error())
 				ptrLen, _ := writeToMemory(m, errBytes)
-				stack[0], stack[1], stack[2] = 0, ptrLen[0], ptrLen[1]
+				m.Memory().WriteUint64Le(uint32(stack[4]), 0)
+				m.Memory().WriteUint32Le(uint32(stack[5]), uint32(ptrLen[0]))
+				m.Memory().WriteUint32Le(uint32(stack[6]), uint32(ptrLen[1]))
 				return
 			}
-			stack[0], stack[1], stack[2] = uint64(rows), 0, 0
-		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
-			[]api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64}).
+			m.Memory().WriteUint64Le(uint32(stack[4]), uint64(rows))
+			m.Memory().WriteUint32Le(uint32(stack[5]), 0)
+			m.Memory().WriteUint32Le(uint32(stack[6]), 0)
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
+			nil).
 		Export("db_exec")
 
-	// paca.storage_get(keyPtr, keyLen) -> (valuePtr, valueLen)
+	// paca.storage_get(keyPtr, keyLen, valuePtrPtr, valueLenPtr)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
 			key, err := readString(m, stack[0], stack[1])
 			if err != nil {
-				copy(stack, writeErrorResult(m, err))
 				return
 			}
 
@@ -407,16 +420,17 @@ func (r *Runtime) registerDBFunctions(b wazero.HostModuleBuilder, p plugindom.Pl
 				`SELECT value FROM `+schema+`.plugin_kv WHERE key = $1`, key)
 			if err := row.Scan(&value); err != nil {
 				if err == sql.ErrNoRows {
-					stack[0], stack[1] = 0, 0
+					m.Memory().WriteUint32Le(uint32(stack[2]), 0)
+					m.Memory().WriteUint32Le(uint32(stack[3]), 0)
 					return
 				}
-				copy(stack, writeErrorResult(m, err))
 				return
 			}
 			ptrLen, _ := writeToMemory(m, []byte(value))
-			copy(stack, ptrLen)
-		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64},
-			[]api.ValueType{api.ValueTypeI64, api.ValueTypeI64}).
+			m.Memory().WriteUint32Le(uint32(stack[2]), uint32(ptrLen[0]))
+			m.Memory().WriteUint32Le(uint32(stack[3]), uint32(ptrLen[1]))
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
+			nil).
 		Export("storage_get")
 
 	// paca.storage_set(keyPtr, keyLen, valuePtr, valueLen) -> (ok i32)
@@ -470,7 +484,17 @@ func (r *Runtime) execQuery(ctx context.Context, schema, sqlStr, paramsJSON stri
 		}
 	}
 
-	rows, err := r.services.DB.QueryContext(ctx, "SET search_path TO "+schema+",public; "+sqlStr, queryParams...)
+	tx, err := r.services.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("paca.db_query: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, "SET LOCAL search_path TO "+schema+",public"); err != nil {
+		return nil, fmt.Errorf("paca.db_query: set search_path: %w", err)
+	}
+
+	rows, err := tx.QueryContext(ctx, sqlStr, queryParams...)
 	if err != nil {
 		return nil, fmt.Errorf("paca.db_query: %w", err)
 	}
@@ -492,7 +516,13 @@ func (r *Runtime) execQuery(ctx context.Context, schema, sqlStr, paramsJSON stri
 		}
 		result.Rows = append(result.Rows, vals)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("paca.db_query: commit: %w", err)
+	}
+	return result, nil
 }
 
 // execStatement runs a non-SELECT DML statement scoped to the plugin schema.
@@ -511,11 +541,28 @@ func (r *Runtime) execStatement(ctx context.Context, schema, sqlStr, paramsJSON 
 		}
 	}
 
-	res, err := r.services.DB.ExecContext(ctx, "SET search_path TO "+schema+",public; "+sqlStr, queryParams...)
+	tx, err := r.services.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("paca.db_exec: %w", err)
 	}
-	return res.RowsAffected()
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, "SET LOCAL search_path TO "+schema+",public"); err != nil {
+		return 0, fmt.Errorf("paca.db_exec: set search_path: %w", err)
+	}
+
+	res, err := tx.ExecContext(ctx, sqlStr, queryParams...)
+	if err != nil {
+		return 0, fmt.Errorf("paca.db_exec: %w", err)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("paca.db_exec: commit: %w", err)
+	}
+	return rowsAffected, nil
 }
 
 // -------------------------------------------------------------------------
@@ -795,12 +842,13 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64, api.ValueTypeI64}, nil).
 		Export("log")
 
-	// paca.config_get(keyPtr, keyLen) -> (valuePtr, valueLen)
+	// paca.config_get(keyPtr, keyLen, valuePtrPtr, valueLenPtr)
 	b.NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(_ context.Context, _ api.Module, stack []uint64) {
-			stack[0], stack[1] = 0, 0
-		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64},
-			[]api.ValueType{api.ValueTypeI64, api.ValueTypeI64}).
+		WithGoModuleFunction(api.GoModuleFunc(func(_ context.Context, m api.Module, stack []uint64) {
+			m.Memory().WriteUint32Le(uint32(stack[2]), 0)
+			m.Memory().WriteUint32Le(uint32(stack[3]), 0)
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
+			nil).
 		Export("config_get")
 }
 

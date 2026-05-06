@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paca/api/internal/apierr"
 	plugindom "github.com/paca/api/internal/domain/plugin"
+	projectdom "github.com/paca/api/internal/domain/project"
 	pluginrt "github.com/paca/api/internal/platform/plugin"
 	"github.com/paca/api/internal/transport/http/dto"
 	"github.com/paca/api/internal/transport/http/middleware"
@@ -18,13 +19,14 @@ import (
 
 // PluginHandler handles plugin management endpoints.
 type PluginHandler struct {
-	svc     plugindom.Service
-	runtime *pluginrt.Runtime
+	svc        plugindom.Service
+	runtime    *pluginrt.Runtime
+	memberRepo projectdom.MemberRepository
 }
 
 // NewPluginHandler creates a PluginHandler.
-func NewPluginHandler(svc plugindom.Service, runtime *pluginrt.Runtime) *PluginHandler {
-	return &PluginHandler{svc: svc, runtime: runtime}
+func NewPluginHandler(svc plugindom.Service, runtime *pluginrt.Runtime, memberRepo projectdom.MemberRepository) *PluginHandler {
+	return &PluginHandler{svc: svc, runtime: runtime, memberRepo: memberRepo}
 }
 
 // -------------------------------------------------------------------------
@@ -162,8 +164,29 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 	callerID := ""
 	callerRole := ""
 	if claims != nil {
-		callerID = claims.Subject
 		callerRole = claims.Role
+
+		if h.memberRepo == nil {
+			presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin member resolver not available"))
+			return
+		}
+
+		projectID, err := uuid.Parse(c.Param("projectId"))
+		if err != nil {
+			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid projectId"))
+			return
+		}
+		userID, err := uuid.Parse(claims.Subject)
+		if err != nil {
+			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
+			return
+		}
+		member, err := h.memberRepo.FindMemberByUserProject(c.Request.Context(), userID, projectID)
+		if err != nil {
+			presenter.Error(c, err)
+			return
+		}
+		callerID = member.ID.String()
 	}
 
 	// Read request body.
@@ -186,10 +209,14 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 	if subPath == "" {
 		subPath = "/"
 	}
+	projectScopedPath := "/projects/" + c.Param("projectId")
+	if subPath != "/" {
+		projectScopedPath += subPath
+	}
 
 	req := &pluginrt.PluginHTTPRequest{
 		Method:     c.Request.Method,
-		Path:       subPath,
+		Path:       projectScopedPath,
 		ProjectID:  c.Param("projectId"),
 		CallerID:   callerID,
 		CallerRole: callerRole,
@@ -212,12 +239,12 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		return
 	}
 
-	// Parse the plugin response envelope.
+	// Parse the plugin response envelope. The current SDK returns:
+	// {"status": number, "headers": object, "body": base64-bytes}
 	var pluginResp struct {
-		StatusCode  int               `json:"status_code"`
-		ContentType string            `json:"content_type"`
-		Body        json.RawMessage   `json:"body"`
-		Headers     map[string]string `json:"headers"`
+		Status  int               `json:"status"`
+		Headers map[string]string `json:"headers"`
+		Body    []byte            `json:"body"`
 	}
 	if err := json.Unmarshal(respBytes, &pluginResp); err != nil {
 		// Fallback: send raw bytes as JSON.
@@ -225,11 +252,18 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		return
 	}
 
-	statusCode := pluginResp.StatusCode
+	statusCode := pluginResp.Status
 	if statusCode == 0 {
 		statusCode = http.StatusOK
 	}
-	contentType := pluginResp.ContentType
+
+	contentType := ""
+	if pluginResp.Headers != nil {
+		contentType = pluginResp.Headers["Content-Type"]
+		if contentType == "" {
+			contentType = pluginResp.Headers["content-type"]
+		}
+	}
 	if contentType == "" {
 		contentType = "application/json"
 	}

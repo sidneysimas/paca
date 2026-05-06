@@ -28,3 +28,9 @@ playwright
 
 # Kilo settings
 .kilo/
+
+# WebAssembly build artifacts
+*.wasm
+
+# Local plugin development artifacts
+services/api/plugins

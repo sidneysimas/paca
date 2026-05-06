@@ -170,7 +170,7 @@ func newPluginTestEnv(t *testing.T, adminPerms bool) *pluginTestEnv {
 	}
 	permStore := &integrationPermissionStore{globalPerms: perms}
 
-	pluginHandler := handler.NewPluginHandler(svc, nil)
+	pluginHandler := handler.NewPluginHandler(svc, nil, nil)
 
 	r := router.New(router.Deps{
 		TokenManager: tm,

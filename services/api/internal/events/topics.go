@@ -48,14 +48,6 @@ const (
 	TopicTaskBDDScenarioUpdated = "task.bdd_scenario.updated"
 	TopicTaskBDDScenarioDeleted = "task.bdd_scenario.deleted"
 
-	// --- Task checklist events ----------------------------------------------
-	TopicTaskChecklistCreated     = "task.checklist.created"
-	TopicTaskChecklistUpdated     = "task.checklist.updated"
-	TopicTaskChecklistDeleted     = "task.checklist.deleted"
-	TopicTaskChecklistItemCreated = "task.checklist_item.created"
-	TopicTaskChecklistItemUpdated = "task.checklist_item.updated"
-	TopicTaskChecklistItemDeleted = "task.checklist_item.deleted"
-
 	// --- Comment events -----------------------------------------------------
 	TopicTaskCommentAdded   = "task.comment.added"
 	TopicTaskCommentUpdated = "task.comment.updated"

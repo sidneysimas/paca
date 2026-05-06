@@ -11,12 +11,80 @@ import type { PluginRegistration } from "@/lib/plugin-api";
  */
 const componentCache = new Map<string, ReturnType<typeof lazy>>();
 
+/**
+ * Initialize the share scope with shared dependencies.
+ * This ensures that remote components receive the same instances of React
+ * and other shared libraries as the host application.
+ */
+async function initializeShareScope(): Promise<Record<string, unknown>> {
+	// Ensure the global share scope object exists
+	if (!globalThis.__federation_shared__) {
+		globalThis.__federation_shared__ = {};
+	}
+	if (!globalThis.__federation_shared__.default) {
+		globalThis.__federation_shared__.default = {};
+	}
+
+	const defaultScope = globalThis.__federation_shared__.default;
+
+	// Dynamically import the shared modules
+	const [react, reactDom, reactQuery] = await Promise.all([
+		import("react"),
+		import("react-dom"),
+		import("@tanstack/react-query").catch(() => null),
+	]);
+
+	// Debug logging
+	console.log('[Host] Initializing share scope with modules:', {
+		react: !!react,
+		'react-dom': !!reactDom,
+		'@tanstack/react-query': !!reactQuery,
+	});
+
+	// Register React in the share scope
+	defaultScope.react = {
+		"19.0.0": {
+			get: () => Promise.resolve(() => Promise.resolve(react)),
+			version: "19.0.0",
+		},
+	} as Record<string, unknown>;
+
+	// Register React DOM in the share scope
+	defaultScope["react-dom"] = {
+		"19.0.0": {
+			get: () => Promise.resolve(() => Promise.resolve(reactDom)),
+			version: "19.0.0",
+		},
+	} as Record<string, unknown>;
+
+	// Register React Query in the share scope if available
+	if (reactQuery) {
+		defaultScope["@tanstack/react-query"] = {
+			"5.0.0": {
+				get: () => Promise.resolve(() => Promise.resolve(reactQuery)),
+				version: "5.0.0",
+			},
+		} as Record<string, unknown>;
+	}
+
+	console.log('[Host] Share scope initialized:', Object.keys(defaultScope));
+	return defaultScope;
+}
+
 function getRemoteComponent(remoteEntryUrl: string, component: string) {
 	const cacheKey = `${remoteEntryUrl}#${component}`;
 	if (!componentCache.has(cacheKey)) {
 		componentCache.set(
 			cacheKey,
 			lazy(async () => {
+				console.log(`[Host] Loading remote component: ${component} from ${remoteEntryUrl}`);
+
+				// CRITICAL: Initialize the share scope BEFORE loading the container
+				// The remote module's top-level await importShared() executes immediately
+				// when the module is loaded, so the share scope must be ready first
+				const shareScope = await initializeShareScope();
+				console.log('[Host] Share scope initialized before container loading');
+
 				// Dynamically import the remote entry script, then access the
 				// named export.  Module Federation remotes expose an object with
 				// an `init` function and a `get` function; we use the standard
@@ -25,10 +93,28 @@ function getRemoteComponent(remoteEntryUrl: string, component: string) {
 				// (our case) we use the low-level __federation_method_getRemote
 				// approach via a script tag + globalThis container.
 				const container = await loadRemoteContainer(remoteEntryUrl);
-				await container.init(__webpack_share_scopes__?.default ?? {});
+				console.log('[Host] Container loaded:', !!container);
+
+				// Initialize the container with the share scope
+				console.log('[Host] Initializing container with share scope');
+				await container.init(shareScope);
+				console.log('[Host] Container initialized');
+
+				console.log(`[Host] Getting component factory for: ./${component}`);
 				const factory = await container.get(`./${component}`);
-				const mod = factory() as { default: ComponentType<unknown> };
-				return mod;
+				console.log('[Host] Component factory obtained:', !!factory);
+
+				const mod = await factory() as { default: ComponentType<unknown> } | ComponentType<unknown>;
+				console.log('[Host] Module loaded:', mod);
+
+				// Handle both module object with default export and direct component export
+				if (mod && typeof mod === 'object' && 'default' in mod) {
+					console.log('[Host] Returning module with default export');
+					return mod;
+				}
+				// If mod is the component itself, wrap it in a module object
+				console.log('[Host] Wrapping component in module object');
+				return { default: mod as ComponentType<unknown> };
 			}),
 		);
 	}
@@ -46,38 +132,17 @@ const containerCache = new Map<string, Promise<RemoteContainer>>();
 
 function loadRemoteContainer(remoteEntryUrl: string): Promise<RemoteContainer> {
 	if (!containerCache.has(remoteEntryUrl)) {
+		// @originjs/vite-plugin-federation emits ES modules that export { get, init }
+		// directly. Use dynamic import() to load the module and get its exports.
 		containerCache.set(
 			remoteEntryUrl,
-			new Promise((resolve, reject) => {
-				const script = document.createElement("script");
-				script.src = remoteEntryUrl;
-				script.type = "text/javascript";
-				script.async = true;
-				script.onload = () => {
-					// The remote entry registers itself on globalThis using a unique
-					// scope name derived from the URL (same convention used by
-					// @originjs/vite-plugin-federation for dynamic remotes).
-					const scopeName = remoteEntryUrl
-						.split("/")
-						.pop()
-						?.replace(/\.js$/, "")
-						?.replace(/[^a-zA-Z0-9_]/g, "_");
-					const container = (
-						globalThis as unknown as Record<string, RemoteContainer>
-					)[scopeName ?? ""];
-					if (container) {
-						resolve(container);
-					} else {
-						reject(
-							new Error(
-								`Remote container "${scopeName}" not found on globalThis after loading ${remoteEntryUrl}`,
-							),
-						);
-					}
-				};
-				script.onerror = () =>
-					reject(new Error(`Failed to load remote entry: ${remoteEntryUrl}`));
-				document.head.appendChild(script);
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic remote import
+			(import(/* @vite-ignore */ remoteEntryUrl) as Promise<any>).then((mod) => {
+				const container: RemoteContainer = mod.default ?? mod;
+				if (typeof container.get !== "function" || typeof container.init !== "function") {
+					throw new Error(`Remote entry at ${remoteEntryUrl} does not export a valid container (missing get/init)`);
+				}
+				return container;
 			}),
 		);
 	}
@@ -86,6 +151,11 @@ function loadRemoteContainer(remoteEntryUrl: string): Promise<RemoteContainer> {
 
 // globalThis share scope injected by Vite's federation plugin at build time.
 declare const __webpack_share_scopes__: { default: Record<string, unknown> } | undefined;
+
+// Extend globalThis to include the federation shared scope
+declare global {
+	var __federation_shared__: Record<string, Record<string, unknown>> | undefined;
+}
 
 // ── Error boundary ────────────────────────────────────────────────────────────
 

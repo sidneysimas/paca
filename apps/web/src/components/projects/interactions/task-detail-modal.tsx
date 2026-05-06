@@ -4,8 +4,6 @@
 export type {
 	ActivityEntry,
 	Attachment,
-	Checklist,
-	ChecklistItem,
 	CustomFieldDef,
 	TaskDetailModalProps,
 } from "./task-detail";

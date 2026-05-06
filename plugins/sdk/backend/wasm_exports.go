@@ -7,55 +7,69 @@
 // host-managed memory allocation.
 package plugin
 
-import "unsafe"
-
 // ── Memory management ─────────────────────────────────────────────────────────
 
-// returnBuf is a module-level byte slice used to return data to the host.
-var returnBuf []byte
-
-//export malloc
+// nolint // exported function used by host runtime via WASM interface
+//
+//go:wasmexport malloc
 func malloc(size int32) int32 {
-	b := make([]byte, size)
-	return int32(uintptr(unsafe.Pointer(&b[0])))
+	return wasmMalloc(size)
 }
 
-//export free
+// nolint // exported function used by host runtime via WASM interface
+//
+//go:wasmexport free
 func free(_ int32) {}
 
 // ── Exported WASM functions ───────────────────────────────────────────────────
 
-//export Init
+//go:wasmexport Init
 func Init() int32 {
 	if globalDispatcher == nil {
 		return 1
 	}
 	if err := globalDispatcher.init(); err != nil {
-		globalDispatcher.ctx.Log().Error("Init error: " + err.Error())
 		return 1
 	}
 	return 0
 }
 
-//export HandleRequest
-func HandleRequest(ptr, length int32) (outPtr, outLen int32) {
+//go:wasmexport HandleRequest
+func HandleRequest(ptr, length int32) int64 {
+	if globalDispatcher == nil {
+		return 0
+	}
 	payload := wasmSlice(ptr, length)
 	result := globalDispatcher.handleRequest(payload)
-	returnBuf = result
-	if len(returnBuf) == 0 {
-		return 0, 0
+	if len(result) == 0 {
+		return 0
 	}
-	return int32(uintptr(unsafe.Pointer(&returnBuf[0]))), int32(len(returnBuf))
+	// Allocate space in mallocBuffer for the response
+	outPtr := wasmMalloc(int32(len(result)))
+	if outPtr == 0 {
+		return 0
+	}
+	// Copy the result into allocated WASM memory.
+	out := wasmSlice(outPtr, int32(len(result)))
+	if len(out) != len(result) {
+		return 0
+	}
+	copy(out, result)
+	// Return offset and length combined into int64
+	return (int64(outPtr) << 32) | int64(len(result))
 }
 
-//export HandleEvent
+//go:wasmexport HandleEvent
 func HandleEvent(topicPtr, topicLen, payloadPtr, payloadLen int32) {
+	if globalDispatcher == nil {
+		return
+	}
 	topic := string(wasmSlice(topicPtr, topicLen))
 	payload := wasmSlice(payloadPtr, payloadLen)
 	globalDispatcher.handleEvent(topic, payload)
 }
 
-//export Shutdown
+//go:wasmexport Shutdown
 func Shutdown() {
 	if globalDispatcher != nil && globalDispatcher.plugin != nil {
 		globalDispatcher.plugin.Shutdown()

@@ -68,3 +68,84 @@ func newContext(db DBBackend, kv KVBackend, log LogBackend, cfg ConfigBackend) *
 		cfg:    &Config{backend: cfg},
 	}
 }
+
+func (c *Context) matchRoute(method, path string) (RouteHandler, map[string]string, bool) {
+	method = strings.ToUpper(method)
+	if handler, ok := c.routes[routeKey{method, path}]; ok {
+		return handler, make(map[string]string), true
+	}
+
+	projectID, relativePath, hasProjectScope := splitProjectPath(path)
+
+	for key, handler := range c.routes {
+		if key.method != method {
+			continue
+		}
+		if params, ok := matchRoutePattern(key.path, path); ok {
+			return handler, params, true
+		}
+		if hasProjectScope {
+			if params, ok := matchRoutePattern(key.path, relativePath); ok {
+				params["projectId"] = projectID
+				return handler, params, true
+			}
+		}
+	}
+
+	return nil, nil, false
+}
+
+func splitProjectPath(path string) (projectID, relativePath string, ok bool) {
+	trimmed := strings.Trim(path, "/")
+	if trimmed == "" {
+		return "", "", false
+	}
+
+	segments := strings.Split(trimmed, "/")
+	if len(segments) < 2 || segments[0] != "projects" {
+		return "", "", false
+	}
+
+	projectID = segments[1]
+	if len(segments) == 2 {
+		return projectID, "/", true
+	}
+	return projectID, "/" + strings.Join(segments[2:], "/"), true
+}
+
+func matchRoutePattern(pattern, path string) (map[string]string, bool) {
+	patternSegments := splitPathSegments(pattern)
+	pathSegments := splitPathSegments(path)
+	if len(patternSegments) != len(pathSegments) {
+		return nil, false
+	}
+
+	params := make(map[string]string)
+	for i := range patternSegments {
+		patternSegment := patternSegments[i]
+		pathSegment := pathSegments[i]
+
+		if strings.HasPrefix(patternSegment, ":") {
+			name := strings.TrimPrefix(patternSegment, ":")
+			if name == "" {
+				return nil, false
+			}
+			params[name] = pathSegment
+			continue
+		}
+
+		if patternSegment != pathSegment {
+			return nil, false
+		}
+	}
+
+	return params, true
+}
+
+func splitPathSegments(path string) []string {
+	trimmed := strings.Trim(path, "/")
+	if trimmed == "" {
+		return nil
+	}
+	return strings.Split(trimmed, "/")
+}

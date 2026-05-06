@@ -28,7 +28,6 @@ import { TaskActivityPane as ActivityPane } from "./activity-pane";
 import { AttachmentsSection } from "./attachments-section";
 import { BDDScenariosSection } from "./bdd-scenarios-section";
 import { BranchesSection } from "./branches-section";
-import { ChecklistsSection } from "./checklists-section";
 import { DescriptionSection } from "./description-section";
 import { mapApiFieldToUi } from "./helpers";
 import { PropertiesPanel } from "./properties-panel";
@@ -41,8 +40,6 @@ import type { TaskDetailModalProps } from "./types";
 export type {
 	ActivityEntry,
 	Attachment,
-	Checklist,
-	ChecklistItem,
 	CustomFieldDef,
 	TaskDetailModalProps,
 } from "./types";
@@ -384,8 +381,7 @@ export function TaskDetailModal({
 							/>
 						)}
 
-						{/* Checklists */}
-						<ChecklistsSection canEdit={canEdit} />
+						{/* Checklists are now provided by the com.paca.checklist plugin */}
 						{/* Attachments */}
 						<AttachmentsSection
 							projectId={projectId ?? ""}

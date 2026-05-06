@@ -16,11 +16,18 @@ func NewContextForTest(db DBBackend, kv KVBackend, log LogBackend, cfg ConfigBac
 // Intended for use in plugin unit tests; production dispatch goes through the
 // WASM HandleRequest export.
 func DispatchRoute(ctx *Context, method, path string, req *Request, res *Response) bool {
-	key := routeKey{method, path}
-	handler, ok := ctx.routes[key]
+	handler, matchedParams, ok := ctx.matchRoute(method, path)
 	if !ok {
 		res.Error(404, "no handler for "+method+" "+path)
 		return false
+	}
+	if req.PathParams == nil {
+		req.PathParams = make(map[string]string)
+	}
+	for key, value := range matchedParams {
+		if _, exists := req.PathParams[key]; !exists {
+			req.PathParams[key] = value
+		}
 	}
 	handler(req, res)
 	return true

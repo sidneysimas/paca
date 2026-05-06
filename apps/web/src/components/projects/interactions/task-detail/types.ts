@@ -23,18 +23,6 @@ export interface Attachment {
 // ActivityEntry mirrors the backend Activity type with a convenience re-export.
 export type ActivityEntry = Activity;
 
-export interface ChecklistItem {
-	id: string;
-	text: string;
-	checked: boolean;
-}
-
-export interface Checklist {
-	id: string;
-	title: string;
-	items: ChecklistItem[];
-}
-
 // ── Component props ────────────────────────────────────────────────────────────
 
 export interface TaskDetailModalProps {
