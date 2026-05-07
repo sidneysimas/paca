@@ -403,7 +403,9 @@ export function InteractionLayout({
 	);
 	// Resolve the active plugin view registration using composite key
 	const activePluginView =
-		pluginViews.find((r) => `${r.pluginId}:${r.component}` === activePluginViewId) ?? null;
+		pluginViews.find(
+			(r) => `${r.pluginId}:${r.component}` === activePluginViewId,
+		) ?? null;
 
 	useEffect(() => {
 		if (!activeViewId) return;
