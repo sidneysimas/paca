@@ -43,7 +43,7 @@ func NewStore(ctx context.Context, cfg StoreConfig) (*Store, error) {
 	if cfg.Store != "local" && cfg.Store != "s3" {
 		return nil, fmt.Errorf("plugin store: invalid Store value %q (must be \"local\" or \"s3\")", cfg.Store)
 	}
-	
+
 	st := &Store{cfg: cfg}
 	if cfg.Store == "s3" {
 		awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(cfg.S3Region))

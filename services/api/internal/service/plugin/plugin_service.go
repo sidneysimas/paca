@@ -90,9 +90,9 @@ func (s *Service) UpdateExtensionSetting(ctx context.Context, input plugindom.Up
 	if err != nil {
 		return nil, err
 	}
-	for _, s := range settings {
-		if s.ExtensionPoint == input.ExtensionPoint {
-			return s, nil
+	for _, setting := range settings {
+		if setting.ExtensionPoint == input.ExtensionPoint {
+			return setting, nil
 		}
 	}
 	// Fallback: return what we tried to insert (should not happen)

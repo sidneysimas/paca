@@ -235,12 +235,12 @@ func (r *Runtime) HandleRequest(ctx context.Context, pluginName string, reqPaylo
 	if readErr != nil {
 		return nil, readErr
 	}
-	
+
 	// Reset the allocator after copying out the response to allow buffer reuse.
 	if resetFn := inst.mod.ExportedFunction("ResetAllocator"); resetFn != nil {
 		_, _ = resetFn.Call(ctx) // Best-effort; ignore errors
 	}
-	
+
 	return resp, nil
 }
 
