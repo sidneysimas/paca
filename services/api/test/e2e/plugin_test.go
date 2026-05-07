@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -100,9 +101,9 @@ func (p *pluginE2EEnv) doPlugin(t *testing.T, method, path, token string, body a
 	var req *http.Request
 	var err error
 	if body != nil {
-		req, err = http.NewRequest(method, p.base+path, jsonBody(t, body))
+		req, err = http.NewRequestWithContext(context.Background(), method, p.base+path, jsonBody(t, body))
 	} else {
-		req, err = http.NewRequest(method, p.base+path, http.NoBody)
+		req, err = http.NewRequestWithContext(context.Background(), method, p.base+path, http.NoBody)
 	}
 	if err != nil {
 		t.Fatalf("build request: %v", err)

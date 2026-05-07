@@ -407,6 +407,10 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusUnauthorized
 	case apierr.CodeAPIKeyNameInvalid, apierr.CodeAPIKeyNameTooLong:
 		return http.StatusBadRequest
+	case apierr.CodePluginNotFound:
+		return http.StatusNotFound
+	case apierr.CodePluginNameTaken:
+		return http.StatusConflict
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
 	case apierr.CodePasswordChangeRequired:

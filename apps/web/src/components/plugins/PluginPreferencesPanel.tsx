@@ -49,7 +49,7 @@ function DraggableItem({
 	dragOverIndex,
 }: DraggableItemProps) {
 	return (
-		<div
+		<li
 			draggable
 			onDragStart={(e) => onDragStart(e, index)}
 			onDragOver={(e) => onDragOver(e, index)}
@@ -80,7 +80,7 @@ function DraggableItem({
 					<Eye className="size-3.5" />
 				)}
 			</button>
-		</div>
+		</li>
 	);
 }
 

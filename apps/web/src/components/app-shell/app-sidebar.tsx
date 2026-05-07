@@ -84,10 +84,9 @@ import {
 	updateFolder,
 } from "@/lib/doc-api";
 import { sprintsQueryOptions, updateTask } from "@/lib/interaction-api";
+import { ExtensionPoint } from "@/lib/plugins/extension-point";
 import { projectQueryOptions, projectsQueryOptions } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
-
-import { ExtensionPoint } from "@/lib/plugins/extension-point";
 import { UserMenu } from "./user-menu";
 
 // ── Docs Tree ─────────────────────────────────────────────────────────────────
@@ -1256,7 +1255,8 @@ export function AppSidebar() {
 
 	const canCreateProject = hasPermission("projects.create");
 
-	const showAdminSection = canAccessGlobalRoles || canAccessUsers || canAccessPlugins;
+	const showAdminSection =
+		canAccessGlobalRoles || canAccessUsers || canAccessPlugins;
 	const isProjectContext = !!projectId;
 	const isAnonymous = !user;
 

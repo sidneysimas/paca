@@ -119,26 +119,26 @@ func (r *Runtime) Load(ctx context.Context, p plugindom.Plugin) error {
 
 	// Instantiate WASI to support common I/O syscalls used by SDK helpers.
 	if _, err := wasi_snapshot_preview1.Instantiate(ctx, wasmRT); err != nil {
-		wasmRT.Close(ctx)
+		_ = wasmRT.Close(ctx)
 		return fmt.Errorf("runtime load %q: wasi: %w", p.Name, err)
 	}
 
 	// Register the paca host module with all host function bridges.
 	if err := r.registerHostModule(ctx, wasmRT, p); err != nil {
-		wasmRT.Close(ctx)
+		_ = wasmRT.Close(ctx)
 		return fmt.Errorf("runtime load %q: host module: %w", p.Name, err)
 	}
 
 	// Compile + instantiate the plugin module.
 	compiled, err := wasmRT.CompileModule(ctx, wasmBytes)
 	if err != nil {
-		wasmRT.Close(ctx)
+		_ = wasmRT.Close(ctx)
 		return fmt.Errorf("runtime load %q: compile: %w", p.Name, err)
 	}
 	// For WASI reactor builds, _initialize must be called before exported functions
 	mod, err := wasmRT.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName(p.Name).WithStartFunctions("_initialize"))
 	if err != nil {
-		wasmRT.Close(ctx)
+		_ = wasmRT.Close(ctx)
 		return fmt.Errorf("runtime load %q: instantiate: %w", p.Name, err)
 	}
 
@@ -148,13 +148,13 @@ func (r *Runtime) Load(ctx context.Context, p plugindom.Plugin) error {
 		results, callErr := fn.Call(callCtx)
 		cancel()
 		if callErr != nil {
-			mod.Close(ctx)
-			wasmRT.Close(ctx)
+			_ = mod.Close(ctx)
+			_ = wasmRT.Close(ctx)
 			return fmt.Errorf("runtime load %q: Init: %w", p.Name, callErr)
 		}
 		if len(results) > 0 && results[0] != 0 {
-			mod.Close(ctx)
-			wasmRT.Close(ctx)
+			_ = mod.Close(ctx)
+			_ = wasmRT.Close(ctx)
 			return fmt.Errorf("runtime load %q: Init returned status %d", p.Name, results[0])
 		}
 	}
@@ -190,8 +190,8 @@ func (r *Runtime) unloadLocked(ctx context.Context, inst *pluginInstance) {
 		_, _ = fn.Call(shutCtx)
 		cancel()
 	}
-	inst.mod.Close(ctx)
-	inst.rt.Close(ctx)
+	_ = inst.mod.Close(ctx)
+	_ = inst.rt.Close(ctx)
 }
 
 // HandleRequest dispatches an HTTP request payload to the named plugin's
@@ -488,7 +488,7 @@ func (r *Runtime) execQuery(ctx context.Context, schema, sqlStr, paramsJSON stri
 	if err != nil {
 		return nil, fmt.Errorf("paca.db_query: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, "SET LOCAL search_path TO "+schema+",public"); err != nil {
 		return nil, fmt.Errorf("paca.db_query: set search_path: %w", err)
@@ -498,7 +498,7 @@ func (r *Runtime) execQuery(ctx context.Context, schema, sqlStr, paramsJSON stri
 	if err != nil {
 		return nil, fmt.Errorf("paca.db_query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	cols, err := rows.Columns()
 	if err != nil {
@@ -545,7 +545,7 @@ func (r *Runtime) execStatement(ctx context.Context, schema, sqlStr, paramsJSON 
 	if err != nil {
 		return 0, fmt.Errorf("paca.db_exec: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, "SET LOCAL search_path TO "+schema+",public"); err != nil {
 		return 0, fmt.Errorf("paca.db_exec: set search_path: %w", err)
@@ -573,7 +573,7 @@ func (r *Runtime) execStatement(ctx context.Context, schema, sqlStr, paramsJSON 
 // paca.project_get, paca.members_list to the host module builder.
 // All results are scoped to the authorised project extracted from the
 // request context value set by the Gin auth middleware.
-func (r *Runtime) registerCoreFunctions(b wazero.HostModuleBuilder, p plugindom.Plugin) {
+func (r *Runtime) registerCoreFunctions(b wazero.HostModuleBuilder, _ plugindom.Plugin) {
 	// paca.tasks_list(projectIdPtr, projectIdLen) -> (jsonPtr, jsonLen)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
@@ -592,7 +592,7 @@ func (r *Runtime) registerCoreFunctions(b wazero.HostModuleBuilder, p plugindom.
 				copy(stack, writeErrorResult(m, err))
 				return
 			}
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			var tasks []map[string]any
 			for rows.Next() {
@@ -685,12 +685,12 @@ func (r *Runtime) registerCoreFunctions(b wazero.HostModuleBuilder, p plugindom.
 				 FROM project_members pm
 				 JOIN users u ON u.id = pm.user_id
 				 JOIN project_roles pr ON pr.id = pm.project_role_id
-				 WHERE pm.project_id = $1`, projectID)
+		WHERE pm.project_id = $1`, projectID)
 			if err != nil {
 				copy(stack, writeErrorResult(m, err))
 				return
 			}
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			var members []map[string]any
 			for rows.Next() {
@@ -721,13 +721,13 @@ type pluginRequestKey struct{}
 // WithPluginRequest attaches the serialised HTTP request payload to a context
 // so that the host functions paca.http_request_body and
 // paca.http_request_headers can retrieve it.
-func WithPluginRequest(ctx context.Context, payload *PluginHTTPRequest) context.Context {
+func WithPluginRequest(ctx context.Context, payload *HTTPRequest) context.Context {
 	return context.WithValue(ctx, pluginRequestKey{}, payload)
 }
 
-// PluginHTTPRequest is the serialised inbound request passed to
+// HTTPRequest is the serialised inbound request passed to
 // HandleRequest and exposed via the HTTP host functions.
-type PluginHTTPRequest struct {
+type HTTPRequest struct {
 	Method     string            `json:"method"`
 	Path       string            `json:"path"`
 	ProjectID  string            `json:"project_id"`
@@ -737,11 +737,11 @@ type PluginHTTPRequest struct {
 	Body       []byte            `json:"body"`
 }
 
-func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, p plugindom.Plugin) {
+func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, _ plugindom.Plugin) {
 	// paca.http_request_body() -> (bodyPtr, bodyLen)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			req, _ := ctx.Value(pluginRequestKey{}).(*PluginHTTPRequest)
+			req, _ := ctx.Value(pluginRequestKey{}).(*HTTPRequest)
 			if req == nil {
 				stack[0], stack[1] = 0, 0
 				return
@@ -754,7 +754,7 @@ func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, p plugindom.
 	// paca.http_request_headers() -> (jsonPtr, jsonLen)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			req, _ := ctx.Value(pluginRequestKey{}).(*PluginHTTPRequest)
+			req, _ := ctx.Value(pluginRequestKey{}).(*HTTPRequest)
 			if req == nil {
 				stack[0], stack[1] = 0, 0
 				return
@@ -766,7 +766,7 @@ func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, p plugindom.
 	// paca.http_caller_identity() -> (jsonPtr, jsonLen)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			req, _ := ctx.Value(pluginRequestKey{}).(*PluginHTTPRequest)
+			req, _ := ctx.Value(pluginRequestKey{}).(*HTTPRequest)
 			if req == nil {
 				stack[0], stack[1] = 0, 0
 				return

@@ -81,7 +81,7 @@ func (s *Store) loadFromS3(ctx context.Context, name string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("plugin store: s3 get %q: %w", key, err)
 	}
-	defer out.Body.Close()
+	defer func() { _ = out.Body.Close() }()
 	data, err := io.ReadAll(out.Body)
 	if err != nil {
 		return nil, fmt.Errorf("plugin store: read s3 body %q: %w", key, err)
@@ -102,7 +102,7 @@ func (s *Store) LoadPluginJSON(ctx context.Context, name string) ([]byte, error)
 		if err != nil {
 			return nil, fmt.Errorf("plugin store: s3 get plugin.json %q: %w", key, err)
 		}
-		defer out.Body.Close()
+		defer func() { _ = out.Body.Close() }()
 		data, err := io.ReadAll(out.Body)
 		if err != nil {
 			return nil, fmt.Errorf("plugin store: read s3 plugin.json %q: %w", key, err)
@@ -185,7 +185,7 @@ func (s *Store) listMigrationsS3(ctx context.Context, name string) ([]MigrationF
 				return nil, fmt.Errorf("plugin store: get s3 migration %q: %w", key, err)
 			}
 			data, err := io.ReadAll(out.Body)
-			out.Body.Close()
+			_ = out.Body.Close()
 			if err != nil {
 				return nil, fmt.Errorf("plugin store: read s3 migration %q: %w", key, err)
 			}

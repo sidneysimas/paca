@@ -214,7 +214,7 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		projectScopedPath += subPath
 	}
 
-	req := &pluginrt.PluginHTTPRequest{
+	req := &pluginrt.HTTPRequest{
 		Method:     c.Request.Method,
 		Path:       projectScopedPath,
 		ProjectID:  c.Param("projectId"),

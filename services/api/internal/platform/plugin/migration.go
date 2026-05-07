@@ -73,12 +73,12 @@ func (mr *MigrationRunner) Run(ctx context.Context, pluginName string) error {
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		applied[name] = struct{}{}
 	}
-	rows.Close()
+	_ = rows.Close()
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("plugin migration %q: scan applied: %w", pluginName, err)
 	}

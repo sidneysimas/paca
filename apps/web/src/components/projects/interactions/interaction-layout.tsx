@@ -51,6 +51,8 @@ import {
 	viewsByContextQueryOptions,
 	viewTaskPositionsQueryOptions,
 } from "@/lib/interaction-api";
+import { RemoteComponent } from "@/lib/plugins/loader";
+import { usePluginRegistry } from "@/lib/plugins/registry";
 import {
 	customFieldsQueryOptions,
 	findEpicType,
@@ -60,8 +62,6 @@ import {
 	taskTypesQueryOptions,
 } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
-import { RemoteComponent } from "@/lib/plugins/loader";
-import { usePluginRegistry } from "@/lib/plugins/registry";
 import { BoardView } from "./board-view";
 import { ListView } from "./list-view";
 import { NewViewPopover } from "./new-view-popover";
@@ -398,9 +398,12 @@ export function InteractionLayout({
 	// Plugin views (from the `view` extension point)
 	const { getRegistrations } = usePluginRegistry();
 	const pluginViews = getRegistrations("view").filter((r) => !r.hidden);
-	const [activePluginViewId, setActivePluginViewId] = useState<string | null>(null);
+	const [activePluginViewId, setActivePluginViewId] = useState<string | null>(
+		null,
+	);
 	// Resolve the active plugin view registration
-	const activePluginView = pluginViews.find((r) => r.pluginId === activePluginViewId) ?? null;
+	const activePluginView =
+		pluginViews.find((r) => r.pluginId === activePluginViewId) ?? null;
 
 	useEffect(() => {
 		if (!activeViewId) return;
@@ -957,7 +960,10 @@ export function InteractionLayout({
 							>
 								<button
 									type="button"
-									onClick={() => { setPreferredViewId(view.id); setActivePluginViewId(null); }}
+									onClick={() => {
+										setPreferredViewId(view.id);
+										setActivePluginViewId(null);
+									}}
 									className={cn(
 										"flex items-center gap-1.5 px-2.5 py-2.5 text-[12px] font-medium transition-all duration-150",
 										isActive

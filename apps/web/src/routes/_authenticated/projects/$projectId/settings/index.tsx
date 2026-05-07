@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, LayoutList, Plus, Settings, Shield, Tag } from "lucide-react";
+import {
+	AlertTriangle,
+	LayoutList,
+	Plus,
+	Settings,
+	Shield,
+	Tag,
+} from "lucide-react";
 import { useState } from "react";
 import { GitHubIcon } from "@/components/icons/github-icon";
 import { CustomFieldsSettings } from "@/components/projects/settings/CustomFieldsSettings";
@@ -12,6 +19,8 @@ import { TaskStatusesSettings } from "@/components/projects/settings/TaskStatuse
 import { TaskTypesSettings } from "@/components/projects/settings/TaskTypesSettings";
 import { usePermissions } from "@/hooks/use-permissions";
 import { currentUserQueryOptions } from "@/lib/auth-api";
+import { RemoteComponent } from "@/lib/plugins/loader";
+import { usePluginRegistry } from "@/lib/plugins/registry";
 import {
 	customFieldsQueryOptions,
 	type ProjectMember,
@@ -22,8 +31,6 @@ import {
 	taskStatusesQueryOptions,
 	taskTypesQueryOptions,
 } from "@/lib/project-api";
-import { usePluginRegistry } from "@/lib/plugins/registry";
-import { RemoteComponent } from "@/lib/plugins/loader";
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/settings/",

@@ -59,9 +59,10 @@ export interface PluginExtensionSetting {
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export async function listPlugins(): Promise<Plugin[]> {
-	const { data } = await apiClient.instance.get<
-		SuccessEnvelope<{ plugins: Plugin[] }>
-	>("/plugins");
+	const { data } =
+		await apiClient.instance.get<SuccessEnvelope<{ plugins: Plugin[] }>>(
+			"/plugins",
+		);
 	return data.data.plugins;
 }
 
@@ -116,14 +117,15 @@ export function buildRegistryMap(
 
 		for (const reg of ext) {
 			const point = reg.point as ExtensionPointId;
-			if (!map.has(point)) map.set(point, []);
-			map.get(point)!.push({
+			const regs = map.get(point) ?? [];
+			regs.push({
 				pluginId: plugin.manifest.id,
 				pluginName: plugin.manifest.displayName,
 				remoteEntryUrl,
 				component: reg.component,
 				order: reg.order ?? 0,
 			});
+			map.set(point, regs);
 		}
 	}
 

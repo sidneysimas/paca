@@ -1,15 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useMemo,
-} from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import {
 	buildRegistryMap,
 	type ExtensionPointId,
-	pluginsQueryOptions,
 	type PluginRegistration,
+	pluginsQueryOptions,
 } from "@/lib/plugin-api";
 
 // ── Context ───────────────────────────────────────────────────────────────────

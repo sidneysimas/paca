@@ -11,6 +11,7 @@ import {
 	taskQueryOptions,
 	updateTask,
 } from "@/lib/interaction-api";
+import { ExtensionPoint } from "@/lib/plugins/extension-point";
 import {
 	customFieldsQueryOptions,
 	findEpicType,
@@ -21,7 +22,6 @@ import {
 	projectQueryOptions,
 } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
-import { ExtensionPoint } from "@/lib/plugins/extension-point";
 import { getTaskTypeIconComponent } from "../../task-types/task-type-icons";
 import { getPriority } from "../priority";
 import { TaskActivityPane as ActivityPane } from "./activity-pane";

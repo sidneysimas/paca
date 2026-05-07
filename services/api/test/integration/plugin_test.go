@@ -219,9 +219,9 @@ func (e *pluginTestEnv) do(t *testing.T, method, path string, body any) *http.Re
 	var req *http.Request
 	var err error
 	if bodyBytes != nil {
-		req, err = http.NewRequest(method, e.url(path), bytes.NewReader(bodyBytes))
+		req, err = http.NewRequestWithContext(context.Background(), method, e.url(path), bytes.NewReader(bodyBytes))
 	} else {
-		req, err = http.NewRequest(method, e.url(path), http.NoBody)
+		req, err = http.NewRequestWithContext(context.Background(), method, e.url(path), http.NoBody)
 	}
 	if err != nil {
 		t.Fatalf("build request: %v", err)
@@ -272,6 +272,7 @@ func TestIntegPlugin_ListPlugins_Empty(t *testing.T) {
 	env := newPluginTestEnv(t, false)
 
 	resp := env.do(t, http.MethodGet, "/api/v1/plugins", nil)
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -293,6 +294,7 @@ func TestIntegPlugin_ListPlugins_ReturnsSeeded(t *testing.T) {
 	seedPluginViaRepo(t, env.repo, "com.paca.bdd", true)
 
 	resp := env.do(t, http.MethodGet, "/api/v1/plugins", nil)
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -307,7 +309,7 @@ func TestIntegPlugin_ListPlugins_ReturnsSeeded(t *testing.T) {
 func TestIntegPlugin_ListPlugins_RequiresAuth(t *testing.T) {
 	env := newPluginTestEnv(t, false)
 
-	req, _ := http.NewRequest(http.MethodGet, env.url("/api/v1/plugins"), http.NoBody)
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, env.url("/api/v1/plugins"), http.NoBody)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("do request: %v", err)
@@ -352,6 +354,7 @@ func TestIntegPlugin_InstallPlugin_Success(t *testing.T) {
 		"enabled": true,
 	}
 	resp := env.do(t, http.MethodPost, "/api/v1/admin/plugins", payload)
+	defer func() { _ = resp.Body.Close() }()
 	body := decodePluginEnvelope(t, resp)
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("expected 201, got %d; body: %v", resp.StatusCode, body)
@@ -407,6 +410,7 @@ func TestIntegPlugin_UpdatePlugin_Success(t *testing.T) {
 
 	payload := map[string]any{"version": "2.0.0"}
 	resp := env.do(t, http.MethodPatch, fmt.Sprintf("/api/v1/admin/plugins/%s", id), payload)
+	defer func() { _ = resp.Body.Close() }()
 	body := decodePluginEnvelope(t, resp)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d; body: %v", resp.StatusCode, body)
@@ -455,6 +459,7 @@ func TestIntegPlugin_DeletePlugin_Success(t *testing.T) {
 
 	// Verify it's gone.
 	listResp := env.do(t, http.MethodGet, "/api/v1/plugins", nil)
+	defer func() { _ = listResp.Body.Close() }()
 	listBody := decodePluginEnvelope(t, listResp)
 	dataMap, _ := listBody["data"].(map[string]any)
 	data, _ := dataMap["plugins"].([]any)
@@ -487,6 +492,7 @@ func TestIntegPlugin_UpdateExtensionSetting_Success(t *testing.T) {
 		"settings":        map[string]any{"order": 1, "hidden": false},
 	}
 	resp := env.do(t, http.MethodPatch, "/api/v1/admin/plugin-extension-settings", payload)
+	defer func() { _ = resp.Body.Close() }()
 	body := decodePluginEnvelope(t, resp)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d; body: %v", resp.StatusCode, body)
@@ -501,7 +507,7 @@ func TestIntegPlugin_UpdateExtensionSetting_BadBody(t *testing.T) {
 	env := newPluginTestEnv(t, true)
 
 	// Malformed JSON body.
-	req, _ := http.NewRequest(http.MethodPatch, env.url("/api/v1/admin/plugin-extension-settings"),
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPatch, env.url("/api/v1/admin/plugin-extension-settings"),
 		bytes.NewBufferString(`{invalid}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+env.token)
@@ -518,7 +524,7 @@ func TestIntegPlugin_UpdateExtensionSetting_BadBody(t *testing.T) {
 func TestIntegPlugin_UpdateExtensionSetting_RequiresAuth(t *testing.T) {
 	env := newPluginTestEnv(t, true)
 
-	req, _ := http.NewRequest(http.MethodPatch, env.url("/api/v1/admin/plugin-extension-settings"), http.NoBody)
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPatch, env.url("/api/v1/admin/plugin-extension-settings"), http.NoBody)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
