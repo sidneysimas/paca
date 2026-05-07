@@ -11,11 +11,7 @@
  * evolves.
  */
 
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-} from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import type { PluginApiClient } from "./api-client";
 import type { PluginMeta } from "./types";
 import type { PluginUI } from "./ui";
@@ -54,7 +50,12 @@ export interface PluginProviderProps {
  * components; plugin authors only need to add a Provider when writing tests or
  * standalone stories.
  */
-export function PluginProvider({ api, ui = NoopPluginUI, meta, children }: PluginProviderProps) {
+export function PluginProvider({
+	api,
+	ui = NoopPluginUI,
+	meta,
+	children,
+}: PluginProviderProps) {
 	return (
 		<PluginContext.Provider value={{ api, ui, meta }}>
 			{children}

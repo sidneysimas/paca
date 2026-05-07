@@ -1,9 +1,9 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "declaration": true,
-    "declarationMap": true
-  },
-  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"declaration": true,
+		"declarationMap": true
+	},
+	"exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

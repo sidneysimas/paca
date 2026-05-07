@@ -10,7 +10,12 @@ export default defineConfig({
 			fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
 		},
 		rollupOptions: {
-			external: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
+			external: [
+				"react",
+				"react-dom",
+				"react/jsx-runtime",
+				"@tanstack/react-query",
+			],
 			output: {
 				globals: {
 					react: "React",
@@ -20,7 +25,5 @@ export default defineConfig({
 			},
 		},
 	},
-	plugins: [
-		dts({ include: ["src"], rollupTypes: true }),
-	],
+	plugins: [dts({ include: ["src"], rollupTypes: true })],
 });

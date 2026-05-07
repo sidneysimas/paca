@@ -7,7 +7,13 @@
  * the authenticated session credentials.
  */
 
-import type { ProjectMember, ProjectSummary, Task, TaskFilters, TaskSummary } from "./types";
+import type {
+	ProjectMember,
+	ProjectSummary,
+	Task,
+	TaskFilters,
+	TaskSummary,
+} from "./types";
 
 // ── Response envelope ─────────────────────────────────────────────────────────
 
@@ -48,10 +54,13 @@ export class PluginApiClient {
 	/** List tasks for the current project with optional filters. */
 	async listTasks(filters: TaskFilters = {}): Promise<TaskSummary[]> {
 		const params = new URLSearchParams();
-		if (filters.status_ids?.length) params.set("status_ids", filters.status_ids.join(","));
-		if (filters.assignee_ids?.length) params.set("assignee_ids", filters.assignee_ids.join(","));
+		if (filters.status_ids?.length)
+			params.set("status_ids", filters.status_ids.join(","));
+		if (filters.assignee_ids?.length)
+			params.set("assignee_ids", filters.assignee_ids.join(","));
 		if (filters.sprint_id) params.set("sprint_id", filters.sprint_id);
-		if (filters.parent_task_id) params.set("parent_task_id", filters.parent_task_id);
+		if (filters.parent_task_id)
+			params.set("parent_task_id", filters.parent_task_id);
 		if (filters.page) params.set("page", String(filters.page));
 		if (filters.page_size) params.set("page_size", String(filters.page_size));
 
@@ -63,12 +72,16 @@ export class PluginApiClient {
 
 	/** Get a single task by ID. */
 	async getTask(taskId: string): Promise<Task> {
-		return this._get<Task>(`${this.baseUrl}/projects/${this.projectId}/tasks/${taskId}`);
+		return this._get<Task>(
+			`${this.baseUrl}/projects/${this.projectId}/tasks/${taskId}`,
+		);
 	}
 
 	/** Get the current project summary. */
 	async getProject(): Promise<ProjectSummary> {
-		return this._get<ProjectSummary>(`${this.baseUrl}/projects/${this.projectId}`);
+		return this._get<ProjectSummary>(
+			`${this.baseUrl}/projects/${this.projectId}`,
+		);
 	}
 
 	/** List members of the current project. */
@@ -93,14 +106,22 @@ export class PluginApiClient {
 	/**
 	 * Call a POST route registered by this plugin.
 	 */
-	async pluginPost<T>(pluginId: string, path: string, body: unknown): Promise<T> {
+	async pluginPost<T>(
+		pluginId: string,
+		path: string,
+		body: unknown,
+	): Promise<T> {
 		return this._request<T>("POST", this._pluginUrl(pluginId, path), body);
 	}
 
 	/**
 	 * Call a PATCH route registered by this plugin.
 	 */
-	async pluginPatch<T>(pluginId: string, path: string, body: unknown): Promise<T> {
+	async pluginPatch<T>(
+		pluginId: string,
+		path: string,
+		body: unknown,
+	): Promise<T> {
 		return this._request<T>("PATCH", this._pluginUrl(pluginId, path), body);
 	}
 
@@ -108,7 +129,11 @@ export class PluginApiClient {
 	 * Call a DELETE route registered by this plugin.
 	 */
 	async pluginDelete(pluginId: string, path: string): Promise<void> {
-		await this._request<void>("DELETE", this._pluginUrl(pluginId, path), undefined);
+		await this._request<void>(
+			"DELETE",
+			this._pluginUrl(pluginId, path),
+			undefined,
+		);
 	}
 
 	// ── Internals ───────────────────────────────────────────────────────────
@@ -122,7 +147,11 @@ export class PluginApiClient {
 		return this._request<T>("GET", url, undefined);
 	}
 
-	private async _request<T>(method: string, url: string, body: unknown): Promise<T> {
+	private async _request<T>(
+		method: string,
+		url: string,
+		body: unknown,
+	): Promise<T> {
 		const init: RequestInit = {
 			method,
 			headers: { "Content-Type": "application/json" },
@@ -133,7 +162,9 @@ export class PluginApiClient {
 		const res = await this._fetch(url, init);
 		if (!res.ok) {
 			const text = await res.text().catch(() => res.statusText);
-			throw new Error(`[PluginApiClient] ${method} ${url} → ${res.status}: ${text}`);
+			throw new Error(
+				`[PluginApiClient] ${method} ${url} → ${res.status}: ${text}`,
+			);
 		}
 		if (res.status === 204) return undefined as T;
 		const json = (await res.json()) as SuccessEnvelope<T>;

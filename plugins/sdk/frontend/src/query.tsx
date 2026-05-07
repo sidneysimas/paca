@@ -14,9 +14,9 @@
 import {
 	QueryClient,
 	QueryClientProvider,
-	useQuery,
 	type UseQueryOptions,
 	type UseQueryResult,
+	useQuery,
 } from "@tanstack/react-query";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
@@ -74,7 +74,10 @@ export function usePluginQuery<TData = unknown, TError = Error>(
 	pluginId: string,
 	queryKey: unknown[],
 	queryFn: () => Promise<TData>,
-	options?: Omit<UseQueryOptions<TData, TError, TData, unknown[]>, "queryKey" | "queryFn">,
+	options?: Omit<
+		UseQueryOptions<TData, TError, TData, unknown[]>,
+		"queryKey" | "queryFn"
+	>,
 ): UseQueryResult<TData, TError> {
 	return useQuery<TData, TError, TData, unknown[]>({
 		...options,
@@ -86,6 +89,9 @@ export function usePluginQuery<TData = unknown, TError = Error>(
 /** Access the QueryClient from context (for manual invalidation). */
 export function usePluginQueryClient(): QueryClient {
 	const client = useContext(QueryClientCtx);
-	if (!client) throw new Error("usePluginQueryClient must be inside a <PluginQueryClientProvider>");
+	if (!client)
+		throw new Error(
+			"usePluginQueryClient must be inside a <PluginQueryClientProvider>",
+		);
 	return client;
 }
