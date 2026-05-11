@@ -167,6 +167,9 @@ func (i *Installer) Install(ctx context.Context, item MarketplacePlugin) (plugin
 
 	// MCP bundle — optional, installed to a dedicated mcp store served at /plugins-mcp/.
 	if strings.TrimSpace(item.Artifacts.MCPTarGzURL) != "" {
+		if strings.TrimSpace(i.mcpDir) == "" {
+			return plugindom.PluginManifest{}, fmt.Errorf("plugin MCP directory is not configured (PLUGINS_MCP_DIR)")
+		}
 		if err := i.downloadAndExtractTarGz(ctx, item.Artifacts.MCPTarGzURL, mcpExtract); err != nil {
 			return plugindom.PluginManifest{}, fmt.Errorf("download mcp: %w", err)
 		}
