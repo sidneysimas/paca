@@ -280,33 +280,86 @@ func (h *PluginHandler) UpgradeMarketplacePlugin(c *gin.Context) {
 		return
 	}
 
+	// Capture the currently persisted plugin state so we can delay DB writes
+	// until the upgraded runtime is active and best-effort roll back on failure.
+	plugins, err := h.svc.ListPlugins(c.Request.Context())
+	if err != nil {
+		if h.installer != nil {
+			if cleanupErr := h.installer.Uninstall(installed.Name); cleanupErr != nil {
+				slog.Error("plugin upgrade: failed to clean up installed artifacts after state lookup failure", "name", installed.Name, "error", cleanupErr)
+			}
+		}
+		presenter.Error(c, err)
+		return
+	}
+
+	var current *plugindom.Plugin
+	for i := range plugins {
+		if plugins[i].ID == id {
+			plugin := plugins[i]
+			current = &plugin
+			break
+		}
+	}
+	if current == nil {
+		if h.installer != nil {
+			if cleanupErr := h.installer.Uninstall(installed.Name); cleanupErr != nil {
+				slog.Error("plugin upgrade: failed to clean up installed artifacts after missing plugin state", "name", installed.Name, "error", cleanupErr)
+			}
+		}
+		presenter.Error(c, apierr.New(apierr.CodeNotFound, "plugin not found"))
+		return
+	}
+
+	cleanupArtifacts := func(reason string) {
+		if h.installer == nil {
+			return
+		}
+		if cleanupErr := h.installer.Uninstall(installed.Name); cleanupErr != nil {
+			slog.Error("plugin upgrade: failed to clean up installed artifacts", "name", installed.Name, "reason", reason, "error", cleanupErr)
+		}
+	}
+
 	// Run any new migrations introduced by the upgraded version (idempotent).
 	if h.migrationRunner != nil {
 		if err := h.migrationRunner.Run(c.Request.Context(), installed.Name); err != nil {
+			cleanupArtifacts("migration failure")
 			presenter.Error(c, apierr.New(apierr.CodeInternalError, "failed to run plugin migrations: "+err.Error()))
 			return
 		}
 	}
 
-	// Persist the new version and manifest.
 	newVersion := entry.Version
+
+	// Reload the WASM runtime with the new binary before persisting the new
+	// version so the DB only advances once the upgraded module is actually live.
+	runtimePlugin := *current
+	runtimePlugin.Version = newVersion
+	runtimePlugin.Manifest = manifest
+	if runtimePlugin.Enabled && h.runtime != nil {
+		if err := h.runtime.Load(c.Request.Context(), runtimePlugin); err != nil {
+			cleanupArtifacts("runtime reload failure")
+			slog.Error("plugin upgrade: failed to reload runtime", "name", runtimePlugin.Name, "error", err)
+			presenter.Error(c, apierr.New(apierr.CodeInternalError, "artifacts upgraded but runtime reload failed: "+err.Error()))
+			return
+		}
+	}
+
+	// Persist the new version and manifest only after migrations and runtime
+	// reload succeed.
 	updated, err := h.svc.UpdatePlugin(c.Request.Context(), id, plugindom.UpdateInput{
 		Version:  &newVersion,
 		Manifest: &manifest,
 	})
 	if err != nil {
+		if current.Enabled && h.runtime != nil {
+			if rollbackErr := h.runtime.Load(c.Request.Context(), *current); rollbackErr != nil {
+				slog.Error("plugin upgrade: failed to roll back runtime after DB update failure", "name", current.Name, "error", rollbackErr)
+			}
+		}
+		cleanupArtifacts("db update failure")
 		presenter.Error(c, err)
 		return
-	}
-
-	// Reload the WASM runtime with the new binary so traffic is served by the
-	// upgraded module immediately. runtime.Load unloads any existing instance first.
-	if updated.Enabled && h.runtime != nil {
-		if err := h.runtime.Load(c.Request.Context(), *updated); err != nil {
-			slog.Error("plugin upgrade: failed to reload runtime", "name", updated.Name, "error", err)
-			presenter.Error(c, apierr.New(apierr.CodeInternalError, "artifacts upgraded but runtime reload failed: "+err.Error()))
-			return
-		}
 	}
 
 	presenter.OK(c, dto.PluginResponseFromEntity(updated))
