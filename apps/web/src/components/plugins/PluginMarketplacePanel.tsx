@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, ExternalLink, Package, Search, Trash2 } from "lucide-react";
+import {
+	Download,
+	ExternalLink,
+	Search,
+	Trash2,
+	Server,
+	LayoutTemplate,
+	Database,
+	Zap,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,6 +43,20 @@ function matchesQuery(plugin: MarketplacePlugin, query: string): boolean {
 	);
 }
 
+interface FeatureBadgeProps {
+	icon: React.ReactNode;
+	label: string;
+}
+
+function FeatureBadge({ icon, label }: FeatureBadgeProps) {
+	return (
+		<Badge variant="secondary" className="gap-1.5 text-[10px] h-5">
+			{icon}
+			<span>{label}</span>
+		</Badge>
+	);
+}
+
 function PluginCard({
 	plugin,
 	isInstalled,
@@ -49,8 +72,14 @@ function PluginCard({
 	onInstall: (name: string) => void;
 	onUninstall: (name: string) => void;
 }) {
+	const { artifacts } = plugin;
+	const hasBackend = !!artifacts.backend_tar_gz_url;
+	const hasFrontend = !!artifacts.frontend_tar_gz_url;
+	const hasMigrations = !!artifacts.migrations_tar_gz_url;
+	const hasMCP = !!artifacts.mcp_tar_gz_url;
+
 	return (
-		<div className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
+		<div className="rounded-lg border border-border/60 bg-card p-4 space-y-3 hover:border-border/80 transition-colors">
 			<div className="flex items-start gap-3">
 				<Avatar size="lg">
 					<AvatarImage src={plugin.avatar_url} alt={plugin.display_name} />
@@ -80,25 +109,36 @@ function PluginCard({
 				</p>
 			</div>
 
-			<div className="flex items-center justify-between gap-2">
-				<div className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-					<Package className="size-3.5" />
-					<span className="truncate">
-						Backend / Frontend / Migrations / Manifest
-					</span>
+			<div className="space-y-2">
+				<div className="flex items-center gap-1.5 flex-wrap">
+					{hasBackend && (
+						<FeatureBadge icon={<Server className="size-3" />} label="Backend" />
+					)}
+					{hasFrontend && (
+						<FeatureBadge icon={<LayoutTemplate className="size-3" />} label="Frontend" />
+					)}
+					{hasMigrations && (
+						<FeatureBadge icon={<Database className="size-3" />} label="Migrations" />
+					)}
+					{hasMCP && (
+						<FeatureBadge icon={<Zap className="size-3" />} label="MCP" />
+					)}
 				</div>
-				<div className="flex items-center gap-2">
+
+				<div className="flex items-center justify-between gap-2">
 					{plugin.repository_url ? (
 						<a
 							href={plugin.repository_url}
 							target="_blank"
 							rel="noreferrer"
-							className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+							className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
 						>
 							<ExternalLink className="size-3.5" />
 							Source
 						</a>
-					) : null}
+					) : (
+						<span /> // Spacer for alignment
+					)}
 					{isInstalled ? (
 						<Button
 							size="sm"
