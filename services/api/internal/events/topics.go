@@ -43,11 +43,6 @@ const (
 	TopicTaskAttachmentAdded   = "task.attachment.added"
 	TopicTaskAttachmentRemoved = "task.attachment.removed"
 
-	// --- Task BDD scenario events -------------------------------------------
-	TopicTaskBDDScenarioCreated = "task.bdd_scenario.created"
-	TopicTaskBDDScenarioUpdated = "task.bdd_scenario.updated"
-	TopicTaskBDDScenarioDeleted = "task.bdd_scenario.deleted"
-
 	// --- Comment events -----------------------------------------------------
 	TopicTaskCommentAdded   = "task.comment.added"
 	TopicTaskCommentUpdated = "task.comment.updated"

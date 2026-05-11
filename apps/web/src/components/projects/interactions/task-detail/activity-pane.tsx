@@ -66,12 +66,6 @@ export function TaskActivityPane({
 					return `added attachment${c.file_name ? `: ${c.file_name}` : ""}`;
 				case "task.attachment.removed":
 					return `removed attachment${c.file_name ? `: ${c.file_name}` : ""}`;
-				case "task.bdd_scenario.created":
-					return `added scenario${c.title ? `: "${c.title}"` : ""}`;
-				case "task.bdd_scenario.updated":
-					return `updated scenario${c.title ? `: "${c.title}"` : ""}`;
-				case "task.bdd_scenario.deleted":
-					return `removed scenario${c.title ? `: "${c.title}"` : ""}`;
 				case "task.checklist.created":
 					return `created checklist${c.title ? `: "${c.title}"` : ""}`;
 				case "task.checklist.updated":
