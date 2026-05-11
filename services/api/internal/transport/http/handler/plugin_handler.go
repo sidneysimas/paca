@@ -102,7 +102,7 @@ func (h *PluginHandler) ListMarketplacePlugins(c *gin.Context) {
 
 	catalog, err := h.marketplace.List(c.Request.Context())
 	if err != nil {
-		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "failed to fetch marketplace catalog: "+err.Error()))
+		presenter.Error(c, apierr.New(apierr.CodeInternalError, "failed to fetch marketplace catalog"))
 		return
 	}
 
