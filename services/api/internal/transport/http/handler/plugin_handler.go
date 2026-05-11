@@ -293,7 +293,7 @@ func (h *PluginHandler) UpgradeMarketplacePlugin(c *gin.Context) {
 
 	// Capture the currently persisted plugin state so we can delay DB writes
 	// until the upgraded runtime is active and best-effort roll back on failure.
-	plugins, err := h.svc.ListPlugins(c.Request.Context())
+	plugins, err = h.svc.ListPlugins(c.Request.Context())
 	if err != nil {
 		if h.installer != nil {
 			if cleanupErr := h.installer.Uninstall(installed.Name); cleanupErr != nil {
@@ -307,8 +307,7 @@ func (h *PluginHandler) UpgradeMarketplacePlugin(c *gin.Context) {
 	var current *plugindom.Plugin
 	for i := range plugins {
 		if plugins[i].ID == id {
-			plugin := plugins[i]
-			current = &plugin
+			current = plugins[i]
 			break
 		}
 	}
@@ -318,7 +317,7 @@ func (h *PluginHandler) UpgradeMarketplacePlugin(c *gin.Context) {
 				slog.Error("plugin upgrade: failed to clean up installed artifacts after missing plugin state", "name", installed.Name, "error", cleanupErr)
 			}
 		}
-		presenter.Error(c, apierr.New(apierr.CodeNotFound, "plugin not found"))
+		presenter.Error(c, apierr.New(apierr.CodePluginNotFound, "plugin not found"))
 		return
 	}
 
@@ -605,7 +604,8 @@ func parsePluginID(c *gin.Context) (uuid.UUID, error) {
 }
 
 // compareSemver returns a positive integer when a > b, 0 when equal, and a
-// negative integer when a < b. It handles versions in "X.Y.Z" or "vX.Y.Z" form.
+// negative integer when a < b. Only strict "X.Y.Z" (or "vX.Y.Z") versions
+// are accepted; pre-release identifiers and build metadata cause an error.
 func compareSemver(a, b string) (int, error) {
 	pa, err := parseSemver(a)
 	if err != nil {
@@ -623,20 +623,27 @@ func compareSemver(a, b string) (int, error) {
 	return 0, nil
 }
 
-// parseSemver parses a "X.Y.Z" (or "vX.Y.Z") version string into its
-// major, minor, and patch integer components.
+// parseSemver parses a strict "X.Y.Z" (or "vX.Y.Z") version string into its
+// major, minor, and patch integer components. Pre-release identifiers (e.g.
+// "1.0.0-beta.1") and build metadata (e.g. "1.0.0+001") are rejected with an
+// error so that callers never silently treat different precedence levels as
+// equal.
 func parseSemver(v string) ([3]int, error) {
 	v = strings.TrimPrefix(v, "v")
+	// Reject build metadata.
+	if strings.ContainsRune(v, '+') {
+		return [3]int{}, fmt.Errorf("version %q must not contain build metadata", v)
+	}
+	// Reject pre-release identifiers.
+	if strings.ContainsRune(v, '-') {
+		return [3]int{}, fmt.Errorf("version %q must not contain pre-release identifiers; only strict X.Y.Z versions are supported", v)
+	}
 	parts := strings.SplitN(v, ".", 3)
 	if len(parts) != 3 {
 		return [3]int{}, fmt.Errorf("expected major.minor.patch, got %q", v)
 	}
 	var result [3]int
 	for i, p := range parts {
-		// Strip any pre-release suffix (e.g. "1-beta").
-		if dash := strings.IndexByte(p, '-'); dash >= 0 {
-			p = p[:dash]
-		}
 		n, err := strconv.Atoi(p)
 		if err != nil || n < 0 {
 			return [3]int{}, fmt.Errorf("non-numeric version component %q", p)
