@@ -12,6 +12,7 @@ import (
 	"time"
 
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
+	"github.com/Paca-AI/api/internal/events"
 	"github.com/google/uuid"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -55,6 +56,7 @@ type HostServices struct {
 // EventPublisher abstracts the messaging.Publisher to avoid a circular import.
 type EventPublisher interface {
 	Publish(ctx context.Context, channel string, payload any) error
+	Append(ctx context.Context, stream, eventType string, payload any) error
 }
 
 // pluginInstance wraps a compiled wazero module for a single installed plugin.
@@ -738,6 +740,7 @@ type HTTPRequest struct {
 	Path       string            `json:"path"`
 	ProjectID  string            `json:"project_id"`
 	CallerID   string            `json:"caller_id"`
+	UserID     string            `json:"user_id"`
 	CallerRole string            `json:"caller_role"`
 	Headers    map[string]string `json:"headers"`
 	Body       []byte            `json:"body"`
@@ -779,6 +782,7 @@ func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, _ plugindom.
 			}
 			copy(stack, writeJSONResult(m, map[string]string{
 				"caller_id":   req.CallerID,
+				"user_id":     req.UserID,
 				"caller_role": req.CallerRole,
 				"project_id":  req.ProjectID,
 			}))
@@ -829,6 +833,54 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64},
 			[]api.ValueType{api.ValueTypeI32}).
 		Export("event_subscribe")
+
+	// paca.activity_record(payloadPtr i64, payloadLen i64) -> ok i32
+	// Appends a task-activity event to paca.task_activities stream so the
+	// ActivityConsumer worker can persist it to PostgreSQL.
+	// Payload JSON shape:
+	//   {"task_id":"uuid","project_id":"uuid","actor_id":"uuid",
+	//    "activity_type":"task.checklist.created","content":{...}}
+	b.NewFunctionBuilder().
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			raw, _ := readString(m, stack[0], stack[1])
+			var inp struct {
+				TaskID       string `json:"task_id"`
+				ProjectID    string `json:"project_id"`
+				ActorID      string `json:"actor_id"`
+				ActivityType string `json:"activity_type"`
+				Content      any    `json:"content"`
+			}
+			if err := json.Unmarshal([]byte(raw), &inp); err != nil || inp.TaskID == "" || inp.ActivityType == "" {
+				r.log.Warn("paca.activity_record: invalid payload", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+			contentBytes, _ := json.Marshal(inp.Content)
+			now := time.Now().UTC()
+			activityID := uuid.New().String()
+			payload := map[string]any{
+				"id":            activityID,
+				"task_id":       inp.TaskID,
+				"project_id":    inp.ProjectID,
+				"activity_type": inp.ActivityType,
+				"content":       string(contentBytes),
+				"created_at":    now.Format(time.RFC3339Nano),
+				"updated_at":    now.Format(time.RFC3339Nano),
+			}
+			if inp.ActorID != "" {
+				payload["actor_id"] = inp.ActorID
+			}
+			if r.services.Publisher != nil {
+				_ = r.services.Publisher.Append(ctx, events.StreamTaskActivities, inp.ActivityType, payload)
+				_ = r.services.Publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
+					"type":    inp.ActivityType,
+					"payload": payload,
+				})
+			}
+			stack[0] = 1
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64},
+			[]api.ValueType{api.ValueTypeI32}).
+		Export("activity_record")
 
 	// paca.log(level i32, msgPtr, msgLen)
 	b.NewFunctionBuilder().

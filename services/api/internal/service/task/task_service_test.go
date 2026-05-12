@@ -313,8 +313,6 @@ func (r *fakeTaskRepo) BulkMoveSprintTasks(_ context.Context, _, _ uuid.UUID, _ 
 	return nil
 }
 
-// -- BDDScenario methods --
-
 // ---------------------------------------------------------------------------
 // Task Type tests
 // ---------------------------------------------------------------------------

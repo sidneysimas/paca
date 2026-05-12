@@ -162,7 +162,6 @@ The Paca MCP server provides **86 tools** across **17 categories**:
 - 🎯 **Views** (9 tools): Sprint, backlog, and timeline views
 - 🔧 **Custom Fields** (5 tools): Custom field definitions
 - 📎 **Attachments** (3 tools): File attachment management
-- 🧪 **BDD Scenarios** (5 tools): Behavior-driven development scenarios
 - 📁 **Document Folders** (4 tools): Document organization
 - 📸 **Document Snapshots** (2 tools): Document versioning
 - 🔗 **GitHub Integration** (7 tools): Repository and PR linking

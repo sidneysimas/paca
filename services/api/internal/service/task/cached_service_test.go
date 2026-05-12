@@ -185,8 +185,6 @@ func (s *stubTaskSvc) DeleteCustomFieldDefinition(ctx context.Context, projectID
 	return nil
 }
 
-// BDDScenario methods (all pass-through)
-
 // ---------------------------------------------------------------------------
 // ListTaskTypes
 // ---------------------------------------------------------------------------

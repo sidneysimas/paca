@@ -66,23 +66,12 @@ export function TaskActivityPane({
 					return `added attachment${c.file_name ? `: ${c.file_name}` : ""}`;
 				case "task.attachment.removed":
 					return `removed attachment${c.file_name ? `: ${c.file_name}` : ""}`;
-				case "task.checklist.created":
-					return `created checklist${c.title ? `: "${c.title}"` : ""}`;
-				case "task.checklist.updated":
-					return `renamed checklist`;
-				case "task.checklist.deleted":
-					return `deleted checklist`;
-				case "task.checklist_item.created":
-					return `added checklist item`;
-				case "task.checklist_item.updated":
-					return `updated checklist item`;
-				case "task.checklist_item.deleted":
-					return `removed checklist item`;
 				default:
-					return "made a change";
+					return (c._description as string | undefined) ?? "made a change";
 			}
 		},
 		[nameMaps],
+
 	);
 
 	const queryKey = [

@@ -412,9 +412,11 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 	// Build caller identity from JWT claims.
 	claims := middleware.ClaimsFrom(c)
 	callerID := ""
+	userIDStr := ""
 	callerRole := ""
 	if claims != nil {
 		callerRole = claims.Role
+		userIDStr = claims.Subject
 
 		if h.memberRepo == nil {
 			presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin member resolver not available"))
@@ -469,6 +471,7 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		Path:       projectScopedPath,
 		ProjectID:  c.Param("projectId"),
 		CallerID:   callerID,
+		UserID:     userIDStr,
 		CallerRole: callerRole,
 		Headers:    headers,
 		Body:       bodyBytes,

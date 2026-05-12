@@ -19,7 +19,7 @@ import (
 //   - ListTaskStatuses    – keyed by project; invalidated on any status mutation.
 //   - ListCustomFieldDefinitions – keyed by project; invalidated on any field mutation.
 //
-// All other methods (tasks, BDD scenarios) are delegated directly to the
+// All other methods (tasks) are delegated directly to the
 // underlying service without caching.
 //
 // Cache errors are non-fatal: on a read error the decorator falls through to
