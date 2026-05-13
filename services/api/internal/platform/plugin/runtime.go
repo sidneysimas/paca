@@ -1088,7 +1088,9 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 				writeErr("fetch: " + err.Error())
 				return
 			}
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			respBody, err := io.ReadAll(resp.Body)
 			if err != nil {
