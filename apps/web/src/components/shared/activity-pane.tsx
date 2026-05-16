@@ -11,7 +11,7 @@ import {
 	Send,
 	Trash2,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	blocksToText,
 	CommentDisplay,
@@ -66,6 +66,7 @@ export function ActivityPane<T extends ActivityEntry>({
 	sortAscending = false,
 }: ActivityPaneConfig<T>) {
 	const editorRef = useRef<CommentEditorHandle>(null);
+	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const [editorFocused, setEditorFocused] = useState(false);
 	const qc = useQueryClient();
 
@@ -81,6 +82,13 @@ export function ActivityPane<T extends ActivityEntry>({
 				new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
 		);
 	}, [activities, sortAscending]);
+
+	useEffect(() => {
+		const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+		if (viewport) {
+			viewport.scrollTop = viewport.scrollHeight;
+		}
+	}, [sorted.length]);
 
 	const addMutation = useMutation({
 		mutationFn: (blocks: unknown[]) => {
@@ -116,7 +124,7 @@ export function ActivityPane<T extends ActivityEntry>({
 				)}
 			</div>
 
-			<ScrollArea className="lg:flex-1 lg:min-h-0 px-4 py-4">
+			<ScrollArea ref={scrollAreaRef} className="lg:flex-1 lg:min-h-0 px-4 py-4">
 				<div className="space-y-3">
 					{sorted.length === 0 && (
 						<div className="flex flex-col items-center py-8 text-muted-foreground/40">
