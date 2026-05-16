@@ -436,6 +436,7 @@ a {
 	padding: 3px !important;
 	min-width: 16px !important;
 	min-height: 16px !important;
+	transform: translateY(-4px) !important;
 }
 
 .bn-side-menu > button svg {
@@ -468,4 +469,9 @@ a {
 .bn-side-menu .bn-side-menu-button svg {
 	width: 12px !important;
 	height: 12px !important;
+}
+
+/* Reduce BlockNote font size to half */
+.bn-editor {
+	font-size: 75% !important;
 }
