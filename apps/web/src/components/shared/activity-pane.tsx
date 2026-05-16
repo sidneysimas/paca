@@ -84,11 +84,13 @@ export function ActivityPane<T extends ActivityEntry>({
 	}, [activities, sortAscending]);
 
 	useEffect(() => {
-		const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+		const viewport = scrollAreaRef.current?.querySelector(
+			'[data-slot="scroll-area-viewport"]',
+		) as HTMLElement;
 		if (viewport) {
 			viewport.scrollTop = viewport.scrollHeight;
 		}
-	}, [sorted.length]);
+	}, []);
 
 	const addMutation = useMutation({
 		mutationFn: (blocks: unknown[]) => {
@@ -124,7 +126,10 @@ export function ActivityPane<T extends ActivityEntry>({
 				)}
 			</div>
 
-			<ScrollArea ref={scrollAreaRef} className="lg:flex-1 lg:min-h-0 px-4 py-4">
+			<ScrollArea
+				ref={scrollAreaRef}
+				className="lg:flex-1 lg:min-h-0 px-4 py-4"
+			>
 				<div className="space-y-3">
 					{sorted.length === 0 && (
 						<div className="flex flex-col items-center py-8 text-muted-foreground/40">

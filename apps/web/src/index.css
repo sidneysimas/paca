@@ -430,16 +430,7 @@ a {
 	min-width: 20px;
 }
 
-.bn-root .bn-side-menu > button {
-	width: 16px;
-	height: 16px;
-	padding: 3px;
-	min-width: 16px;
-	min-height: 16px;
-	transform: translateY(-4px);
-}
-
-.bn-root .bn-side-menu > button svg {
+.bn-root .bn-drag-handle-menu svg {
 	width: 10px;
 	height: 10px;
 }
@@ -461,7 +452,16 @@ a {
 	min-height: 16px;
 }
 
-.bn-root .bn-drag-handle-menu svg {
+.bn-root .bn-side-menu > button {
+	width: 16px;
+	height: 16px;
+	padding: 3px;
+	min-width: 16px;
+	min-height: 16px;
+	transform: translateY(-4px);
+}
+
+.bn-root .bn-side-menu > button svg {
 	width: 10px;
 	height: 10px;
 }

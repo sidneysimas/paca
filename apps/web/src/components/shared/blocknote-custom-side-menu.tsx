@@ -1,3 +1,4 @@
+import type { Block } from "@blocknote/core";
 import { SideMenuExtension } from "@blocknote/core/extensions";
 import {
 	AddBlockButton,
@@ -5,7 +6,6 @@ import {
 	SideMenu,
 	useExtensionState,
 } from "@blocknote/react";
-import type { Block } from "@blocknote/core";
 
 export const CustomSideMenu = () => {
 	const block = useExtensionState(SideMenuExtension, {

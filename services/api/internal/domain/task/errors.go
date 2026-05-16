@@ -23,8 +23,8 @@ var (
 	ErrCustomFieldNameInvalid = errors.New("custom field: display name is empty or invalid")
 
 	// Activity / comment errors.
-	ErrActivityNotFound    = errors.New("activity: not found")
-	ErrActivityForbidden   = errors.New("activity: only the author can modify this comment")
-	ErrActivityNotAComment = errors.New("activity: this entry is not a comment and cannot be edited")
+	ErrActivityNotFound      = errors.New("activity: not found")
+	ErrActivityForbidden     = errors.New("activity: only the author can modify this comment")
+	ErrActivityNotAComment   = errors.New("activity: this entry is not a comment and cannot be edited")
 	ErrCommentContentInvalid = errors.New("activity: comment content must not be empty")
 )
