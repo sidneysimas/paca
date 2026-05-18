@@ -5,8 +5,15 @@ import {
 } from "@blocknote/react";
 
 interface MentionSuggestionMenuProps {
-	editor: any;
-	teamMembers: Array<{ id: string; name: string; username: string; avatar?: string | null | undefined }>;
+	editor: {
+		insertInlineContent: (content: unknown[]) => void;
+	};
+	teamMembers: Array<{
+		id: string;
+		name: string;
+		username: string;
+		avatar?: string | null | undefined;
+	}>;
 	tasks: Array<{ id: string; title: string; task_number: number }>;
 	documents: Array<{ id: string; title: string }>;
 }

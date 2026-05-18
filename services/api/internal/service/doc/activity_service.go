@@ -7,8 +7,8 @@ import (
 	"time"
 
 	docdom "github.com/Paca-AI/api/internal/domain/doc"
-	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	notificationdom "github.com/Paca-AI/api/internal/domain/notification"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	"github.com/Paca-AI/api/internal/events"
 	mentionpkg "github.com/Paca-AI/api/internal/pkg/mention"
 	"github.com/Paca-AI/api/internal/platform/messaging"

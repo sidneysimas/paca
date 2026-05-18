@@ -111,11 +111,11 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput
 			}
 
 			_ = s.notificationSvc.NotifyMentioned(ctx, notificationdom.NotifyMentionedInput{
-				TaskID:       in.TaskID,
-				ProjectID:    in.ProjectID,
-				CommentText: extractTextFromBlocks(in.Content),
-				ActorMemberID: member.ID,
-				ActorUserID:    in.ActorID,
+				TaskID:          in.TaskID,
+				ProjectID:       in.ProjectID,
+				CommentText:     extractTextFromBlocks(in.Content),
+				ActorMemberID:   member.ID,
+				ActorUserID:     in.ActorID,
 				MentionedUserID: &mentionedUserID,
 			})
 		}

@@ -40,13 +40,13 @@ export interface DocEditorHandle {
 	save: () => void;
 }
 
-	export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
-		function DocEditor(
-			{ content, editable = true, onDirtyChange, onSave, projectId, docId },
-			ref,
-		) {
-			const { resolvedMode } = useThemeMode();
-			const { teamMembers, tasks, documents } = useMentionData(projectId);
+export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
+	function DocEditor(
+		{ content, editable = true, onDirtyChange, onSave, projectId, docId },
+		ref,
+	) {
+		const { resolvedMode } = useThemeMode();
+		const { teamMembers, tasks, documents } = useMentionData(projectId);
 
 		const lastSavedRef = useRef<string | null>(null);
 		const initializedRef = useRef(false);

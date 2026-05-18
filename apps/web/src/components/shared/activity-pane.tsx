@@ -5,12 +5,12 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import {
+	Loader2,
 	MessageSquare,
 	MoreHorizontal,
 	Pencil,
 	Send,
 	Trash2,
-	Loader2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -109,7 +109,13 @@ export function ActivityPane<T extends ActivityEntry>({
 	});
 
 	const updateMutation = useMutation({
-		mutationFn: ({ commentId, blocks }: { commentId: string; blocks: unknown[] }) => {
+		mutationFn: ({
+			commentId,
+			blocks,
+		}: {
+			commentId: string;
+			blocks: unknown[];
+		}) => {
 			if (!updateComment) return Promise.resolve();
 			return updateComment(commentId, blocks);
 		},
@@ -209,7 +215,7 @@ export function ActivityPane<T extends ActivityEntry>({
 							</Button>
 						</div>
 					)}
-					<div
+					<fieldset
 						className={cn(
 							"rounded-xl border border-border/30 bg-card/80 transition-all duration-200 overflow-hidden",
 							editorFocused && "border-primary/25 shadow-sm shadow-primary/5",
@@ -231,7 +237,7 @@ export function ActivityPane<T extends ActivityEntry>({
 							onSubmit={handleSend}
 							projectId={projectId}
 						/>
-					</div>
+					</fieldset>
 					<div className="flex items-center justify-between">
 						{editorFocused && (
 							<p className="text-[10px] text-muted-foreground/40 pl-1">
@@ -297,7 +303,11 @@ function ActivityItemInner<T extends ActivityEntry>({
 	const displayName = entry.actor_name || entry.actor_username || "System";
 	const initial = displayName.slice(0, 1).toUpperCase();
 
-	const isOwnComment = isComment && !!currentUserId && !!entry.actor_id && String(entry.actor_id) === String(currentUserId);
+	const isOwnComment =
+		isComment &&
+		!!currentUserId &&
+		!!entry.actor_id &&
+		String(entry.actor_id) === String(currentUserId);
 	const canEdit = isOwnComment && !!updateComment;
 	const canDelete = isOwnComment && !!deleteComment;
 

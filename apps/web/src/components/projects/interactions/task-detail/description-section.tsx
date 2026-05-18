@@ -1,10 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
 
-import {
-	SideMenuController,
-	useCreateBlockNote,
-} from "@blocknote/react";
+import { SideMenuController, useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";

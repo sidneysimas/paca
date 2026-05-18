@@ -2,17 +2,14 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
 
 import type { PartialBlock } from "@blocknote/core";
-import {
-	SideMenuController,
-	useCreateBlockNote,
-} from "@blocknote/react";
+import { SideMenuController, useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { useThemeMode } from "@/hooks/use-theme-mode";
+import { useMentionData } from "@/lib/mention-api";
 import { CustomSideMenu } from "./blocknote-custom-side-menu";
 import { customSchema } from "./blocknote-schema";
 import { MentionSuggestionMenus } from "./mention-suggestion-menus";
-import { useMentionData } from "@/lib/mention-api";
 
 export interface CommentEditorHandle {
 	getBlocks: () => unknown[];

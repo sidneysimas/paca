@@ -69,12 +69,13 @@ export function useMentionData(projectId?: string | null) {
 		avatar: member.full_name.slice(0, 2).toUpperCase() || undefined,
 	}));
 
-	const tasks: MentionableTask[] = tasksResult?.items.map((task) => ({
-		id: task.id,
-		title: task.title,
-		task_number: task.task_number,
-		status: task.status_id || undefined,
-	})) ?? [];
+	const tasks: MentionableTask[] =
+		tasksResult?.items.map((task) => ({
+			id: task.id,
+			title: task.title,
+			task_number: task.task_number,
+			status: task.status_id || undefined,
+		})) ?? [];
 
 	const mentionDocs: MentionableDocument[] = documents.map((doc) => ({
 		id: doc.id,

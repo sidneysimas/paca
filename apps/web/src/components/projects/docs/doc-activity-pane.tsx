@@ -1,10 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
 	type ActivityEntry,
 	ActivityPane,
 } from "@/components/shared/activity-pane";
-import {
-	textToBlocks,
-} from "@/components/shared/comment-blocknote";
+import { textToBlocks } from "@/components/shared/comment-blocknote";
+import { currentUserQueryOptions } from "@/lib/auth-api";
 import {
 	addDocComment,
 	type DocActivity,
@@ -13,9 +14,6 @@ import {
 	listActivities,
 	updateDocComment,
 } from "@/lib/doc-api";
-import { currentUserQueryOptions } from "@/lib/auth-api";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 import { projectMembersQueryOptions } from "@/lib/project-api";
 
 type DocActivityChange = {
@@ -71,10 +69,7 @@ interface DocActivityPaneProps {
 	docId: string;
 }
 
-export function DocActivityPane({
-	projectId,
-	docId,
-}: DocActivityPaneProps) {
+export function DocActivityPane({ projectId, docId }: DocActivityPaneProps) {
 	const { data: currentUser } = useQuery(currentUserQueryOptions);
 	const { data: membersData } = useQuery(projectMembersQueryOptions(projectId));
 
@@ -85,15 +80,13 @@ export function DocActivityPane({
 
 	const queryKey = docQueryKeys.activities(projectId, docId);
 
-		return (
+	return (
 		<ActivityPane<DocActivity>
 			projectId={projectId}
 			entityId={docId}
 			queryKey={queryKey}
 			queryFn={() => listActivities(projectId, docId)}
-			addComment={(blocks) =>
-				addDocComment(projectId, docId, blocks)
-			}
+			addComment={(blocks) => addDocComment(projectId, docId, blocks)}
 			updateComment={(commentId, blocks) =>
 				updateDocComment(projectId, docId, commentId, blocks)
 			}
@@ -102,23 +95,19 @@ export function DocActivityPane({
 			}
 			describeActivity={describeDocActivity}
 			getCommentBlocks={(content) => {
-			if (Array.isArray(content)) return content;
-			if (
-				content &&
-				typeof content === "object" &&
-				!("length" in content)
-			) {
-				if ("content" in content) {
-					const blockContent = (content as { content?: unknown }).content;
-					if (Array.isArray(blockContent)) return blockContent;
+				if (Array.isArray(content)) return content;
+				if (content && typeof content === "object" && !("length" in content)) {
+					if ("content" in content) {
+						const blockContent = (content as { content?: unknown }).content;
+						if (Array.isArray(blockContent)) return blockContent;
+					}
+					if ("text" in content) {
+						const text = (content as { text?: string }).text ?? "";
+						return textToBlocks(text);
+					}
 				}
-				if ("text" in content) {
-					const text = (content as { text?: string }).text ?? "";
-					return textToBlocks(text);
-				}
-			}
-			return [];
-		}}
+				return [];
+			}}
 			sortAscending
 			currentUserId={myMemberId}
 		/>

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { ActivityPane } from "@/components/shared/activity-pane";
 import { textToBlocks } from "@/components/shared/comment-blocknote";
+import { currentUserQueryOptions } from "@/lib/auth-api";
 import {
 	type Activity,
 	addComment,
@@ -11,7 +12,6 @@ import {
 	updateComment,
 } from "@/lib/interaction-api";
 import { projectMembersQueryOptions } from "@/lib/project-api";
-import { currentUserQueryOptions } from "@/lib/auth-api";
 import { describeTaskChange } from "./activity-item";
 
 type FieldChange = {
@@ -120,11 +120,7 @@ export function TaskActivityPane({
 			describeActivity={describeActivity}
 			getCommentBlocks={(content) => {
 				if (Array.isArray(content)) return content;
-				if (
-					content &&
-					typeof content === "object" &&
-					!("length" in content)
-				) {
+				if (content && typeof content === "object" && !("length" in content)) {
 					if ("content" in content) {
 						const blockContent = (content as { content?: unknown }).content;
 						if (Array.isArray(blockContent)) return blockContent;

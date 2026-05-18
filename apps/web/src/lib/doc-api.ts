@@ -333,7 +333,7 @@ export async function addDocComment(
 	content: unknown[] | string,
 ): Promise<DocActivity> {
 	let payload: unknown;
-	if (typeof content === 'string') {
+	if (typeof content === "string") {
 		payload = { text: content };
 	} else if (Array.isArray(content)) {
 		payload = { content };
@@ -354,7 +354,7 @@ export async function updateDocComment(
 	content: unknown[] | string,
 ): Promise<DocActivity> {
 	let payload: unknown;
-	if (typeof content === 'string') {
+	if (typeof content === "string") {
 		payload = { text: content };
 	} else if (Array.isArray(content)) {
 		payload = { content };

@@ -1,26 +1,27 @@
+// Package mention provides utilities for parsing BlockNote mentions.
 package mention
 
 import (
 	"encoding/json"
 )
 
-// MentionType represents the different types of mentions that can be embedded
+// Type represents the different types of mentions that can be embedded
 // in BlockNote content.
-type MentionType string
+type Type string
 
 const (
 	// MentionTypeTeam represents @team member mentions.
-	MentionTypeTeam MentionType = "teamMention"
+	MentionTypeTeam Type = "teamMention"
 	// MentionTypeTask represents #task references.
-	MentionTypeTask MentionType = "taskReference"
+	MentionTypeTask Type = "taskReference"
 	// MentionTypeDoc represents #document references.
-	MentionTypeDoc MentionType = "docReference"
+	MentionTypeDoc Type = "docReference"
 )
 
 // Mention represents a single mention found in BlockNote content.
 type Mention struct {
-	Type MentionType `json:"type"`
-	ID   string      `json:"id"`
+	Type Type   `json:"type"`
+	ID   string `json:"id"`
 	// Name is the display name (for team mentions) or title (for task/doc references).
 	Name string `json:"name"`
 	// For team mentions, this contains user_id.

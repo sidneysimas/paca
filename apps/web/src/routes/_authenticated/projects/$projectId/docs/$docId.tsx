@@ -39,8 +39,6 @@ const TITLE_CLASSES =
 
 type RightPanel = "activity" | "history" | null;
 
-
-
 function DocEditorPage() {
 	const { projectId, docId } = Route.useParams();
 	const { hasProjectPermission } = useProjectPermissions(projectId);
@@ -351,10 +349,7 @@ function DocEditorPage() {
 				{/* Right panel: activity */}
 				{rightPanel === "activity" && doc && (
 					<div className="w-80 shrink-0 h-full overflow-hidden">
-						<DocActivityPane
-							projectId={projectId}
-							docId={docId}
-						/>
+						<DocActivityPane projectId={projectId} docId={docId} />
 					</div>
 				)}
 

@@ -106,13 +106,13 @@ type NotifyAssignedInput struct {
 // MentionedUserID can be provided for structured mentions (from BlockNote JSON)
 // to directly reference the mentioned user by ID instead of parsing from text.
 type NotifyMentionedInput struct {
-	TaskID          uuid.UUID
-	ProjectID       uuid.UUID
-	CommentText     string
+	TaskID      uuid.UUID
+	ProjectID   uuid.UUID
+	CommentText string
 	// ActorMemberID is the project_members.id of the commenter.
-	ActorMemberID   uuid.UUID
+	ActorMemberID uuid.UUID
 	// ActorUserID is the users.id of the commenter (used to exclude self-mention).
-	ActorUserID     uuid.UUID
+	ActorUserID uuid.UUID
 	// MentionedUserID is an optional direct reference to the mentioned user's ID.
 	// When provided, it takes precedence over username parsing from CommentText.
 	MentionedUserID *uuid.UUID
