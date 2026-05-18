@@ -79,7 +79,7 @@ func (s *ActivitySvc) ListActivities(ctx context.Context, taskID uuid.UUID) ([]*
 
 // AddComment creates a user comment on the task.
 func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput) (*taskdom.Activity, error) {
-	if len(in.Content) == 0 || string(in.Content) == "[]" || string(in.Content) == "null" {
+	if isContentEmpty(in.Content) {
 		return nil, taskdom.ErrCommentContentInvalid
 	}
 	member, err := s.memberRepo.FindMemberByUserProject(ctx, in.ActorID, in.ProjectID)
@@ -126,7 +126,7 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput
 
 // UpdateComment edits the content of an existing comment.
 func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID, content json.RawMessage) (*taskdom.Activity, error) {
-	if len(content) == 0 || string(content) == "[]" || string(content) == "null" {
+	if isContentEmpty(content) {
 		return nil, taskdom.ErrCommentContentInvalid
 	}
 	a, err := s.repo.FindActivityByID(ctx, id)
@@ -257,4 +257,17 @@ func extractTextFromBlocks(raw json.RawMessage) string {
 		return legacy.Text
 	}
 	return ""
+}
+
+// isContentEmpty checks if json.RawMessage content is empty or contains only whitespace.
+// It handles: empty byte slice, "null", "[]", or a whitespace-only JSON string.
+func isContentEmpty(content json.RawMessage) bool {
+	if len(content) == 0 || string(content) == "[]" || string(content) == "null" {
+		return true
+	}
+	var str string
+	if json.Unmarshal(content, &str) == nil {
+		return strings.TrimSpace(str) == ""
+	}
+	return false
 }
