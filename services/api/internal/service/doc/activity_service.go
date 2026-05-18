@@ -105,26 +105,13 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in docdom.AddCommentInput)
 	}
 	s.publishRealtimeOnly(ctx, events.TopicDocCommentAdded, activityPayload(a, in.ProjectID))
 
-	// Send mention notifications if notification service is available
-	if s.notificationSvc != nil {
-		// Extract mentions from BlockNote JSON and notify mentioned users
-		teamMentions := mentionpkg.ExtractTeamMentionsFromBlocks(in.Content)
-		for _, m := range teamMentions {
-			mentionedUserID, err := uuid.Parse(m.ID)
-			if err != nil {
-				continue // invalid UUID, skip
-			}
-
-			_ = s.notificationSvc.NotifyMentioned(ctx, notificationdom.NotifyMentionedInput{
-				TaskID:          uuid.Nil, // document comment, no task
-				ProjectID:       in.ProjectID,
-				CommentText:     extractTextFromBlocks(in.Content),
-				ActorMemberID:   member.ID,
-				ActorUserID:     in.ActorID,
-				MentionedUserID: &mentionedUserID,
-			})
-		}
-	}
+	// Intentionally skip mention notifications for document comments here.
+	// NotifyMentioned is task-scoped and persists task_id; passing uuid.Nil for
+	// a document comment can violate the notifications FK and fail silently.
+	// This should be re-enabled once the notification contract supports
+	// document-scoped mentions (for example, nullable TaskID or a doc-specific type).
+	_ = mentionpkg.ExtractTeamMentionsFromBlocks
+	_ = notificationdom.NotifyMentionedInput{}
 
 	return a, nil
 }
