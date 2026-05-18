@@ -102,22 +102,36 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput
 	s.publishRealtimeOnly(ctx, events.TopicTaskCommentAdded, activityPayload(a, in.ProjectID))
 
 	if s.notificationSvc != nil {
-		// Extract mentions from BlockNote JSON and notify mentioned users
+		// Extract mentions from BlockNote JSON and notify mentioned users.
+		// Fall back to plain-text parsing when no structured mentions exist,
+		// to preserve compatibility with manually typed @mentions and legacy clients.
+		commentText := extractTextFromBlocks(in.Content)
 		teamMentions := mentionpkg.ExtractTeamMentionsFromBlocks(in.Content)
-		for _, m := range teamMentions {
-			mentionedUserID, err := uuid.Parse(m.ID)
-			if err != nil {
-				continue // invalid UUID, skip
-			}
-
+		if len(teamMentions) == 0 {
 			_ = s.notificationSvc.NotifyMentioned(ctx, notificationdom.NotifyMentionedInput{
 				TaskID:          in.TaskID,
 				ProjectID:       in.ProjectID,
-				CommentText:     extractTextFromBlocks(in.Content),
+				CommentText:     commentText,
 				ActorMemberID:   member.ID,
 				ActorUserID:     in.ActorID,
-				MentionedUserID: &mentionedUserID,
+				MentionedUserID: nil,
 			})
+		} else {
+			for _, m := range teamMentions {
+				mentionedUserID, err := uuid.Parse(m.ID)
+				if err != nil {
+					continue // invalid UUID, skip
+				}
+
+				_ = s.notificationSvc.NotifyMentioned(ctx, notificationdom.NotifyMentionedInput{
+					TaskID:          in.TaskID,
+					ProjectID:       in.ProjectID,
+					CommentText:     commentText,
+					ActorMemberID:   member.ID,
+					ActorUserID:     in.ActorID,
+					MentionedUserID: &mentionedUserID,
+				})
+			}
 		}
 	}
 
