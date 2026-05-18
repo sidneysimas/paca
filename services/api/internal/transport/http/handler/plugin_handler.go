@@ -668,7 +668,7 @@ func matchPathPattern(pattern, path string) (map[string]string, bool) {
 			if name == "" || i != len(patternSegments)-1 {
 				return nil, false
 			}
-			if pathIdx > len(pathSegments) {
+			if pathIdx >= len(pathSegments) {
 				return nil, false
 			}
 			params[name] = strings.Join(pathSegments[pathIdx:], "/")
