@@ -338,7 +338,7 @@ Table notifications {
   created_at        timestamp
 }
 
-// --- NOTIFICATIONS ---
+// --- API KEY ---
 Table api_keys {
   id uuid [primary key]
   user_id uuid [not null, ref: > users.id]
