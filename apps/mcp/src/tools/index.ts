@@ -96,7 +96,7 @@ export async function handleToolCall(
 			name === "update_task" ||
 			name === "delete_task"
 		) {
-			return handleTaskTool(name, args, clients.apiClient);
+			return handleTaskTool(name, args, clients.apiClient, clients.taskExtendedClient, clients.viewsClient);
 		}
 
 		// Sprint tools

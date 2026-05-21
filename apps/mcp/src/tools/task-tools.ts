@@ -1,7 +1,8 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { PacaAPIClient } from "../api/index.js";
-import { formatList, formatTask } from "../utils/index.js";
+import type { PacaAPITaskExtendedClient, PacaAPIViewsClient } from "../api/index.js";
+import { formatList, formatTask, formatTaskDetail } from "../utils/index.js";
 
 const ListTasksSchema = z.object({
 	projectId: z.string(),
@@ -75,7 +76,7 @@ export function getTaskTools(): Tool[] {
 		},
 		{
 			name: "get_task",
-			description: "Get details of a specific task",
+			description: "Get comprehensive details of a specific task including all properties, subtasks, attachments, and activities - everything that users can see in the task detail component of the web app",
 			inputSchema: {
 				type: "object",
 				properties: {
@@ -93,7 +94,7 @@ export function getTaskTools(): Tool[] {
 		},
 		{
 			name: "get_task_by_number",
-			description: "Get a task by its number within a project",
+			description: "Get comprehensive details of a task by its number within a project including all properties, subtasks, attachments, and activities",
 			inputSchema: {
 				type: "object",
 				properties: {
@@ -265,6 +266,8 @@ export async function handleTaskTool(
 	toolName: string,
 	args: any,
 	client: PacaAPIClient,
+	extendedClient?: PacaAPITaskExtendedClient,
+	viewsClient?: PacaAPIViewsClient,
 ): Promise<any> {
 	switch (toolName) {
 		case "list_tasks": {
@@ -283,28 +286,13 @@ export async function handleTaskTool(
 
 		case "get_task": {
 			const { projectId, taskId } = GetTaskSchema.parse(args);
-			const task = await client.getTask(projectId, taskId);
-			return {
-				content: [
-					{
-						type: "text",
-						text: formatTask(task),
-					},
-				],
-			};
+			return await getTaskDetail(projectId, taskId, client, extendedClient, viewsClient);
 		}
 
 		case "get_task_by_number": {
 			const { projectId, taskNumber } = GetTaskByNumberSchema.parse(args);
 			const task = await client.getTaskByNumber(projectId, taskNumber);
-			return {
-				content: [
-					{
-						type: "text",
-						text: formatTask(task),
-					},
-				],
-			};
+			return await getTaskDetail(projectId, task.id, client, extendedClient, viewsClient);
 		}
 
 		case "create_task": {
@@ -401,4 +389,74 @@ export async function handleTaskTool(
 		default:
 			throw new Error(`Unknown task tool: ${toolName}`);
 	}
+}
+
+async function getTaskDetail(
+	projectId: string,
+	taskId: string,
+	client: PacaAPIClient,
+	extendedClient?: PacaAPITaskExtendedClient,
+	viewsClient?: PacaAPIViewsClient,
+): Promise<any> {
+	const task = await client.getTask(projectId, taskId);
+	
+	const [
+		project,
+		statuses,
+		taskTypes,
+		sprints,
+		members,
+		subtasks,
+		attachments,
+		activities,
+		customFields,
+	] = await Promise.all([
+		client.getProject(projectId).catch(() => undefined),
+		extendedClient?.listTaskStatuses(projectId).catch(() => []) || Promise.resolve([]),
+		extendedClient?.listTaskTypes(projectId).catch(() => []) || Promise.resolve([]),
+		client.listSprints(projectId).catch(() => []),
+		extendedClient?.listProjectMembers(projectId).catch(() => []) || Promise.resolve([]),
+		extendedClient?.listSubtasks(projectId, taskId).catch(() => []) || Promise.resolve([]),
+		viewsClient?.listTaskAttachments(projectId, taskId).catch(() => []) || Promise.resolve([]),
+		extendedClient?.listTaskActivities(projectId, taskId).catch(() => []) || Promise.resolve([]),
+		viewsClient?.listCustomFieldDefinitions(projectId).catch(() => []) || Promise.resolve([]),
+	]);
+
+	const status = statuses.find((s: any) => s.id === task.status_id);
+	const taskType = taskTypes.find((t: any) => t.id === task.task_type_id);
+	const sprint = sprints.find((s: any) => s.id === task.sprint_id);
+	const assignee = members.find((m: any) => m.id === task.assignee_id);
+	const reporter = members.find((m: any) => m.id === task.reporter_id);
+	let parentTask;
+	if (task.parent_task_id) {
+		try {
+			parentTask = await client.getTask(projectId, task.parent_task_id);
+		} catch (e) {
+			parentTask = undefined;
+		}
+	}
+
+	const formatted = formatTaskDetail(
+		task,
+		project,
+		status,
+		taskType,
+		sprint,
+		assignee,
+		reporter,
+		parentTask,
+		subtasks,
+		attachments,
+		activities,
+		customFields,
+	);
+
+	return {
+		content: [
+			{
+				type: "text",
+				text: formatted,
+			},
+		],
+	};
 }
