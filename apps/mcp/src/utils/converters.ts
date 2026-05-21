@@ -167,8 +167,20 @@ function hasMentionsInContent(content: any): boolean {
  * @param blocks - Array of BlockNote block objects
  * @returns Markdown string representation
  */
-export function blocknoteToMarkdown(blocks: any[] | null): string {
-	if (!blocks || blocks.length === 0) return "";
+export function blocknoteToMarkdown(
+	blocks: any[] | { content?: unknown; text?: unknown } | null,
+): string {
+	if (!blocks) return "";
+	if (!Array.isArray(blocks)) {
+		if (typeof blocks.text === "string") {
+			return blocks.text;
+		}
+		if (!Array.isArray(blocks.content)) {
+			return "";
+		}
+		blocks = blocks.content;
+	}
+	if (blocks.length === 0) return "";
 
 	let _blocksToConvert = blocks;
 
