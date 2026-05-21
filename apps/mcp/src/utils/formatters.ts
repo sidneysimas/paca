@@ -187,7 +187,11 @@ export function formatTaskDetail(
 			if (activity.activity_type === "comment" && activity.content) {
 				const commentContent = blocknoteToMarkdown(activity.content as any);
 				if (commentContent && commentContent.trim() !== "") {
-					sections.push(`  - ${commentContent}`);
+					const indentedCommentContent = commentContent
+						.split("\n")
+						.map((line, index) => (index === 0 ? `  - ${line}` : `    ${line}`))
+						.join("\n");
+					sections.push(indentedCommentContent);
 				}
 			}
 		});
