@@ -37,25 +37,27 @@ function getEditor(): BlockNoteEditor {
  */
 function convertMentionsToText(content: any): any {
 	if (!content) return content;
-	
+
 	if (Array.isArray(content)) {
 		return content.map((item) => convertMentionsToText(item));
 	}
-	
+
 	if (typeof content === "object" && content !== null) {
 		const result = { ...content };
-		
+
 		if (result.type === "teamMention") {
 			const memberName = result.props?.name || "Unknown";
 			const memberId = result.props?.id || "";
-			const text = memberId ? `@${memberName} (id: ${memberId})` : `@${memberName}`;
+			const text = memberId
+				? `@${memberName} (id: ${memberId})`
+				: `@${memberName}`;
 			return {
 				type: "text",
 				text,
 				styles: {},
 			};
 		}
-		
+
 		if (result.type === "taskReference") {
 			const taskTitle = result.props?.title || "Unknown";
 			const taskId = result.props?.id || "";
@@ -66,7 +68,7 @@ function convertMentionsToText(content: any): any {
 				styles: {},
 			};
 		}
-		
+
 		if (result.type === "docReference") {
 			const docTitle = result.props?.title || "Unknown";
 			const docId = result.props?.id || "";
@@ -77,14 +79,14 @@ function convertMentionsToText(content: any): any {
 				styles: {},
 			};
 		}
-		
+
 		if (result.content) {
 			result.content = convertMentionsToText(result.content);
 		}
-		
+
 		return result;
 	}
-	
+
 	return content;
 }
 
@@ -95,33 +97,37 @@ function convertMentionsToText(content: any): any {
  */
 function hasMentions(blocks: any[] | null): boolean {
 	if (!blocks || blocks.length === 0) return false;
-	
+
 	for (const block of blocks) {
 		if (!block) continue;
-		
-		if (block.type === "teamMention" || block.type === "taskReference" || block.type === "docReference") {
+
+		if (
+			block.type === "teamMention" ||
+			block.type === "taskReference" ||
+			block.type === "docReference"
+		) {
 			return true;
 		}
-		
+
 		if (block.content) {
 			if (hasMentionsInContent(block.content)) {
 				return true;
 			}
 		}
-		
+
 		if (block.children) {
 			if (hasMentions(block.children)) {
 				return true;
 			}
 		}
 	}
-	
+
 	return false;
 }
 
 function hasMentionsInContent(content: any): boolean {
 	if (!content) return false;
-	
+
 	if (Array.isArray(content)) {
 		for (const item of content) {
 			if (hasMentionsInContent(item)) {
@@ -130,21 +136,25 @@ function hasMentionsInContent(content: any): boolean {
 		}
 		return false;
 	}
-	
+
 	if (typeof content === "object" && content !== null) {
-		if (content.type === "teamMention" || content.type === "taskReference" || content.type === "docReference") {
+		if (
+			content.type === "teamMention" ||
+			content.type === "taskReference" ||
+			content.type === "docReference"
+		) {
 			return true;
 		}
-		
+
 		if (content.content && hasMentionsInContent(content.content)) {
 			return true;
 		}
-		
+
 		if (content.children && hasMentions(content.children)) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -155,16 +165,15 @@ function hasMentionsInContent(content: any): boolean {
  */
 export function blocknoteToMarkdown(blocks: any[] | null): string {
 	if (!blocks || blocks.length === 0) return "";
-	
-	let blocksToConvert = blocks;
-	
+
+	let _blocksToConvert = blocks;
+
 	if (hasMentions(blocks)) {
-		blocksToConvert = convertMentionsToText(blocks);
+		_blocksToConvert = convertMentionsToText(blocks);
 	}
-	
+
 	const e = getEditor();
-	const markdown = (e as any)._exportManager.blocksToMarkdownLossy(blocks);
-	return `\`\`\`markdown\n${markdown}\n\`\`\``;
+	return (e as any)._exportManager.blocksToMarkdownLossy(_blocksToConvert);
 }
 
 /**

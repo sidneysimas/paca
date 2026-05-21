@@ -146,10 +146,7 @@ export class PacaAPITaskExtendedClient {
 		);
 	}
 
-	async listSubtasks(
-		projectId: string,
-		parentTaskId: string,
-	): Promise<any[]> {
+	async listSubtasks(projectId: string, parentTaskId: string): Promise<any[]> {
 		const response = await this.get(
 			`/api/v1/projects/${projectId}/tasks?parent_task_id=${parentTaskId}`,
 		);
@@ -160,7 +157,9 @@ export class PacaAPITaskExtendedClient {
 	}
 
 	async listTaskStatuses(projectId: string): Promise<any[]> {
-		const response = await this.get(`/api/v1/projects/${projectId}/task-statuses`);
+		const response = await this.get(
+			`/api/v1/projects/${projectId}/task-statuses`,
+		);
 		if (Array.isArray(response)) {
 			return response;
 		}

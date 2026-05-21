@@ -1,4 +1,15 @@
-import type { Document, Project, Sprint, Task, TaskStatus, TaskType, ProjectMember, Attachment, TaskActivity, CustomFieldDefinition } from "../types/index.js";
+import type {
+	Attachment,
+	CustomFieldDefinition,
+	Document,
+	Project,
+	ProjectMember,
+	Sprint,
+	Task,
+	TaskActivity,
+	TaskStatus,
+	TaskType,
+} from "../types/index.js";
 import { blocknoteToMarkdown } from "./converters.js";
 
 /**
@@ -63,42 +74,56 @@ export function formatTaskDetail(
 	const description = task.description
 		? blocknoteToMarkdown(task.description)
 		: "No description";
-	
+
 	const taskIdPrefix = project?.task_id_prefix || "";
-	
+
 	const sections: string[] = [];
 
-	sections.push(`# Task ${taskIdPrefix ? taskIdPrefix + '-' : ''}${task.task_number}: ${task.title}`);
+	sections.push(
+		`# Task ${taskIdPrefix ? `${taskIdPrefix}-` : ""}${task.task_number}: ${task.title}`,
+	);
 
 	sections.push(`**ID:** ${task.id}`);
 
 	if (status || task.status_id) {
-		sections.push(`**Status:** ${status ? status.name : task.status_id || "None"}${status?.color ? ` (Color: ${status.color})` : ""}`);
+		sections.push(
+			`**Status:** ${status ? status.name : task.status_id || "None"}${status?.color ? ` (Color: ${status.color})` : ""}`,
+		);
 	}
 
 	if (taskType || task.task_type_id) {
-		sections.push(`**Type:** ${taskType ? taskType.name : task.task_type_id || "None"}${taskType?.icon ? ` (Icon: ${taskType.icon})` : ""}${taskType?.color ? ` (Color: ${taskType.color})` : ""}`);
+		sections.push(
+			`**Type:** ${taskType ? taskType.name : task.task_type_id || "None"}${taskType?.icon ? ` (Icon: ${taskType.icon})` : ""}${taskType?.color ? ` (Color: ${taskType.color})` : ""}`,
+		);
 	}
 
 	if (sprint || task.sprint_id) {
-		sections.push(`**Sprint:** ${sprint ? sprint.name : task.sprint_id || "None"}`);
+		sections.push(
+			`**Sprint:** ${sprint ? sprint.name : task.sprint_id || "None"}`,
+		);
 	}
 
 	if (assignee || task.assignee_id) {
-		sections.push(`**Assignee:** ${assignee ? `${assignee.full_name || assignee.username} (@${assignee.username})` : task.assignee_id || "Unassigned"}`);
+		sections.push(
+			`**Assignee:** ${assignee ? `${assignee.full_name || assignee.username} (@${assignee.username})` : task.assignee_id || "Unassigned"}`,
+		);
 	}
 
 	if (reporter || task.reporter_id) {
-		sections.push(`**Reporter:** ${reporter ? `${reporter.full_name || reporter.username} (@${reporter.username})` : task.reporter_id || "None"}`);
+		sections.push(
+			`**Reporter:** ${reporter ? `${reporter.full_name || reporter.username} (@${reporter.username})` : task.reporter_id || "None"}`,
+		);
 	}
 
 	if (parentTask || task.parent_task_id) {
-		sections.push(`**Parent Task:** ${parentTask ? `${parentTask.title} (#${parentTask.task_number})` : task.parent_task_id || "None"}`);
+		sections.push(
+			`**Parent Task:** ${parentTask ? `${parentTask.title} (#${parentTask.task_number})` : task.parent_task_id || "None"}`,
+		);
 	}
 
 	sections.push(`**Importance:** ${task.importance}`);
 	sections.push(`**Story Points:** ${task.story_points ?? "None"}`);
-	
+
 	if (task.tags && task.tags.length > 0) {
 		sections.push(`**Tags:** ${task.tags.join(", ")}`);
 	} else {
@@ -122,7 +147,9 @@ export function formatTaskDetail(
 		sections.push("## Custom Fields");
 		for (const field of customFields) {
 			const value = task.custom_fields?.[field.field_key];
-			sections.push(`- **${field.display_name}** (${field.field_type}): ${formatCustomFieldValue(value, field.field_type)}`);
+			sections.push(
+				`- **${field.display_name}** (${field.field_type}): ${formatCustomFieldValue(value, field.field_type)}`,
+			);
 		}
 		sections.push("");
 	}
@@ -134,7 +161,9 @@ export function formatTaskDetail(
 		sections.push("");
 		sections.push("## Subtasks");
 		subtasks.forEach((subtask, index) => {
-			sections.push(`${index + 1}. **${subtask.title}** (#${subtask.task_number}) - Status ID: ${subtask.status_id || "None"}, Type ID: ${subtask.task_type_id || "None"}, Assignee ID: ${subtask.assignee_id || "Unassigned"}`);
+			sections.push(
+				`${index + 1}. **${subtask.title}** (#${subtask.task_number}) - Status ID: ${subtask.status_id || "None"}, Type ID: ${subtask.task_type_id || "None"}, Assignee ID: ${subtask.assignee_id || "Unassigned"}`,
+			);
 		});
 	}
 
@@ -142,7 +171,9 @@ export function formatTaskDetail(
 		sections.push("");
 		sections.push("## Attachments");
 		attachments.forEach((attachment) => {
-			sections.push(`- **${attachment.file.file_name}** (${formatFileSize(attachment.file.file_size)}) - Uploaded: ${attachment.created_at}`);
+			sections.push(
+				`- **${attachment.file.file_name}** (${formatFileSize(attachment.file.file_size)}) - Uploaded: ${attachment.created_at}`,
+			);
 		});
 	}
 
@@ -150,7 +181,9 @@ export function formatTaskDetail(
 		sections.push("");
 		sections.push("## Activities");
 		activities.forEach((activity) => {
-			sections.push(`- **${activity.activity_type}** by ${activity.actor_name} (@${activity.actor_username}) - ${activity.created_at}`);
+			sections.push(
+				`- **${activity.activity_type}** by ${activity.actor_name} (@${activity.actor_username}) - ${activity.created_at}`,
+			);
 			if (activity.activity_type === "comment" && activity.content) {
 				const commentContent = blocknoteToMarkdown(activity.content as any);
 				if (commentContent && commentContent.trim() !== "") {
@@ -167,7 +200,7 @@ function formatCustomFieldValue(value: unknown, fieldType: string): string {
 	if (value === null || value === undefined) {
 		return "None";
 	}
-	
+
 	switch (fieldType) {
 		case "boolean":
 			return String(value);
@@ -186,7 +219,7 @@ function formatFileSize(bytes: number): string {
 	const k = 1024;
 	const sizes = ["Bytes", "KB", "MB", "GB"];
 	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+	return `${Math.round((bytes / k ** i) * 100) / 100} ${sizes[i]}`;
 }
 
 /**

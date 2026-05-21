@@ -40,64 +40,71 @@ export function getTaskActivityTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
 			},
 		},
-				{
-					name: "add_task_comment",
-					description: "Add a comment to a task",
-					inputSchema: {
-						type: "object",
-						properties: {
-							projectId: {
-								type: "string",
-								description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-							},
-							taskId: {
-								type: "string",
-								description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-							},
-							content: {
-								type: "string",
+		{
+			name: "add_task_comment",
+			description: "Add a comment to a task",
+			inputSchema: {
+				type: "object",
+				properties: {
+					projectId: {
+						type: "string",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+					},
+					taskId: {
+						type: "string",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+					},
+					content: {
+						type: "string",
 						description: "The comment content",
-							},
-						},
-						required: ["projectId", "taskId", "content"],
 					},
 				},
-				{
-					name: "update_task_comment",
-					description: "Update a task comment",
-					inputSchema: {
-						type: "object",
-						properties: {
-							projectId: {
-								type: "string",
-								description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-							},
-							taskId: {
-								type: "string",
-								description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-							},
-							commentId: {
-								type: "string",
-								description: "The technical UUID of the comment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_activities to find comment IDs in the activity list.",
-							},
-							content: {
-								type: "string",
+				required: ["projectId", "taskId", "content"],
+			},
+		},
+		{
+			name: "update_task_comment",
+			description: "Update a task comment",
+			inputSchema: {
+				type: "object",
+				properties: {
+					projectId: {
+						type: "string",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+					},
+					taskId: {
+						type: "string",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+					},
+					commentId: {
+						type: "string",
+						description:
+							"The technical UUID of the comment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_activities to find comment IDs in the activity list.",
+					},
+					content: {
+						type: "string",
 						description: "The new comment content",
-							},
-						},
-						required: ["projectId", "taskId", "commentId", "content"],
 					},
 				},
+				required: ["projectId", "taskId", "commentId", "content"],
+			},
+		},
 		{
 			name: "delete_task_comment",
 			description: "Delete a task comment",
@@ -106,15 +113,18 @@ export function getTaskActivityTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					commentId: {
 						type: "string",
-						description: "The technical UUID of the comment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_activities to find comment IDs in the activity list.",
+						description:
+							"The technical UUID of the comment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_activities to find comment IDs in the activity list.",
 					},
 				},
 				required: ["projectId", "taskId", "commentId"],
@@ -124,9 +134,10 @@ export function getTaskActivityTools(): Tool[] {
 }
 
 function formatTaskActivity(activity: any): string {
-	const content = activity.activity_type === "comment" && activity.content
-		? blocknoteToMarkdown(activity.content)
-		: JSON.stringify(activity.content, null, 2);
+	const content =
+		activity.activity_type === "comment" && activity.content
+			? blocknoteToMarkdown(activity.content)
+			: JSON.stringify(activity.content, null, 2);
 
 	return `Activity: ${activity.activity_type}
 ID: ${activity.id}
@@ -136,9 +147,7 @@ Created: ${activity.created_at}`;
 }
 
 function formatTaskComment(comment: any): string {
-	const content = comment.content
-		? blocknoteToMarkdown(comment.content)
-		: "";
+	const content = comment.content ? blocknoteToMarkdown(comment.content) : "";
 
 	return `Comment:
 ID: ${comment.id}
