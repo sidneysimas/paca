@@ -5,7 +5,9 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export function cleanBlocks(blocks: unknown[] | null): unknown[] | null {
+export function cleanBlocks(
+	blocks: unknown[] | null | undefined,
+): unknown[] | null {
 	if (!blocks) return null;
 	const strip = (arr: unknown[]): unknown[] => {
 		return arr.map((item) => {
