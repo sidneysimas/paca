@@ -67,7 +67,7 @@ services:
       STORAGE_ENDPOINT: minio:9000
       # Public URL used to rewrite presigned URLs so browsers can reach MinIO
       # through the nginx gateway instead of the internal Docker hostname.
-      STORAGE_PUBLIC_URL: https://97d1-2001-ee0-4b7b-1210-c5f-19d3-601c-7dc0.ngrok-free.app/storage
+      STORAGE_PUBLIC_URL: ${PUBLIC_HOST:-http://localhost}/storage
       STORAGE_REGION: us-east-1
       STORAGE_BUCKET: paca
       STORAGE_ACCESS_KEY_ID: minioadmin
@@ -80,7 +80,7 @@ services:
       # ai-agent service.
       AGENT_API_KEY: dev-agent-api-key-change-in-production
       # Public base URL used by plugins to generate callback/webhook URLs.
-      PUBLIC_URL: https://97d1-2001-ee0-4b7b-1210-c5f-19d3-601c-7dc0.ngrok-free.app
+      PUBLIC_URL: ${PUBLIC_HOST:-http://localhost}
       # Plugin subsystem — load WASM binaries + migrations from the local plugin store.
       PLUGINS_WASM_DIR: /plugins
       PLUGINS_FRONTEND_DIR: /plugins-frontend
@@ -119,6 +119,7 @@ services:
       NODE_ENV: development
       DOCKER: "true"
       NODE_OPTIONS: "--max-old-space-size=2048"
+      VITE_ALLOWED_HOST: ${VITE_ALLOWED_HOST:-}
     volumes:
       - ../apps/web:/workspace
       - web_node_modules:/workspace/node_modules
@@ -137,7 +138,7 @@ services:
       # directly, bypassing nginx, so no prefix stripping is needed.
       API_URL: http://api:8080
       REDIS_URL: redis://valkey:6379/0
-      CORS_ORIGINS: https://97d1-2001-ee0-4b7b-1210-c5f-19d3-601c-7dc0.ngrok-free.app
+      CORS_ORIGINS: ${PUBLIC_HOST:-http://localhost}
       LOG_LEVEL: debug
     volumes:
       - ../services/realtime:/app

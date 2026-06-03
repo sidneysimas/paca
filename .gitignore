@@ -6,6 +6,7 @@ dist-ssr
 *.tsbuildinfo
 .env
 .env.production
+.env.dev
 .nitro
 .tanstack
 .wrangler

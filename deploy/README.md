@@ -14,6 +14,7 @@ Keeping those concerns separate makes the repository easier to understand and av
 | `docker-compose.dev.yml` | Local development stack: PostgreSQL, Valkey, MinIO, and optional app containers |
 | `docker-compose.prod.yml` | Production-oriented single-host stack: web, API, PostgreSQL, Valkey, and MinIO |
 | `docker-compose.e2e.yml` | End-to-end test stack mirroring production topology with fixed test credentials |
+| `.env.dev.example` | Optional environment file for `docker-compose.dev.yml` (tunnel / custom domain) |
 | `.env.production.example` | Example environment file for `docker-compose.prod.yml` |
 
 Service container definitions live with each service:
@@ -24,7 +25,15 @@ Service container definitions live with each service:
 
 Use [`docker-compose.dev.yml`](./docker-compose.dev.yml) for local development and contributor onboarding.
 
-Start the full local stack in containers:
+When exposing the stack through a tunnel or reverse proxy, copy the example env file and set the public host:
+
+```bash
+cp deploy/.env.dev.example deploy/.env.dev
+# Edit PUBLIC_HOST and VITE_ALLOWED_HOST in deploy/.env.dev
+docker compose --env-file deploy/.env.dev -f deploy/docker-compose.dev.yml up -d
+```
+
+Start the full local stack in containers (no tunnel, plain localhost):
 
 ```bash
 docker compose -f deploy/docker-compose.dev.yml up -d

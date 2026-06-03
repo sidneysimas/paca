@@ -39,9 +39,9 @@ export default defineConfig({
 	server: {
 		watch: isDocker ? { usePolling: true } : undefined,
 		hmr: isDocker ? { clientPort: 3000 } : undefined,
-		allowedHosts: [
-			"97d1-2001-ee0-4b7b-1210-c5f-19d3-601c-7dc0.ngrok-free.app",
-		],
+		allowedHosts: process.env.VITE_ALLOWED_HOST
+			? [process.env.VITE_ALLOWED_HOST]
+			: [],
 	},
 	test: {
 		environment: "jsdom",
