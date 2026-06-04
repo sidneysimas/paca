@@ -172,9 +172,28 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 
 // --- MCP Servers ------------------------------------------------------------
 
+// parseAgentForProject parses projectId and agentId, verifies the agent belongs
+// to the project, and returns both IDs. Handlers that operate on agent sub-resources
+// (MCP servers, skills) must call this instead of parsing agentId alone.
+func (h *AgentHandler) parseAgentForProject(c *gin.Context) (projectID, agentID uuid.UUID, err error) {
+	projectID, err = parseProjectID(c)
+	if err != nil {
+		return
+	}
+	agentID, err = parseParamUUID(c, "agentId")
+	if err != nil {
+		return
+	}
+	// Verify the agent belongs to the project (prevents cross-project access).
+	if _, err = h.svc.GetAgent(c.Request.Context(), projectID, agentID); err != nil {
+		return
+	}
+	return
+}
+
 // ListMCPServers handles GET /projects/:projectId/agents/:agentId/mcp-servers.
 func (h *AgentHandler) ListMCPServers(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -193,7 +212,7 @@ func (h *AgentHandler) ListMCPServers(c *gin.Context) {
 
 // AddMCPServer handles POST /projects/:projectId/agents/:agentId/mcp-servers.
 func (h *AgentHandler) AddMCPServer(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -220,7 +239,7 @@ func (h *AgentHandler) AddMCPServer(c *gin.Context) {
 
 // UpdateMCPServer handles PATCH /projects/:projectId/agents/:agentId/mcp-servers/:serverId.
 func (h *AgentHandler) UpdateMCPServer(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -251,7 +270,7 @@ func (h *AgentHandler) UpdateMCPServer(c *gin.Context) {
 
 // DeleteMCPServer handles DELETE /projects/:projectId/agents/:agentId/mcp-servers/:serverId.
 func (h *AgentHandler) DeleteMCPServer(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -272,7 +291,7 @@ func (h *AgentHandler) DeleteMCPServer(c *gin.Context) {
 
 // ListSkills handles GET /projects/:projectId/agents/:agentId/skills.
 func (h *AgentHandler) ListSkills(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -291,7 +310,7 @@ func (h *AgentHandler) ListSkills(c *gin.Context) {
 
 // AddSkill handles POST /projects/:projectId/agents/:agentId/skills.
 func (h *AgentHandler) AddSkill(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -317,7 +336,7 @@ func (h *AgentHandler) AddSkill(c *gin.Context) {
 
 // UpdateSkill handles PATCH /projects/:projectId/agents/:agentId/skills/:skillId.
 func (h *AgentHandler) UpdateSkill(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -346,7 +365,7 @@ func (h *AgentHandler) UpdateSkill(c *gin.Context) {
 
 // DeleteSkill handles DELETE /projects/:projectId/agents/:agentId/skills/:skillId.
 func (h *AgentHandler) DeleteSkill(c *gin.Context) {
-	agentID, err := parseParamUUID(c, "agentId")
+	_, agentID, err := h.parseAgentForProject(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return

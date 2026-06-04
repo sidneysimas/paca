@@ -11,6 +11,7 @@ import (
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
 	"github.com/Paca-AI/api/internal/events"
 	"github.com/Paca-AI/api/internal/platform/messaging"
+	"github.com/Paca-AI/api/internal/platform/secret"
 	"github.com/google/uuid"
 )
 
@@ -31,11 +32,26 @@ type Service struct {
 	projRepo   projectMemberWriter
 	publisher  *messaging.Publisher
 	pluginRepo pluginFinder
+	encryptor  *secret.Encryptor
 }
 
 // New returns a configured agent service.
 func New(repo agentdom.Repository, projRepo projectMemberWriter, publisher *messaging.Publisher, pluginRepo pluginFinder) *Service {
 	return &Service{repo: repo, projRepo: projRepo, publisher: publisher, pluginRepo: pluginRepo}
+}
+
+// WithEncryptor configures AES-256-GCM encryption for the LLM API key stored at rest.
+func (s *Service) WithEncryptor(enc *secret.Encryptor) *Service {
+	s.encryptor = enc
+	return s
+}
+
+// encryptKey encrypts plaintext if an encryptor is configured; otherwise returns plaintext unchanged.
+func (s *Service) encryptKey(plaintext string) (string, error) {
+	if s.encryptor == nil || plaintext == "" {
+		return plaintext, nil
+	}
+	return s.encryptor.Encrypt(plaintext)
 }
 
 // -------------------------------------------------------------------------
@@ -75,6 +91,11 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 		return nil, agentdom.ErrAgentHandleTaken
 	}
 
+	encryptedKey, err := s.encryptKey(in.LLMAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt LLM API key: %w", err)
+	}
+
 	now := time.Now()
 	a := &agentdom.Agent{
 		ID:                uuid.New(),
@@ -83,7 +104,7 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 		Handle:            handle,
 		LLMProvider:       in.LLMProvider,
 		LLMModel:          in.LLMModel,
-		LLMAPIKeySecret:   in.LLMAPIKey, // stored directly; encryption handled at transport layer
+		LLMAPIKeySecret:   encryptedKey,
 		LLMBaseURL:        in.LLMBaseURL,
 		SystemPrompt:      in.SystemPrompt,
 		CanCloneRepos:     in.CanCloneRepos,
@@ -96,11 +117,18 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
-	if a.MaxIterations == 0 {
+	const maxIterationsLimit = 200
+	const timeoutMinutesLimit = 480 // 8 hours
+
+	if a.MaxIterations <= 0 {
 		a.MaxIterations = 50
+	} else if a.MaxIterations > maxIterationsLimit {
+		a.MaxIterations = maxIterationsLimit
 	}
-	if a.TimeoutMinutes == 0 {
+	if a.TimeoutMinutes <= 0 {
 		a.TimeoutMinutes = 30
+	} else if a.TimeoutMinutes > timeoutMinutesLimit {
+		a.TimeoutMinutes = timeoutMinutesLimit
 	}
 	if a.GitCommitterName == "" {
 		a.GitCommitterName = "paca-agent"
@@ -148,7 +176,11 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 		a.LLMModel = *in.LLMModel
 	}
 	if in.LLMAPIKey != nil {
-		a.LLMAPIKeySecret = *in.LLMAPIKey
+		encryptedKey, err := s.encryptKey(*in.LLMAPIKey)
+		if err != nil {
+			return nil, fmt.Errorf("encrypt LLM API key: %w", err)
+		}
+		a.LLMAPIKeySecret = encryptedKey
 	}
 	if in.LLMBaseURL != nil {
 		a.LLMBaseURL = in.LLMBaseURL
@@ -162,11 +194,26 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	if in.CanCreatePRs != nil {
 		a.CanCreatePRs = *in.CanCreatePRs
 	}
+	const maxIterationsLimit = 200
+	const timeoutMinutesLimit = 480
+
 	if in.MaxIterations != nil {
-		a.MaxIterations = *in.MaxIterations
+		v := *in.MaxIterations
+		if v <= 0 {
+			v = 50
+		} else if v > maxIterationsLimit {
+			v = maxIterationsLimit
+		}
+		a.MaxIterations = v
 	}
 	if in.TimeoutMinutes != nil {
-		a.TimeoutMinutes = *in.TimeoutMinutes
+		v := *in.TimeoutMinutes
+		if v <= 0 {
+			v = 30
+		} else if v > timeoutMinutesLimit {
+			v = timeoutMinutesLimit
+		}
+		a.TimeoutMinutes = v
 	}
 	if in.GitCommitterName != nil {
 		a.GitCommitterName = *in.GitCommitterName
@@ -208,6 +255,10 @@ func (s *Service) ListMCPServers(ctx context.Context, agentID uuid.UUID) ([]*age
 
 // AddMCPServer creates a new MCP server for the given agent.
 func (s *Service) AddMCPServer(ctx context.Context, agentID uuid.UUID, in agentdom.AddMCPServerInput) (*agentdom.AgentMCPServer, error) {
+	if in.Transport == "stdio" && (in.Command == nil || *in.Command == "") {
+		return nil, agentdom.ErrMCPServerCommandRequired
+	}
+
 	now := time.Now()
 	srv := &agentdom.AgentMCPServer{
 		ID:         uuid.New(),

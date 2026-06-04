@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,19 @@ import (
 
 // ErrInvalidKeyLength is returned when the supplied key is not 32 bytes.
 var ErrInvalidKeyLength = errors.New("secret: encryption key must be exactly 32 bytes (AES-256)")
+
+// DecodeHexKey decodes a 64-character hex string into the 32-byte key expected
+// by NewEncryptor.  This matches the ENCRYPTION_KEY environment variable format.
+func DecodeHexKey(hexKey string) ([]byte, error) {
+	b, err := hex.DecodeString(hexKey)
+	if err != nil {
+		return nil, fmt.Errorf("secret: decode hex key: %w", err)
+	}
+	if len(b) != 32 {
+		return nil, ErrInvalidKeyLength
+	}
+	return b, nil
+}
 
 // Encryptor encrypts and decrypts short strings using AES-256-GCM.
 // A fresh random nonce is generated on every Encrypt call, so repeated

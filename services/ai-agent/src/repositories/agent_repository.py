@@ -1,13 +1,39 @@
 """Database access layer for agent configuration."""
 from __future__ import annotations
 
+import base64
 import json
 import logging
 
+from ..config import settings
 from ..core.db import get_pool
 from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 logger = logging.getLogger(__name__)
+
+
+def _decrypt_secret(ciphertext: str) -> str:
+    """Decrypt an AES-256-GCM ciphertext produced by the Go API's secret.Encryptor.
+
+    If ENCRYPTION_KEY is not configured the value is returned as-is (plaintext
+    backward-compat mode).  Any decryption error falls back to returning the raw
+    value so the worker log captures the failure without crashing the service.
+    """
+    if not settings.encryption_key or not ciphertext:
+        return ciphertext
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        key = bytes.fromhex(settings.encryption_key)
+        raw = base64.b64decode(ciphertext)
+        # Go's GCM uses a 12-byte nonce; nonce is prepended to ciphertext+tag.
+        nonce_size = 12
+        nonce, ct_with_tag = raw[:nonce_size], raw[nonce_size:]
+        plaintext = AESGCM(key).decrypt(nonce, ct_with_tag, None)
+        return plaintext.decode()
+    except Exception as exc:
+        logger.error("Failed to decrypt LLM API key secret: %s", exc)
+        return ciphertext
 
 
 async def load_agent_config(agent_id: str) -> AgentConfig | None:
@@ -80,7 +106,7 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         system_prompt=row["system_prompt"],
         llm_provider=row["llm_provider"],
         llm_model=row["llm_model"],
-        llm_api_key_secret_ref=row["llm_api_key_secret_ref"],
+        llm_api_key_secret_ref=_decrypt_secret(row["llm_api_key_secret_ref"] or ""),
         llm_base_url=row["llm_base_url"],
         max_iterations=row["max_iterations"],
         can_clone_repos=row["can_clone_repos"],

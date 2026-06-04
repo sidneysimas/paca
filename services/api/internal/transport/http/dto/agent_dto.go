@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"strings"
 	"time"
 
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
@@ -146,15 +147,39 @@ type UpdateMCPServerRequest struct {
 	IsEnabled *bool             `json:"is_enabled"`
 }
 
+// secretEnvKeyPatterns lists substrings that indicate an env var holds a secret.
+// Values whose keys contain any of these (case-insensitive) are redacted in API responses.
+var secretEnvKeyPatterns = []string{"key", "token", "secret", "password", "pass", "auth", "credential", "private"}
+
+// maskSecretEnv returns a copy of env with likely-secret values replaced by "***".
+func maskSecretEnv(env map[string]string) map[string]string {
+	if len(env) == 0 {
+		return map[string]string{}
+	}
+	masked := make(map[string]string, len(env))
+	for k, v := range env {
+		kLower := strings.ToLower(k)
+		redact := false
+		for _, pat := range secretEnvKeyPatterns {
+			if strings.Contains(kLower, pat) {
+				redact = true
+				break
+			}
+		}
+		if redact {
+			masked[k] = "***"
+		} else {
+			masked[k] = v
+		}
+	}
+	return masked
+}
+
 // MCPServerFromEntity maps an AgentMCPServer entity to its DTO.
 func MCPServerFromEntity(s *agentdom.AgentMCPServer) AgentMCPServerResponse {
 	args := s.Args
 	if args == nil {
 		args = []string{}
-	}
-	env := s.Env
-	if env == nil {
-		env = map[string]string{}
 	}
 	return AgentMCPServerResponse{
 		ID:         s.ID,
@@ -164,7 +189,7 @@ func MCPServerFromEntity(s *agentdom.AgentMCPServer) AgentMCPServerResponse {
 		Command:    s.Command,
 		Args:       args,
 		URL:        s.URL,
-		Env:        env,
+		Env:        maskSecretEnv(s.Env),
 		IsEnabled:  s.IsEnabled,
 		CreatedAt:  s.CreatedAt,
 	}

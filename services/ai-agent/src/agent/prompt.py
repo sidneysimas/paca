@@ -1,8 +1,5 @@
-"""Initial prompt and branch-name construction helpers."""
+"""Initial prompt builder for agent conversations."""
 from __future__ import annotations
-
-import re
-import time
 
 from ..core.streams import TriggerMessage
 
@@ -38,25 +35,3 @@ def build_initial_prompt(trigger: TriggerMessage, all_repos: list[dict] | None =
     return "\n".join(lines)
 
 
-def _sanitize_branch_name(text: str, max_length: int = 50) -> str:
-    sanitized = re.sub(r"[^\w\s-]", "", text.lower())
-    sanitized = re.sub(r"[-\s]+", "-", sanitized).strip("-")
-    if len(sanitized) > max_length:
-        sanitized = sanitized[:max_length].rstrip("-")
-    return sanitized or "task"
-
-
-def build_branch_name(trigger: TriggerMessage) -> str:
-    """Generate a descriptive git branch name from trigger information."""
-    if trigger.task_id:
-        prefix = "feat"
-        message_lower = trigger.message.lower()
-        if any(w in message_lower for w in ["fix", "bug", "error"]):
-            prefix = "fix"
-        elif any(w in message_lower for w in ["refactor", "cleanup"]):
-            prefix = "refactor"
-        sanitized = _sanitize_branch_name(trigger.message)
-        return f"{prefix}/{trigger.task_id}-{sanitized}"
-
-    sanitized = _sanitize_branch_name(trigger.message)
-    return f"feat/{sanitized}"

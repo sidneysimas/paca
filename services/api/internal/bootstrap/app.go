@@ -20,6 +20,7 @@ import (
 	"github.com/Paca-AI/api/internal/platform/logger"
 	"github.com/Paca-AI/api/internal/platform/messaging"
 	pluginrt "github.com/Paca-AI/api/internal/platform/plugin"
+	"github.com/Paca-AI/api/internal/platform/secret"
 	"github.com/Paca-AI/api/internal/platform/storage"
 	jwttoken "github.com/Paca-AI/api/internal/platform/token"
 	pgRepo "github.com/Paca-AI/api/internal/repository/postgres"
@@ -140,6 +141,17 @@ func New(cfg *config.Config) (*App, error) {
 	notificationService := notificationsvc.New(notificationRepo, projectRepo, publisher)
 	agentRepo := pgRepo.NewAgentRepository(db)
 	agentService := agentsvc.New(agentRepo, projectService, publisher, pluginRepo)
+	if cfg.Security.EncryptionKey != "" {
+		keyBytes, hexErr := secret.DecodeHexKey(cfg.Security.EncryptionKey)
+		if hexErr != nil {
+			log.Warn("agent LLM key encryption disabled: invalid ENCRYPTION_KEY", "error", hexErr)
+		} else if enc, encErr := secret.NewEncryptor(keyBytes); encErr != nil {
+			log.Warn("agent LLM key encryption disabled: encryptor init failed", "error", encErr)
+		} else {
+			agentService = agentService.WithEncryptor(enc)
+			log.Info("agent LLM API key at-rest encryption enabled")
+		}
+	}
 	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher).
 		WithNotificationService(notificationService).
 		WithAgentTrigger(agentService)

@@ -3,16 +3,28 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
+from ..config import settings
 from ..core.db import get_pool
 from ..repositories.conversation_repository import update_conversation_status
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/conversations")
+
+
+def _require_internal_key(x_internal_token: str = Header(default="")) -> None:
+    """Dependency that rejects requests missing the correct internal API token."""
+    if not settings.internal_api_key:
+        return  # key not configured → open (backward-compat, should not happen in prod)
+    if not secrets.compare_digest(x_internal_token, settings.internal_api_key):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+router = APIRouter(prefix="/conversations", dependencies=[Depends(_require_internal_key)])
 
 # In-memory registry of active Conversation objects keyed by conversation_id str.
 # Multi-replica note: in a multi-replica deployment, pair this with a Valkey key

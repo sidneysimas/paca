@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # When empty the built-in paca MCP server is not injected.
     paca_api_key: str = ""
 
+    # AES-256 encryption key (hex-encoded, 64 chars) shared with the API service.
+    # Set via ENCRYPTION_KEY (same variable used by the api service).
+    # When set, llm_api_key_secret values read from the DB are decrypted before use.
+    encryption_key: str = ""
+
     # Docker sandbox
     docker_socket: str = "/var/run/docker.sock"
     agent_server_image: str = "ghcr.io/openhands/agent-server:latest-python"

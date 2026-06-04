@@ -1,6 +1,7 @@
 """Repository management tools for the agent (list and clone repositories)."""
 from __future__ import annotations
 
+import re
 import shlex
 from collections.abc import Sequence
 from urllib.parse import urlparse, quote as urlquote
@@ -10,6 +11,20 @@ from openhands.sdk import Action, Observation, TextContent, ToolDefinition
 from openhands.sdk.tool import Tool, ToolExecutor, register_tool
 from openhands.tools.terminal import TerminalAction, TerminalExecutor
 from pydantic import Field
+
+def _scrub_token(text: str, token: str) -> str:
+    """Remove an auth token from git command output to prevent accidental logging."""
+    if not token:
+        return text
+    scrubbed = text.replace(token, "***")
+    # Also scrub the percent-encoded form (token embedded in URL).
+    quoted_token = urlquote(token, safe="")
+    if quoted_token != token:
+        scrubbed = scrubbed.replace(quoted_token, "***")
+    # Scrub the full credential pattern that git may echo in error messages.
+    scrubbed = re.sub(r"x-access-token:[^@]+@", "x-access-token:***@", scrubbed)
+    return scrubbed
+
 
 # NOTE: do NOT import `from ..config import settings` here.
 # This module is loaded inside the sandbox container by the remote agent server
@@ -171,7 +186,8 @@ class CloneRepositoryExecutor(ToolExecutor[CloneRepositoryAction, CloneRepositor
             clone_cmd = f"git clone {shlex.quote(clone_url)} {target} 2>&1"
             result = self.terminal(TerminalAction(command=clone_cmd))
             if result.exit_code is not None and result.exit_code != 0:
-                return CloneRepositoryObservation(success=False, message=f"git clone failed: {result.text}")
+                safe_msg = _scrub_token(result.text, token)
+                return CloneRepositoryObservation(success=False, message=f"git clone failed: {safe_msg}")
 
             branch_result = self.terminal(TerminalAction(command=f"cd {target} && git branch --show-current 2>&1"))
             branch = branch_result.text.strip()
@@ -271,8 +287,9 @@ class PushBranchExecutor(ToolExecutor[PushBranchAction, PushBranchObservation]):
                 )
             )
             if result.exit_code is not None and result.exit_code != 0:
+                safe_msg = _scrub_token(result.text, token)
                 return PushBranchObservation(
-                    success=False, branch=branch, message=f"git push failed: {result.text}"
+                    success=False, branch=branch, message=f"git push failed: {safe_msg}"
                 )
             return PushBranchObservation(success=True, branch=branch)
         except Exception as exc:

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import socket
 from dataclasses import dataclass
 from typing import Any
 
@@ -19,7 +20,8 @@ EVENTS_STREAM = "paca:agent:events"
 # Pub/Sub channel consumed by services/realtime for WebSocket fan-out.
 REALTIME_CHANNEL = "paca.events"
 CONSUMER_GROUP = "ai-agent-workers"
-CONSUMER_NAME = "worker-1"
+# Unique per replica so Valkey tracks each instance's PEL separately.
+CONSUMER_NAME = f"worker-{socket.gethostname()}"
 
 
 def get_client() -> aioredis.Redis:

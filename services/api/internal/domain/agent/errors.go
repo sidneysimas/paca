@@ -12,8 +12,9 @@ var (
 
 // MCP server errors
 var (
-	ErrMCPServerNotFound  = errors.New("MCP server not found")
-	ErrMCPServerNameTaken = errors.New("MCP server name already in use on this agent")
+	ErrMCPServerNotFound        = errors.New("MCP server not found")
+	ErrMCPServerNameTaken       = errors.New("MCP server name already in use on this agent")
+	ErrMCPServerCommandRequired = errors.New("command is required for stdio transport")
 )
 
 // Skill errors
