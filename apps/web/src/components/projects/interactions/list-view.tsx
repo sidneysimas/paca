@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { Sprint, Task, ViewConfig } from "@/lib/interaction-api";
+import { resolveFilterConfig, type Sprint, type Task, type ViewConfig } from "@/lib/interaction-api";
 import type {
 	CustomFieldDefinition,
 	ProjectMember,
@@ -56,6 +56,7 @@ export interface ListViewProps {
 		},
 	) => Promise<void>;
 	onCreateSprint?: () => void;
+	onCollapseChange?: (collapsedColumns: string[]) => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -82,6 +83,7 @@ export function ListView({
 	sprints,
 	onStartSprint,
 	onCreateSprint,
+	onCollapseChange,
 }: ListViewProps) {
 	const columnBy = viewConfig?.column_by ?? "status";
 	const swimlaneBy = viewConfig?.swimlanes;
@@ -123,26 +125,51 @@ export function ListView({
 	);
 
 	const effectiveGroupDefs = useMemo((): ColumnGroupDef[] => {
-		if (groupDefs.length > 0) return groupDefs;
-		const seen = new Set<string>();
-		const dynamic: ColumnGroupDef[] = [];
-		for (const t of filtered) {
-			for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
-				if (!seen.has(k)) {
-					seen.add(k);
-					dynamic.push({
-						key: k,
-						label: k === "__none" ? "None" : k,
-						fieldValue: k,
-					});
+		let defs: ColumnGroupDef[];
+		if (groupDefs.length > 0) {
+			defs = groupDefs;
+		} else {
+			const seen = new Set<string>();
+			const dynamic: ColumnGroupDef[] = [];
+			for (const t of filtered) {
+				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
+					if (!seen.has(k)) {
+						seen.add(k);
+						dynamic.push({
+							key: k,
+							label: k === "__none" ? "None" : k,
+							fieldValue: k,
+						});
+					}
 				}
 			}
+			if (!seen.has("__none")) {
+				dynamic.push({ key: "__none", label: "None", fieldValue: null });
+			}
+			defs = dynamic;
 		}
-		if (!seen.has("__none")) {
-			dynamic.push({ key: "__none", label: "None", fieldValue: null });
+
+		// Hide groups whose status is excluded by the active status filter
+		if (isStatusGrouping && viewConfig?.filters?.statuses) {
+			const allowed = new Set(
+				resolveFilterConfig(
+					viewConfig.filters.statuses,
+					statuses.map((s) => s.id),
+				),
+			);
+			defs = defs.filter((grp) => allowed.has(grp.key));
 		}
-		return dynamic;
-	}, [groupDefs, filtered, columnBy, viewCtx]);
+
+		return defs;
+	}, [
+		groupDefs,
+		filtered,
+		columnBy,
+		viewCtx,
+		isStatusGrouping,
+		viewConfig?.filters?.statuses,
+		statuses,
+	]);
 
 	const swimlaneDefs = useMemo(
 		() => getSwimlaneDefs(swimlaneBy, viewCtx),
@@ -154,6 +181,30 @@ export function ListView({
 			getTaskColumnKeys(t, columnBy, viewCtx).includes(groupKey),
 		);
 
+	const savedCollapsedColumns = viewConfig?.collapsed_columns;
+
+	const handleGroupCollapseChange = (groupKey: string, isCollapsed: boolean) => {
+		// When no saved preference exists yet, seed from the current visual state
+		// (done-category groups are auto-collapsed by isDone). This ensures the
+		// first save captures the full actual state rather than an empty baseline.
+		const current: string[] =
+			savedCollapsedColumns !== undefined
+				? savedCollapsedColumns
+				: effectiveGroupDefs
+						.filter((grp) => {
+							const s = isStatusGrouping
+								? statuses.find((st) => st.id === grp.key)
+								: undefined;
+							return s?.category === "done";
+						})
+						.map((grp) => grp.key);
+
+		const next = isCollapsed
+			? [...new Set([...current, groupKey])]
+			: current.filter((k) => k !== groupKey);
+		onCollapseChange?.(next);
+	};
+
 	return (
 		<div className="flex flex-col overflow-auto">
 			{effectiveGroupDefs.map((grp) => {
@@ -162,6 +213,10 @@ export function ListView({
 					? statuses.find((s) => s.id === grp.key)
 					: undefined;
 				const isDone = status?.category === "done";
+				const defaultCollapsed =
+					savedCollapsedColumns !== undefined
+						? savedCollapsedColumns.includes(grp.key)
+						: isDone;
 
 				return (
 					<ListGroup
@@ -174,7 +229,7 @@ export function ListView({
 						customFields={customFields}
 						epics={epics}
 						canCreate={canCreate}
-						defaultCollapsed={isDone}
+						defaultCollapsed={defaultCollapsed}
 						fieldSum={fieldSum}
 						swimlaneDefs={swimlaneDefs}
 						swimlaneBy={swimlaneBy}
@@ -193,6 +248,12 @@ export function ListView({
 						onStartSprint={onStartSprint}
 						onCreateSprint={onCreateSprint}
 						columnBy={columnBy}
+						onCollapseChange={
+							onCollapseChange
+								? (isCollapsed) =>
+										handleGroupCollapseChange(grp.key, isCollapsed)
+								: undefined
+						}
 						extraCreateFields={
 							!isStatusGrouping && columnBy === "sprint"
 								? {

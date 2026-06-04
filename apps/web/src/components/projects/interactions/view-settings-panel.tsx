@@ -397,7 +397,6 @@ function StatusFilterSection({
 
 	return (
 		<div className="px-1 pb-3 space-y-0.5">
-			{/* "All" row */}
 			<CheckRow
 				id="status-all"
 				label="All statuses"
@@ -405,17 +404,14 @@ function StatusFilterSection({
 				bold
 				onChange={() => onChange([])}
 			/>
-			{/* Category groups */}
 			{STATUS_CATEGORIES.map((cat) => {
 				const groupStatuses = statuses.filter((s) => s.category === cat);
 				if (groupStatuses.length === 0) return null;
 				const groupIds = groupStatuses.map((s) => s.id);
 				const allChecked =
 					isAll || groupIds.every((id) => selectedIds.includes(id));
-
 				return (
 					<div key={cat}>
-						{/* Group header */}
 						<div className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
 							<div
 								className={cn(
@@ -434,7 +430,6 @@ function StatusFilterSection({
 								{allChecked ? "Clear" : "All"}
 							</button>
 						</div>
-						{/* Status items */}
 						{groupStatuses.map((status) => (
 							<CheckRow
 								key={status.id}

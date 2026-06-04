@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -6,6 +7,7 @@ import {
 	type Task,
 	updateTask,
 	type ViewConfig,
+	resolveFilterConfig,
 } from "@/lib/interaction-api";
 import type {
 	CustomFieldDefinition,
@@ -57,6 +59,7 @@ interface BoardViewProps {
 	onMoveToColumn?: (taskId: string, update: TaskFieldUpdate) => void;
 	manualSort?: boolean;
 	onReorderTask?: (groupKey: string, taskId: string, newIndex: number) => void;
+	onCollapseChange?: (collapsedColumns: string[]) => void;
 }
 
 // ── Board view ────────────────────────────────────────────────────────────────
@@ -82,6 +85,7 @@ export function BoardView({
 	onMoveToColumn,
 	manualSort,
 	onReorderTask,
+	onCollapseChange,
 }: BoardViewProps) {
 	const qc = useQueryClient();
 	const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -92,6 +96,25 @@ export function BoardView({
 	const [columnOrderMap, setColumnOrderMap] = useState<
 		Record<string, string[]>
 	>({});
+	const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(
+		() => new Set(viewConfig?.collapsed_columns ?? []),
+	);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: sync collapsed columns when saved config changes
+	useEffect(() => {
+		setCollapsedColumns(new Set(viewConfig?.collapsed_columns ?? []));
+	}, [viewConfig?.collapsed_columns]);
+
+	const toggleCollapse = (colKey: string) => {
+		setCollapsedColumns((prev) => {
+			const next = new Set(prev);
+			if (next.has(colKey)) next.delete(colKey);
+			else next.add(colKey);
+			const cols = [...next];
+			onCollapseChange?.(cols);
+			return next;
+		});
+	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset local order when server tasks change
 	useEffect(() => {
@@ -427,28 +450,52 @@ export function BoardView({
 	// ── Dynamic column defs (for number/text/date fields with no preset values) ──
 
 	const effectiveColumnDefs: ColumnGroupDef[] = useMemo(() => {
-		if (columnDefs.length > 0) return columnDefs;
-		// Build columns from unique task values (for number/text fields)
-		const seen = new Set<string>();
-		const dynamic: ColumnGroupDef[] = [];
-		for (const t of filteredTasks) {
-			for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
-				if (!seen.has(k)) {
-					seen.add(k);
-					dynamic.push({
-						key: k,
-						label: k === "__none" ? "None" : k,
-						fieldValue: k,
-					});
+		let defs: ColumnGroupDef[];
+		if (columnDefs.length > 0) {
+			defs = columnDefs;
+		} else {
+			// Build columns from unique task values (for number/text fields)
+			const seen = new Set<string>();
+			const dynamic: ColumnGroupDef[] = [];
+			for (const t of filteredTasks) {
+				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
+					if (!seen.has(k)) {
+						seen.add(k);
+						dynamic.push({
+							key: k,
+							label: k === "__none" ? "None" : k,
+							fieldValue: k,
+						});
+					}
 				}
 			}
+			if (!seen.has("__none")) {
+				dynamic.push({ key: "__none", label: "None", fieldValue: null });
+			}
+			defs = dynamic;
 		}
-		// Ensure __none column exists
-		if (!seen.has("__none")) {
-			dynamic.push({ key: "__none", label: "None", fieldValue: null });
+
+		// Hide columns whose status is excluded by the active status filter
+		if (isStatusGrouping && viewConfig?.filters?.statuses) {
+			const allowed = new Set(
+				resolveFilterConfig(
+					viewConfig.filters.statuses,
+					statuses.map((s) => s.id),
+				),
+			);
+			defs = defs.filter((col) => allowed.has(col.key));
 		}
-		return dynamic;
-	}, [columnDefs, filteredTasks, columnBy, viewCtx]);
+
+		return defs;
+	}, [
+		columnDefs,
+		filteredTasks,
+		columnBy,
+		viewCtx,
+		isStatusGrouping,
+		viewConfig?.filters?.statuses,
+		statuses,
+	]);
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -588,8 +635,9 @@ export function BoardView({
 	const renderColHeader = (colDef: ColumnGroupDef) => {
 		const colTasks = getColumnTasks(colDef.key);
 		const sumValue = computeFieldSum(colTasks, fieldSum, customFields);
+		const isCollapsed = collapsedColumns.has(colDef.key);
 		return (
-			<div className="flex items-center gap-2 px-2 pb-1">
+			<div className="flex items-center gap-2 px-2 pb-1 group">
 				{colDef.color && (
 					<span
 						className="size-1.75 rounded-full shrink-0"
@@ -602,6 +650,18 @@ export function BoardView({
 				<span className="text-[11px] font-bold text-foreground/80 tracking-[0.08em] uppercase flex-1 truncate">
 					{colDef.label}
 				</span>
+				<button
+					type="button"
+					onClick={() => toggleCollapse(colDef.key)}
+					className="flex size-5 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/60"
+					title={isCollapsed ? "Expand column" : "Collapse column"}
+				>
+					{isCollapsed ? (
+						<ChevronRight className="size-3 text-muted-foreground" />
+					) : (
+						<ChevronLeft className="size-3 text-muted-foreground" />
+					)}
+				</button>
 				<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 					{fieldSum && fieldSum !== "count" ? sumValue : colTasks.length}
 				</span>
@@ -627,11 +687,60 @@ export function BoardView({
 					<div className="flex gap-4 pb-2 sticky top-0 z-10 bg-background border-b border-border/20 mb-1">
 						{/* Swimlane label placeholder to align with row labels */}
 						<div className="w-36 shrink-0" />
-						{effectiveColumnDefs.map((colDef) => (
-							<div key={colDef.key} className="w-72 shrink-0">
-								{renderColHeader(colDef)}
-							</div>
-						))}
+						{effectiveColumnDefs.map((colDef) => {
+							const isCollapsed = collapsedColumns.has(colDef.key);
+							const colTasks = getColumnTasks(colDef.key);
+							const sumValue = computeFieldSum(colTasks, fieldSum, customFields);
+							const displayCount =
+								fieldSum && fieldSum !== "count" ? sumValue : colTasks.length;
+
+							if (isCollapsed) {
+								return (
+									<div
+										key={colDef.key}
+										className="w-10 shrink-0 flex flex-col items-center gap-1.5 pt-1"
+									>
+										<button
+											type="button"
+											onClick={() => toggleCollapse(colDef.key)}
+											className="flex size-7 shrink-0 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors"
+											title="Expand column"
+										>
+											<ChevronRight className="size-3.5 text-muted-foreground" />
+										</button>
+										<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+											{displayCount}
+										</span>
+										{colDef.color && (
+											<span
+												className="size-1.75 rounded-full shrink-0"
+												style={{
+													background: colDef.color,
+													boxShadow: `0 0 6px ${colDef.color}40`,
+												}}
+											/>
+										)}
+										<div className="flex flex-1 items-start justify-center pt-1">
+											<span
+												className="text-[11px] font-bold text-foreground/60 tracking-[0.08em] uppercase whitespace-nowrap"
+												style={{
+													writingMode: "vertical-rl",
+													transform: "rotate(180deg)",
+												}}
+											>
+												{colDef.label}
+											</span>
+										</div>
+									</div>
+								);
+							}
+
+							return (
+								<div key={colDef.key} className="w-72 shrink-0">
+									{renderColHeader(colDef)}
+								</div>
+							);
+						})}
 					</div>
 
 					{/* One row per swimlane */}
@@ -655,11 +764,20 @@ export function BoardView({
 								</div>
 
 								{/* Column cells */}
-								{effectiveColumnDefs.map((colDef) => (
-									<div key={colDef.key} className="w-72 shrink-0">
-										{renderCellCards(colDef, swimDef)}
-									</div>
-								))}
+								{effectiveColumnDefs.map((colDef) => {
+									const isCollapsed = collapsedColumns.has(colDef.key);
+									return (
+										<div
+											key={colDef.key}
+											className={cn(
+												"shrink-0",
+												isCollapsed ? "w-10" : "w-72",
+											)}
+										>
+											{!isCollapsed && renderCellCards(colDef, swimDef)}
+										</div>
+									);
+								})}
 							</div>
 						),
 					)}
@@ -677,16 +795,66 @@ export function BoardView({
 
 	return (
 		<div className="flex flex-1 min-h-0 gap-4 overflow-x-auto px-6 py-5 pb-8">
-			{effectiveColumnDefs.map((colDef) => (
-				<div
-					key={colDef.key}
-					data-column-key={colDef.key}
-					className="flex w-72 shrink-0 flex-col gap-2.5"
-				>
-					{renderColHeader(colDef)}
-					{renderCellCards(colDef, noSwimAll)}
-				</div>
-			))}
+			{effectiveColumnDefs.map((colDef) => {
+				const isCollapsed = collapsedColumns.has(colDef.key);
+				const colTasks = getColumnTasks(colDef.key);
+				const sumValue = computeFieldSum(colTasks, fieldSum, customFields);
+				const displayCount =
+					fieldSum && fieldSum !== "count" ? sumValue : colTasks.length;
+
+				if (isCollapsed) {
+					return (
+						<div
+							key={colDef.key}
+							data-column-key={colDef.key}
+							className="flex w-10 shrink-0 flex-col items-center gap-2 pt-1"
+						>
+							<button
+								type="button"
+								onClick={() => toggleCollapse(colDef.key)}
+								className="flex size-7 shrink-0 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors"
+								title="Expand column"
+							>
+								<ChevronRight className="size-3.5 text-muted-foreground" />
+							</button>
+							<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+								{displayCount}
+							</span>
+							{colDef.color && (
+								<span
+									className="size-1.75 rounded-full shrink-0"
+									style={{
+										background: colDef.color,
+										boxShadow: `0 0 6px ${colDef.color}40`,
+									}}
+								/>
+							)}
+							<div className="flex flex-1 items-start justify-center pt-1">
+								<span
+									className="text-[11px] font-bold text-foreground/60 tracking-[0.08em] uppercase whitespace-nowrap"
+									style={{
+										writingMode: "vertical-rl",
+										transform: "rotate(180deg)",
+									}}
+								>
+									{colDef.label}
+								</span>
+							</div>
+						</div>
+					);
+				}
+
+				return (
+					<div
+						key={colDef.key}
+						data-column-key={colDef.key}
+						className="flex w-72 shrink-0 flex-col gap-2.5"
+					>
+						{renderColHeader(colDef)}
+						{renderCellCards(colDef, noSwimAll)}
+					</div>
+				);
+			})}
 		</div>
 	);
 }

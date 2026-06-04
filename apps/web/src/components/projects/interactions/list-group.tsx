@@ -68,6 +68,7 @@ export interface ListGroupProps {
 	/** Extra fields merged into the create-task payload (e.g. sprint_id) */
 	extraCreateFields?: TaskFieldUpdate;
 	columnBy?: string;
+	onCollapseChange?: (collapsed: boolean) => void;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ export function ListGroup({
 	onCreateSprint,
 	extraCreateFields,
 	columnBy,
+	onCollapseChange,
 }: ListGroupProps) {
 	const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -410,9 +412,17 @@ export function ListGroup({
 			{/* Group header */}
 			{/* biome-ignore lint/a11y/useSemanticElements: div contains child buttons and cannot be converted to button element */}
 			<div
-				onClick={() => setCollapsed((v) => !v)}
+				onClick={() => {
+					const next = !collapsed;
+					setCollapsed(next);
+					onCollapseChange?.(next);
+				}}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " ") setCollapsed((v) => !v);
+					if (e.key === "Enter" || e.key === " ") {
+						const next = !collapsed;
+						setCollapsed(next);
+						onCollapseChange?.(next);
+					}
 				}}
 				role="button"
 				tabIndex={0}

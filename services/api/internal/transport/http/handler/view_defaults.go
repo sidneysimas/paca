@@ -21,6 +21,29 @@ func loadTaskTypes(ctx context.Context, taskSvc taskTypeLister, projectID uuid.U
 	return taskSvc.ListTaskTypes(ctx, projectID)
 }
 
+// taskStatusLister is the minimal task-service surface needed to seed default
+// collapsed columns from the project's backlog statuses.
+type taskStatusLister interface {
+	ListTaskStatuses(ctx context.Context, projectID uuid.UUID) ([]*taskdom.TaskStatus, error)
+}
+
+func loadTaskStatuses(ctx context.Context, taskSvc taskStatusLister, projectID uuid.UUID) ([]*taskdom.TaskStatus, error) {
+	if taskSvc == nil {
+		return nil, nil
+	}
+	return taskSvc.ListTaskStatuses(ctx, projectID)
+}
+
+func backlogStatusIDs(statuses []*taskdom.TaskStatus) []string {
+	ids := make([]string, 0, len(statuses))
+	for _, s := range statuses {
+		if s != nil && s.Category == taskdom.StatusCategoryBacklog {
+			ids = append(ids, s.ID.String())
+		}
+	}
+	return ids
+}
+
 func filterTaskTypeIDs(taskTypes []*taskdom.TaskType, include func(*taskdom.TaskType) bool) []string {
 	ids := make([]string, 0, len(taskTypes))
 	for _, taskType := range taskTypes {
@@ -117,8 +140,15 @@ func defaultProjectViewInputs(projectID uuid.UUID, taskTypes []*taskdom.TaskType
 	}
 }
 
-func defaultSprintViewInputs(projectID, sprintID uuid.UUID, _ []*taskdom.TaskType) []sprintdom.CreateViewInput {
+func defaultSprintViewInputs(projectID, sprintID uuid.UUID, _ []*taskdom.TaskType, statuses []*taskdom.TaskStatus) []sprintdom.CreateViewInput {
 	sprintIDs := []string{sprintID.String()}
+	boardConfig := sprintdom.ViewConfig{
+		ColumnBy: "status",
+		Filters:  newDefaultFilters(true, nil, sprintIDs),
+	}
+	if ids := backlogStatusIDs(statuses); len(ids) > 0 {
+		boardConfig.CollapsedColumns = ids
+	}
 	return []sprintdom.CreateViewInput{
 		{
 			SprintID:    &sprintID,
@@ -127,10 +157,7 @@ func defaultSprintViewInputs(projectID, sprintID uuid.UUID, _ []*taskdom.TaskTyp
 			ViewType:    sprintdom.ViewTypeBoard,
 			Position:    0,
 			ViewContext: sprintdom.ViewContextSprint,
-			Config: sprintdom.ViewConfig{
-				ColumnBy: "status",
-				Filters:  newDefaultFilters(true, nil, sprintIDs),
-			},
+			Config:      boardConfig,
 		},
 		{
 			SprintID:    &sprintID,

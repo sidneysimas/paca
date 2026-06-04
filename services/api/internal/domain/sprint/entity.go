@@ -163,13 +163,14 @@ type ViewFilters struct {
 // ViewConfig holds the display settings for a sprint view.
 // All fields are optional; when empty the client applies defaults.
 type ViewConfig struct {
-	Fields    []string     `json:"fields,omitempty"`
-	ColumnBy  string       `json:"column_by,omitempty"`
-	Swimlanes string       `json:"swimlanes,omitempty"`
-	SortBy    string       `json:"sort_by,omitempty"`
-	FieldSum  string       `json:"field_sum,omitempty"`
-	SliceBy   string       `json:"slice_by,omitempty"`
-	Filters   *ViewFilters `json:"filters,omitempty"`
+	Fields           []string     `json:"fields,omitempty"`
+	ColumnBy         string       `json:"column_by,omitempty"`
+	Swimlanes        string       `json:"swimlanes,omitempty"`
+	SortBy           string       `json:"sort_by,omitempty"`
+	FieldSum         string       `json:"field_sum,omitempty"`
+	SliceBy          string       `json:"slice_by,omitempty"`
+	Filters          *ViewFilters `json:"filters,omitempty"`
+	CollapsedColumns []string     `json:"collapsed_columns,omitempty"`
 	// Plugin view fields (only set when view_type = "plugin")
 	// PluginID stores the plugin manifest identifier (reverse-DNS), not the
 	// plugin UUID used by plugin-extension-settings APIs.

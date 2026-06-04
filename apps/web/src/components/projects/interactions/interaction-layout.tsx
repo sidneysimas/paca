@@ -1155,6 +1155,19 @@ export function InteractionLayout({
 						onMoveToColumn={canEdit ? handleMoveToColumn : undefined}
 						manualSort={isManualSort}
 						onReorderTask={effectiveViewId ? handleReorderTask : undefined}
+						onCollapseChange={
+							isRealView && activeView
+								? (columns) =>
+										updateViewConfigMutation.mutate({
+											viewId: activeView.id,
+											config: {
+												...(activeView.config ?? {}),
+												collapsed_columns:
+													columns.length > 0 ? columns : undefined,
+											},
+										})
+								: undefined
+						}
 					/>
 				) : activeView?.layout === "Roadmap" ? (
 					<RoadmapView
@@ -1204,6 +1217,19 @@ export function InteractionLayout({
 						}
 						onCreateSprint={
 							context === "backlog" && canCreate ? handleNewSprint : undefined
+						}
+						onCollapseChange={
+							isRealView && activeView
+								? (columns) =>
+										updateViewConfigMutation.mutate({
+											viewId: activeView.id,
+											config: {
+												...(activeView.config ?? {}),
+												collapsed_columns:
+													columns.length > 0 ? columns : undefined,
+											},
+										})
+								: undefined
 						}
 					/>
 				)}

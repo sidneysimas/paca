@@ -32,13 +32,14 @@ type ViewFiltersDTO = sprintdom.ViewFilters
 
 // ViewConfigDTO is the JSON representation of sprintdom.ViewConfig.
 type ViewConfigDTO struct {
-	Fields    []string        `json:"fields,omitempty"`
-	ColumnBy  string          `json:"column_by,omitempty"`
-	Swimlanes string          `json:"swimlanes,omitempty"`
-	SortBy    string          `json:"sort_by,omitempty"`
-	FieldSum  string          `json:"field_sum,omitempty"`
-	SliceBy   string          `json:"slice_by,omitempty"`
-	Filters   *ViewFiltersDTO `json:"filters,omitempty"`
+	Fields           []string        `json:"fields,omitempty"`
+	ColumnBy         string          `json:"column_by,omitempty"`
+	Swimlanes        string          `json:"swimlanes,omitempty"`
+	SortBy           string          `json:"sort_by,omitempty"`
+	FieldSum         string          `json:"field_sum,omitempty"`
+	SliceBy          string          `json:"slice_by,omitempty"`
+	Filters          *ViewFiltersDTO `json:"filters,omitempty"`
+	CollapsedColumns []string        `json:"collapsed_columns,omitempty"`
 	// PluginManifestID is the reverse-DNS plugin manifest identifier
 	// (for example "com.paca.bdd").
 	PluginManifestID string `json:"plugin_manifest_id,omitempty"`
@@ -74,6 +75,7 @@ func ViewFromEntity(v *sprintdom.SprintView) ViewResponse {
 			FieldSum:         v.Config.FieldSum,
 			SliceBy:          v.Config.SliceBy,
 			Filters:          v.Config.Filters,
+			CollapsedColumns: v.Config.CollapsedColumns,
 			PluginManifestID: v.Config.PluginID,
 			PluginComponent:  v.Config.PluginComponent,
 		},
@@ -89,15 +91,16 @@ func toViewConfig(d *ViewConfigDTO) sprintdom.ViewConfig {
 		return sprintdom.ViewConfig{}
 	}
 	return sprintdom.ViewConfig{
-		Fields:          d.Fields,
-		ColumnBy:        d.ColumnBy,
-		Swimlanes:       d.Swimlanes,
-		SortBy:          d.SortBy,
-		FieldSum:        d.FieldSum,
-		SliceBy:         d.SliceBy,
-		Filters:         d.Filters,
-		PluginID:        d.PluginManifestID,
-		PluginComponent: d.PluginComponent,
+		Fields:           d.Fields,
+		ColumnBy:         d.ColumnBy,
+		Swimlanes:        d.Swimlanes,
+		SortBy:           d.SortBy,
+		FieldSum:         d.FieldSum,
+		SliceBy:          d.SliceBy,
+		Filters:          d.Filters,
+		CollapsedColumns: d.CollapsedColumns,
+		PluginID:         d.PluginManifestID,
+		PluginComponent:  d.PluginComponent,
 	}
 }
 

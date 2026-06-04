@@ -112,6 +112,7 @@ export interface ViewConfig {
 	field_sum?: string;
 	slice_by?: string;
 	filters?: ViewFilters;
+	collapsed_columns?: string[];
 	/** Populated only for plugin views (view_type = "plugin") */
 	plugin_manifest_id?: string;
 	plugin_component?: string;

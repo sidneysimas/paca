@@ -12,9 +12,10 @@ import (
 
 // SprintHandler handles sprint management endpoints.
 type SprintHandler struct {
-	svc         sprintdom.SprintService
-	viewSvc     sprintdom.ViewService
-	taskTypeSvc taskTypeLister
+	svc           sprintdom.SprintService
+	viewSvc       sprintdom.ViewService
+	taskTypeSvc   taskTypeLister
+	taskStatusSvc taskStatusLister
 }
 
 // SprintHandlerOption customizes optional sprint-handler dependencies.
@@ -24,6 +25,13 @@ type SprintHandlerOption func(*SprintHandler)
 func WithSprintDefaultTaskTypes(taskTypeSvc taskTypeLister) SprintHandlerOption {
 	return func(h *SprintHandler) {
 		h.taskTypeSvc = taskTypeSvc
+	}
+}
+
+// WithSprintDefaultTaskStatuses enables sprint default-view seeding with backlog status collapsed columns.
+func WithSprintDefaultTaskStatuses(taskStatusSvc taskStatusLister) SprintHandlerOption {
+	return func(h *SprintHandler) {
+		h.taskStatusSvc = taskStatusSvc
 	}
 }
 
@@ -89,7 +97,11 @@ func (h *SprintHandler) CreateSprint(c *gin.Context) {
 	if loadErr != nil {
 		c.Error(loadErr) //nolint:errcheck
 	}
-	for _, input := range defaultSprintViewInputs(s.ProjectID, s.ID, taskTypes) {
+	statuses, statusLoadErr := loadTaskStatuses(ctx, h.taskStatusSvc, s.ProjectID)
+	if statusLoadErr != nil {
+		c.Error(statusLoadErr) //nolint:errcheck
+	}
+	for _, input := range defaultSprintViewInputs(s.ProjectID, s.ID, taskTypes, statuses) {
 		if _, err := h.viewSvc.CreateView(ctx, input); err != nil {
 			// Non-fatal: the sprint was created; log and continue.
 			c.Error(err) //nolint:errcheck
