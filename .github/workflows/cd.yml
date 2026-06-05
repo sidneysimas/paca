@@ -15,6 +15,10 @@ name: cd
 #   <dockerhub-username>/paca-ai-agent:<tag> — AI Agent service Docker image
 #   registry.npmjs.org @paca-ai/paca-mcp — MCP server npm package
 #   registry.npmjs.org @paca-ai/plugin-sdk-react — Plugin frontend SDK npm package
+#   GitHub Release assets:
+#     install.sh         — one-shot interactive install script
+#     docker-compose.yml — standalone compose (no source tree required)
+#     gateway.conf       — nginx gateway configuration
 
 on:
   release:
@@ -305,3 +309,44 @@ jobs:
           else
             npm publish --provenance --access public
           fi
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Deployment assets → GitHub Release
+  #
+  # Uploads three files so that users can run Paca without cloning the repo:
+  #   install.sh         — interactive setup wizard (download + configure + start)
+  #   docker-compose.yml — standalone compose referencing pre-built DockerHub images
+  #   gateway.conf       — nginx gateway configuration required by the compose file
+  #
+  # End-users download and run:
+  #   curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/install.sh -o install.sh
+  #   bash install.sh
+  # ─────────────────────────────────────────────────────────────────────────────
+  release-assets:
+    name: Upload deployment assets to release
+    runs-on: ubuntu-latest
+    needs: [api-image, realtime-image, web-image, ai-agent-image, publish-mcp]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare assets
+        run: |
+          # Rename files to the names end-users will download.
+          cp deploy/docker-compose.prod.yml        docker-compose.yml
+          cp deploy/nginx/gateway.conf             gateway.conf
+          cp scripts/install.sh                    install.sh
+          chmod +x install.sh
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            install.sh \
+            docker-compose.yml \
+            gateway.conf \
+            --clobber
