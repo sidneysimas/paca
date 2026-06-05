@@ -1,21 +1,21 @@
-import { BookOpen, Bot, RefreshCcw } from "lucide-react";
+import { BookOpen, Bot, Puzzle } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github-icon";
 
 const FEATURES = [
 	{
 		icon: Bot,
-		title: "AI Agents as Peers",
-		desc: "AI Agents join your Scrum team as first-class members — not plugins — picking tasks from the same backlog as humans.",
+		title: "Sandboxed AI Agents",
+		desc: "Each agent runs in an isolated container — picking tasks from the board without touching your host environment.",
 	},
 	{
 		icon: BookOpen,
 		title: "BDD & SDD Hub",
-		desc: "Align POs, BAs, and Agents through Gherkin scenarios and System Design Docs that keep the whole team in sync.",
+		desc: "Co-author Gherkin scenarios and System Design Docs with your whole team — humans and AI alike.",
 	},
 	{
-		icon: RefreshCcw,
-		title: "The P-A-C-A Cycle",
-		desc: "Plan → Act → Check → Adapt. A Human-in-the-loop sprint loop built for complex, emergent projects where AI amplifies the team.",
+		icon: Puzzle,
+		title: "Plugin Marketplace",
+		desc: "Browse and install plugins from the UI. Customize everything via config and WASM plugins.",
 	},
 ] as const;
 
@@ -54,9 +54,8 @@ export function BrandPanel() {
 					<span className="text-[#9ed957]">human and AI.</span>
 				</h2>
 				<p className="mb-8 text-sm leading-relaxed text-white/55">
-					Paca is the open-source project management engine designed for Complex
-					Projects — where AI Agents and humans collaborate on the same Scrumban
-					board as equal, first-class teammates.
+					Open-source project management where AI agents and humans collaborate
+					as equal Scrum teammates — self-hosted, fully customizable.
 				</p>
 
 				{/* Feature cards */}

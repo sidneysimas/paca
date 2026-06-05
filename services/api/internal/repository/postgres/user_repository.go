@@ -58,13 +58,14 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-// List returns a page of non-deleted users ordered by creation date plus the
-// total count across all pages.
+// List returns a page of non-deleted, non-system users ordered by creation
+// date plus the total count across all pages.  The built-in agent bot account
+// is excluded because it is an internal system identity, not a real user.
 func (r *UserRepository) List(ctx context.Context, offset, limit int) ([]*userdom.User, int64, error) {
 	var total int64
 	if err := r.db.WithContext(ctx).
 		Table("users").
-		Where("deleted_at IS NULL").
+		Where("deleted_at IS NULL AND username != '_paca_agent_bot'").
 		Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("user repo: list count: %w", err)
 	}
@@ -74,7 +75,7 @@ func (r *UserRepository) List(ctx context.Context, offset, limit int) ([]*userdo
 		Select(userReadCols).
 		Table("users").
 		Joins(userReadJoin).
-		Where("users.deleted_at IS NULL").
+		Where("users.deleted_at IS NULL AND users.username != '_paca_agent_bot'").
 		Order("users.created_at ASC").
 		Offset(offset).
 		Limit(limit).

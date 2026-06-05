@@ -281,6 +281,86 @@ See [docs/guides/local-development.md](docs/guides/local-development.md) for run
 
 ---
 
+## MCP Server — Connect Any AI Agent to Paca
+
+Paca ships an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that gives any compatible AI agent direct, structured access to your workspace — projects, tasks, sprints, documents, members, and more. No scraping, no custom APIs to wire up.
+
+The server is published as **`@paca-ai/paca-mcp`** on npm. You run it with `npx`; your MCP client handles the rest.
+
+### Quick Setup — Claude Desktop
+
+1. Open (or create) the Claude Desktop config file:
+   - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+2. Add the `paca` entry:
+
+```json
+{
+  "mcpServers": {
+    "paca": {
+      "command": "npx",
+      "args": ["-y", "@paca-ai/paca-mcp"],
+      "env": {
+        "PACA_API_KEY": "your-api-key-here",
+        "PACA_API_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
+```
+
+3. Restart Claude Desktop. Claude now has access to all Paca tools and can answer requests like:
+   - *"List all active sprints in project X"*
+   - *"Create a task for implementing OAuth and assign it to sprint 3"*
+   - *"Add a comment to task #42 with my progress update"*
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|:--|:--|:--|:--|
+| `PACA_API_KEY` | Yes | — | API key from your Paca instance (Settings → API Keys) |
+| `PACA_API_URL` | No | `http://localhost:8080` | URL of your Paca API |
+| `PACA_PROJECT_ID` | No | — | Scope the agent to a single project |
+| `PACA_AGENT_ID` | No | — | Identity for agent-mode (requires `PACA_PROJECT_ID`) |
+
+### Other MCP-Compatible Clients
+
+Any client that speaks MCP works. Typical configuration:
+
+```json
+{
+  "name": "paca",
+  "command": "npx",
+  "args": ["-y", "@paca-ai/paca-mcp"],
+  "env": {
+    "PACA_API_KEY": "your-api-key-here",
+    "PACA_API_URL": "http://your-paca-instance:8080"
+  }
+}
+```
+
+### Available Tools
+
+The server exposes tools across these categories:
+
+| Category | Tools |
+|:--|:--|
+| Projects | `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project` |
+| Tasks | `list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`, + more |
+| Sprints | `list_sprints`, `create_sprint`, `update_sprint`, `complete_sprint`, + more |
+| Documents | `list_docs`, `read_doc`, `write_doc`, `delete_doc`, `move_doc` |
+| Members & Roles | `list_project_members`, `add_project_member`, `list_project_roles`, + more |
+| Task Types & Statuses | `list_task_types`, `create_task_type`, `list_task_statuses`, + more |
+| Views & Custom Fields | `list_views`, `create_view`, `list_custom_fields`, `create_custom_field`, + more |
+| Attachments | `list_task_attachments`, `get_attachment_download_url`, `delete_task_attachment` |
+| Activity & Comments | `list_task_activities`, `add_task_comment`, `update_task_comment`, `delete_task_comment` |
+| Plugin tools | Installed plugins can register additional tools at runtime |
+
+For a complete reference and advanced configuration (agent-mode, plugin tools, programmatic usage), see [docs/guides/mcp-server-setup.md](docs/guides/mcp-server-setup.md).
+
+---
+
 ## Architecture
 
 ```
