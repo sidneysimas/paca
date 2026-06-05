@@ -1,17 +1,30 @@
 # Service Boundaries
 
-Paca is planned around one frontend application and three backend services.
+Paca consists of one frontend application, an MCP server, and three backend services.
 
 ## apps/web
 
 Responsible for the user-facing product experience.
 
-Planned concerns:
+Concerns:
 
 - authentication and session-driven UI flow;
-- board and task management interfaces;
-- human and AI collaboration views;
-- product-facing components built with React and shadcn/ui.
+- board, backlog, and sprint management interfaces;
+- human and AI agent collaboration views;
+- real-time board updates via Socket.IO;
+- product-facing components built with React, TanStack Start, and shadcn/ui.
+
+## apps/mcp
+
+Responsible for AI agent integration via the Model Context Protocol.
+
+Concerns:
+
+- MCP server implementation (`@paca-ai/paca-mcp` npm package);
+- translating MCP tool calls into REST calls to `services/api`;
+- permission-based tool filtering (user mode and agent mode);
+- dynamic loading of plugin-contributed MCP tools at startup;
+- BlockNote ↔ Markdown format conversion for descriptions and documents.
 
 ## apps/e2e
 
@@ -19,48 +32,52 @@ Responsible for end-to-end validation of the full running stack from a real brow
 
 Concerns:
 
-- Playwright test suites that exercise cross-cutting flows spanning `apps/web`, `services/api`, and the nginx gateway;
+- Playwright test suites exercising cross-cutting flows spanning `apps/web`, `services/api`, and the nginx gateway;
 - test categories: auth flows, form validation, security (injection/XSS rejection), session management, and UX correctness;
 - Page Object Models and shared fixtures to keep test logic stable as the UI evolves;
-- global setup that logs in once and persists browser auth state, giving session tests a pre-authenticated context without repeating login steps.
+- global setup that logs in once and persists browser auth state.
 
-Not deployed. Runs against a live environment (local stack or CI-provisioned stack) and produces an HTML report with traces and screenshots on failure.
+Not deployed. Runs against a live environment (local or CI stack) and produces an HTML report with traces and screenshots on failure.
 
 ## services/api
 
 Responsible for the core application backend.
 
-Planned concerns:
+Concerns:
 
-- business workflows;
-- task, board, and activity APIs;
-- persistence coordination with PostgreSQL and Redis;
-- publication of domain events to a Valkey Stream for downstream consumers, including the real-time service;
-- consumption of asynchronous events where API-owned workflows require it.
+- business workflows (tasks, sprints, boards, members, documents, custom fields);
+- authentication and authorization (JWT, API keys, role-based permissions);
+- persistence coordination with PostgreSQL and Valkey;
+- S3-compatible file attachment handling (MinIO or AWS S3);
+- WASM plugin runtime (wazero) — loads backend plugins, registers routes, mediates host function calls;
+- publication of domain events to Valkey Streams for downstream consumers;
+- agent trigger event publication and conversation summary ingestion.
 
 ## services/realtime
 
 Responsible for real-time delivery to connected clients.
 
-Planned concerns:
+Concerns:
 
-- maintain Socket.IO namespaces, rooms, and client connection lifecycle;
-- authenticate and authorize socket connections using contracts owned by the core backend;
-- consume Valkey Stream messages emitted by `services/api`;
-- transform internal domain events into client-safe real-time payloads;
-- broadcast updates for boards, tasks, comments, and presence-like collaboration signals.
+- Socket.IO namespaces, rooms, and client connection lifecycle;
+- authentication and authorization of socket connections using contracts from `services/api`;
+- consumption of Valkey Stream messages emitted by `services/api`;
+- transformation of internal domain events into client-safe real-time payloads;
+- broadcast of updates for boards, tasks, comments, agent conversation events, and collaboration signals.
 
 ## services/ai-agent
 
-Responsible for AI orchestration and agent execution.
+Responsible for AI agent orchestration and execution.
 
-Planned concerns:
+Concerns:
 
-- agent workflow execution with LangGraph;
-- API endpoints for AI-driven actions;
-- coordination with the core backend;
-- controlled access to runtime context and tools.
+- consumption of agent trigger events from the `paca:agent:triggers` Valkey Stream;
+- spawning and managing Docker containers via the OpenHands SDK (one container per active conversation);
+- running OpenHands agent conversations with per-agent LLM, skills, MCP servers, and system prompt config;
+- publishing conversation events to the `paca:agent:events` Valkey Stream for real-time delivery;
+- REST endpoints for pause, resume, stop, and history operations;
+- repository access via the repository plugin adapter (short-lived tokens, no persistent credential storage).
 
 ## Boundary Rule
 
-Keep ownership clear. `services/api` owns business rules and durable state transitions, while `services/realtime` only delivers live updates derived from API-owned events. Shared code should stay inside the owning runtime until duplication is real.
+Keep ownership clear. `services/api` owns business rules and durable state transitions. `services/realtime` only delivers live updates derived from API-owned events. `services/ai-agent` executes agent conversations and reports results back through `services/api` — it does not write directly to the database. Shared code stays inside the owning runtime until duplication is real and proven.

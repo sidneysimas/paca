@@ -276,10 +276,11 @@ For a complete reference and advanced configuration (agent-mode, plugin tools, p
 ## Architecture
 
 ```
-apps/web          React + shadcn/ui — user interface
+apps/web          React + TanStack Start + shadcn/ui — user interface
+apps/mcp          @paca-ai/paca-mcp — MCP server for AI agent integration
 services/api      Go + Gin — core business logic and REST API
-services/realtime Socket.IO — real-time event fan-out
-services/ai-agent FastAPI + OpenHands — AI agent orchestration (isolated sandbox container)
+services/realtime Node.js + Socket.IO — real-time event fan-out
+services/ai-agent Python + FastAPI + OpenHands SDK — AI agent orchestration
 apps/e2e          Playwright — end-to-end test suite
 
 PostgreSQL        Persistent store
@@ -305,10 +306,12 @@ But Paca is built from conviction: human-AI collaboration in a real Scrum team s
 | Document | Description |
 |:--|:--|
 | [docs/architecture/overview.md](docs/architecture/overview.md) | High-level system architecture |
+| [docs/guides/getting-started.md](docs/guides/getting-started.md) | Getting started (install, Docker, local dev) |
 | [docs/guides/local-development.md](docs/guides/local-development.md) | Contributor dev environment setup |
 | [docs/guides/mcp-server-setup.md](docs/guides/mcp-server-setup.md) | Connect AI agents via MCP |
 | [docs/plugins/](docs/plugins/) | Plugin system: backend (WASM) and frontend |
 | [deploy/README.md](deploy/README.md) | Full deployment reference |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Security policy |
 

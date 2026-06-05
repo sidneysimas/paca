@@ -1,30 +1,31 @@
 # Security Policy
 
-Paca is in an early documentation-first phase.
-
 ## Reporting a Vulnerability
 
-- Do not open public issues for security vulnerabilities.
-- Report vulnerabilities privately to the maintainers once a contact channel is published.
-- Include the affected area, impact, reproduction details, and any suggested mitigation.
+**Do not open public GitHub issues for security vulnerabilities.**
+
+To report a vulnerability privately:
+1. Open a [GitHub Security Advisory](https://github.com/Paca-AI/paca/security/advisories/new) in the repository.
+2. Include: the affected component, impact assessment, reproduction steps, and any suggested mitigation.
+
+We will acknowledge the report within 5 business days and aim to provide an initial assessment within 10 business days.
 
 ## Scope
 
 Security reports may cover:
 
-- authentication and authorization risks;
-- data exposure risks involving PostgreSQL, Redis, or message flows;
-- unsafe AI agent actions or privilege boundaries;
-- supply chain or dependency risks;
-- deployment misconfiguration risks.
+- Authentication and authorization risks.
+- Data exposure risks involving PostgreSQL, Valkey, or inter-service message flows.
+- Unsafe AI agent actions or privilege escalation.
+- WASM plugin sandbox escapes or capability bypasses.
+- Supply chain or dependency risks.
+- Deployment misconfiguration risks (Docker Compose, nginx, environment variables).
+- API injection risks (SQL injection, command injection, XSS).
 
-## Current Status
+## Supported Versions
 
-The project does not yet publish a formal response SLA.
+We address security issues in the latest released version. Older versions are not actively maintained for security patches.
 
-As implementation begins, this document should be updated with:
+## Disclosure
 
-- a reporting address;
-- supported versions;
-- disclosure expectations;
-- response timelines.
+We follow responsible disclosure: we ask that you give us reasonable time to patch a vulnerability before any public disclosure. We will credit reporters in release notes unless you prefer to remain anonymous.

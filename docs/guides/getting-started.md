@@ -1,20 +1,95 @@
 # Getting Started
 
-Paca is currently in a documentation-first phase.
+## Option 1 — Install Script (recommended)
 
-## What to Read First
+Runs on any Linux server with Docker. Downloads the release assets, walks you through configuration interactively, and starts the full stack.
 
-1. Start with the root [README.md](../../README.md).
-2. Read [../architecture/overview.md](../architecture/overview.md).
-3. Read [../architecture/repository-structure.md](../architecture/repository-structure.md).
-4. Review [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+```bash
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/install.sh | bash
+```
 
-## Current State
+Open `http://your-server-ip` when it finishes.
 
-- The repository defines direction before implementation.
-- The monorepo structure is planned but not fully scaffolded.
-- Technical detail is intentionally limited until the first implementation pass starts.
+---
 
-## Near-Term Goal
+## Option 2 — Docker Compose (manual)
 
-The next milestone is to turn the documentation structure into minimal runnable scaffolding for the frontend, backend, and AI runtime.
+Pulls pre-built images. No repository clone required.
+
+```bash
+# Download compose file and nginx config
+mkdir paca && cd paca
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml -o docker-compose.yml
+mkdir -p nginx
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/gateway.conf -o nginx/gateway.conf
+
+# Create an environment file
+cat > .env <<'EOF'
+JWT_SECRET=<run: openssl rand -hex 32>
+ADMIN_PASSWORD=<your-admin-password>
+POSTGRES_PASSWORD=<run: openssl rand -hex 32>
+AGENT_API_KEY=<run: openssl rand -hex 32>
+INTERNAL_API_KEY=<run: openssl rand -hex 32>
+ENCRYPTION_KEY=<run: openssl rand -hex 32>
+PUBLIC_URL=http://localhost
+EOF
+
+# Start the stack
+docker compose --env-file .env up -d
+```
+
+Open `http://localhost` — log in with `admin` and the password you set.
+
+---
+
+## Option 3 — Local Development
+
+For contributors. Clone the repo, then start everything with one command:
+
+```bash
+git clone https://github.com/Paca-AI/paca.git && cd paca
+docker compose -f deploy/docker-compose.dev.yml up -d
+```
+
+All services start with hot-reload — the API, web app, and realtime service all watch your local source files and rebuild automatically. Open `http://localhost` when the stack is healthy.
+
+See [local-development.md](local-development.md) for details on the dev stack and running services on the host.
+
+---
+
+## Connect an AI Agent via MCP
+
+After Paca is running:
+
+1. Generate an API key: **Settings → API Keys → New Key**
+2. Add the Paca MCP server to your agent config (Claude Desktop example):
+
+```json
+{
+  "mcpServers": {
+    "paca": {
+      "command": "npx",
+      "args": ["-y", "@paca-ai/paca-mcp"],
+      "env": {
+        "PACA_API_KEY": "your-api-key-here",
+        "PACA_API_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
+```
+
+See [mcp-server-setup.md](mcp-server-setup.md) for platform-specific instructions and advanced configuration.
+
+---
+
+## What to Read Next
+
+| Document | When to read it |
+|---|---|
+| [local-development.md](local-development.md) | Setting up a contributor environment |
+| [mcp-server-setup.md](mcp-server-setup.md) | Connecting AI agents via MCP |
+| [../architecture/overview.md](../architecture/overview.md) | Understanding the system architecture |
+| [../plugins/overview.md](../plugins/overview.md) | Writing or installing plugins |
+| [../../deploy/README.md](../../deploy/README.md) | Production deployment reference |
+| [../../CHANGELOG.md](../../CHANGELOG.md) | Release history |

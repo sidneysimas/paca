@@ -25,6 +25,6 @@ They may remove, edit, or reject comments, commits, issues, and pull requests th
 
 ## Reporting
 
-Until a dedicated security or community contact is published, open a private maintainer contact channel before sharing sensitive concerns publicly.
+To report a Code of Conduct violation, open a private maintainer contact or email the maintainers directly. Do not report conduct concerns as public GitHub issues.
 
-This document is intentionally short for the planning phase and can be expanded later.
+For security vulnerabilities, see [SECURITY.md](SECURITY.md).

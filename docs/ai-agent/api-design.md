@@ -26,7 +26,7 @@ List all agents in a project.
       "slug": "developer"
     },
     "llm_provider": "anthropic",
-    "llm_model": "claude-sonnet-4-5-20250929",
+    "llm_model": "claude-sonnet-4-6",
     "can_clone_repos": true,
     "can_create_prs": true,
     "max_iterations": 50,
@@ -50,7 +50,7 @@ Create a new agent. This also creates the corresponding `project_members` row wi
   "handle": "dev-bot",
   "agent_type_id": "uuid",
   "llm_provider": "anthropic",
-  "llm_model": "claude-sonnet-4-5-20250929",
+  "llm_model": "claude-sonnet-4-6",
   "llm_api_key": "sk-ant-...",
   "llm_base_url": null,
   "system_prompt": "You are a senior software engineer...",

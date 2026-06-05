@@ -1630,7 +1630,8 @@ To keep the API coherent and aligned with the current codebase, implement the ne
 8. ~~Add sprint saved views: board, table, roadmap with manual task ordering.~~ ✅ Done
 9. Add task sub-resource endpoints: child tasks, activities, and time logs.
 10. ~~Add custom field definitions.~~ ✅ Done
-11. Add knowledge and reporting: documents and dashboards.
+11. ~~Add documents (CRUD, folders, snapshots, activities).~~ ✅ Done
+12. Add dashboards (planned).
 
 ## Known Model Gaps
 

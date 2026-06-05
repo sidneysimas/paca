@@ -8,13 +8,14 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects (with `task_id_prefix` for human-readable task IDs), project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_context` field), `view_task_positions`, `custom_field_definitions`, `task_counters` (tracks per-project sequential task numbers), `tasks` (with `story_points`), `files` (central file-metadata registry), `task_attachments` (now links to `files` table), `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), `api_keys` (user API keys for programmatic authentication), `plugins` (core plugin registry), `plugin_extension_settings` (system-wide plugin extension point configuration), and seed data. Note: `task_checklists` and `task_checklist_items` tables were originally here but have been migrated to the `com.paca.checklist` plugin via migration 000005. |
-| `000002_add_story_points.sql` | Adds `story_points` INTEGER column to the tasks table (nullable, >= 0). |
-| `000003_add_project_is_public.sql` | Adds `is_public` BOOLEAN flag to projects table for anonymous read access. |
+| `000001_init.sql` | Full consolidated baseline schema (v0.1.x): `global_roles`, `users`, `projects` (with `task_id_prefix`), `project_roles`, `project_members`, `task_types`, `task_statuses`, `sprints`, `sprint_views` (with `view_context`), `view_task_positions`, `custom_field_definitions`, `task_counters`, `tasks`, `files`, `task_attachments`, `task_activities`, `doc_folders`, `documents`, `doc_snapshots`, `doc_activities`, `notifications`, `api_keys`, `plugins`, `plugin_extension_settings`, and seed data. |
+| `000002_add_story_points.sql` | Adds `story_points INTEGER` (nullable, >= 0) to `tasks`. |
+| `000003_add_project_is_public.sql` | Adds `is_public BOOLEAN` to `projects` for anonymous read access. |
 | `000004_add_plugins.sql` | Adds `plugins` and `plugin_extension_settings` tables for the plugin system. |
-| `000005_migrate_checklists_to_plugin.sql` | Removes legacy `task_checklists` and `task_checklist_items` tables from public schema (migrated to com.paca.checklist plugin). |
-| `000006_add_plugin_view_type.sql` | Extends sprint_views.view_type CHECK constraint to allow 'plugin' as a valid view type. |
-| `000007_remove_github_tables.sql` | Removes GitHub integration tables (`github_integrations`, `github_repositories`, `github_pull_requests`, `github_task_pr_links`, `github_task_branches`) as they have been migrated to plugins. |
+| `000005_migrate_checklists_to_plugin.sql` | Drops legacy `task_checklists` and `task_checklist_items` tables (moved to `com.paca.checklist` plugin). |
+| `000006_add_plugin_view_type.sql` | Extends `sprint_views.view_type` CHECK to allow `'plugin'` as a valid view type. |
+| `000007_remove_github_tables.sql` | Drops GitHub integration tables (`github_integrations`, `github_repositories`, `github_pull_requests`, `github_task_pr_links`, `github_task_branches`) — migrated to plugins. |
+| `000008_add_ai_agents.sql` | Adds AI agent tables: `agents`, `agent_mcp_servers`, `agent_skills`, `agent_chat_sessions`, `agent_conversations`, `agent_conversation_events`. Modifies `project_members` to add `member_type` and `agent_id` (makes `user_id` nullable) for agent membership support. |
 
 ## Schema (DBML)
 
@@ -62,13 +63,16 @@ Table project_roles {
 Table project_members {
   id uuid [primary key]
   project_id uuid [ref: > projects.id]
-  user_id uuid [ref: > users.id]
+  user_id uuid [null, ref: > users.id, note: 'null for agent members']
   project_role_id uuid [ref: > project_roles.id]
+  member_type varchar [not null, default: 'human', note: 'human | agent']
+  agent_id uuid [null, ref: > agents.id, note: 'null for human members']
   created_at timestamp [not null]
-  deleted_at timestamp [null, note: 'Soft-delete timestamp. Non-null rows are excluded from active-member queries. Re-adding a removed member restores the existing row (sets deleted_at = NULL) rather than inserting a new one.']
+  deleted_at timestamp [null, note: 'Soft-delete timestamp. Re-adding a removed member restores the row rather than inserting a new one.']
 
   indexes {
-    (project_id, user_id) [unique, note: 'Partial unique index: WHERE deleted_at IS NULL']
+    (project_id, user_id) [unique, note: 'Partial unique: WHERE deleted_at IS NULL AND member_type = human']
+    (project_id, agent_id) [unique, note: 'Partial unique: WHERE deleted_at IS NULL AND member_type = agent']
   }
 }
 
@@ -200,17 +204,6 @@ Table view_task_positions {
   }
 }
 
-// --- FEATURES & UTILITIES ---
-// Note: task_checklists and task_checklist_items are owned by the com.paca.checklist plugin.
-
-Table time_logs {
-  id uuid [primary key]
-  task_id uuid [ref: > tasks.id]
-  member_id uuid [ref: > project_members.id]
-  duration_minutes integer
-  logged_date date
-}
-
 // --- FILES ---
 Table files {
   id uuid [primary key]
@@ -285,13 +278,6 @@ Table doc_activities {
   deleted_at    timestamp [null, note: 'Soft-delete for comments']
 }
 
-Table dashboards {
-  id uuid [primary key]
-  project_id uuid [ref: > projects.id]
-  name varchar
-  layout jsonb
-}
-
 Table task_activities {
   id uuid [primary key]
   task_id uuid [not null, ref: > tasks.id]
@@ -349,5 +335,119 @@ Table api_keys {
   expires_at timestamp [null]
   created_at timestamp
   revoked_at timestamp [null]
+}
+
+// --- AI AGENTS (000008) ---
+
+Table agents {
+  id uuid [primary key]
+  project_id uuid [not null, ref: > projects.id]
+  name varchar [not null]
+  handle varchar [not null, note: '@mention handle, unique per project']
+  avatar_url varchar [null]
+  llm_provider varchar [not null, note: 'LiteLLM provider prefix, e.g. anthropic, openai']
+  llm_model varchar [not null, note: 'LiteLLM model name, e.g. claude-sonnet-4-6']
+  llm_api_key_secret varchar [not null, note: 'Encrypted at rest; never returned by the API']
+  llm_base_url varchar [null]
+  system_prompt text [not null, default: '']
+  can_clone_repos boolean [not null, default: true]
+  can_create_prs boolean [not null, default: true]
+  max_iterations integer [not null, default: 50]
+  timeout_minutes integer [not null, default: 30]
+  git_committer_name varchar [not null, default: 'paca-agent']
+  git_committer_email varchar [not null]
+  created_by uuid [null, ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+
+  indexes {
+    (project_id, handle) [unique, note: 'Partial unique: WHERE deleted_at IS NULL']
+  }
+}
+
+Table agent_mcp_servers {
+  id uuid [primary key]
+  agent_id uuid [not null, ref: > agents.id]
+  server_name varchar [not null, note: 'Key in mcpServers map']
+  transport varchar [not null, note: 'stdio | sse | http | oauth']
+  command varchar [null]
+  args jsonb [not null, default: '[]']
+  url varchar [null]
+  env jsonb [not null, default: '{}']
+  is_enabled boolean [not null, default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (agent_id, server_name) [unique]
+  }
+}
+
+Table agent_skills {
+  id uuid [primary key]
+  agent_id uuid [not null, ref: > agents.id]
+  skill_name varchar [not null]
+  skill_source varchar [not null, note: 'inline | marketplace | github_url']
+  skill_content text [not null, default: '']
+  source_url varchar [null]
+  triggers jsonb [not null, default: '[]']
+  is_enabled boolean [not null, default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (agent_id, skill_name) [unique]
+  }
+}
+
+Table agent_chat_sessions {
+  id uuid [primary key]
+  agent_id uuid [not null, ref: > agents.id]
+  project_id uuid [not null, ref: > projects.id]
+  member_id uuid [not null, ref: > project_members.id, note: 'The human member chatting with the agent']
+  title varchar [null]
+  last_message_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table agent_conversations {
+  id uuid [primary key, note: 'Also used as the OpenHands conversation_id']
+  agent_id uuid [not null, ref: > agents.id]
+  project_id uuid [not null, ref: > projects.id]
+  trigger_type varchar [not null, note: 'task_assigned | comment_mention | chat_message']
+  task_id uuid [null, ref: > tasks.id]
+  comment_id uuid [null]
+  chat_session_id uuid [null, ref: > agent_chat_sessions.id]
+  triggered_by_member_id uuid [not null, ref: > project_members.id]
+  status varchar [not null, default: 'queued', note: 'queued | running | paused | finished | failed | stopped']
+  container_id varchar [null]
+  host_port integer [null]
+  iteration_count integer [not null, default: 0]
+  error_message text [null]
+  repo_plugin_id uuid [null]
+  repo_clone_url varchar [null]
+  branch_name varchar [null]
+  pr_url varchar [null]
+  persistence_dir varchar [null]
+  started_at timestamp [null]
+  finished_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table agent_conversation_events {
+  id uuid [primary key]
+  conversation_id uuid [not null, ref: > agent_conversations.id]
+  event_index integer [not null, note: 'Sequential index within the conversation (0-based)']
+  event_type varchar [not null, note: 'OpenHands SDK event type: MessageAction, CmdRunAction, FileEditAction, etc.']
+  event_source varchar [not null, note: 'agent | user | system | environment']
+  payload jsonb [not null, default: '{}']
+  created_at timestamp
+
+  indexes {
+    (conversation_id, event_index) [unique]
+  }
 }
 ```

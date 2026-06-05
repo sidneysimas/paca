@@ -212,10 +212,10 @@ This design means:
 
 | Type | Role | Default LLM | Pre-loaded Skills |
 |---|---|---|---|
-| **PO Assistant** | Product Owner — backlog grooming, acceptance criteria, prioritization | `anthropic/claude-sonnet-4-5` | `po-assistant` skill with Agile PO guidelines |
-| **Business Analyst** | Requirements analysis, user story writing, gap analysis | `anthropic/claude-sonnet-4-5` | `ba-assistant` skill |
-| **Developer** | Coding, code review, PR creation, bug fixing | `anthropic/claude-sonnet-4-5` | `developer` skill + `github`/`gitlab` skills |
-| **Manual Tester** | Test case design, exploratory testing docs, defect analysis | `anthropic/claude-sonnet-4-5` | `manual-tester` skill |
+| **PO Assistant** | Product Owner — backlog grooming, acceptance criteria, prioritization | `anthropic/claude-sonnet-4-6` | `po-assistant` skill with Agile PO guidelines |
+| **Business Analyst** | Requirements analysis, user story writing, gap analysis | `anthropic/claude-sonnet-4-6` | `ba-assistant` skill |
+| **Developer** | Coding, code review, PR creation, bug fixing | `anthropic/claude-sonnet-4-6` | `developer` skill + `github`/`gitlab` skills |
+| **Manual Tester** | Test case design, exploratory testing docs, defect analysis | `anthropic/claude-sonnet-4-6` | `manual-tester` skill |
 
 Users can create custom agent types with any combination of LLM provider, skills, MCP servers, and system prompt.
 

@@ -2,48 +2,54 @@
 
 Thanks for contributing to Paca.
 
-This repository is being documented before implementation, so the current priority is clarity of structure, product direction, and contributor expectations.
-
-## Current Focus
-
-- Define a repository structure that is simple to navigate in public.
-- Document architecture and boundaries before writing production code.
-- Keep decisions reversible until implementation starts.
-
 ## Repository Shape
 
-- `apps/web`: the React + shadcn/ui frontend.
-- `services/api`: the Go + Gin application backend.
-- `services/ai-agent`: the FastAPI + LangGraph AI runtime.
-- `docs`: architecture, guides, product, API, and deployment notes.
-- `deploy`: local and future deployment assets.
+- `apps/web` — React + TanStack Start + shadcn/ui frontend.
+- `apps/mcp` — MCP server (`@paca-ai/paca-mcp` npm package).
+- `apps/e2e` — Playwright end-to-end test suite.
+- `services/api` — Go + Gin application backend.
+- `services/realtime` — Node.js + Socket.IO real-time event fan-out.
+- `services/ai-agent` — Python + FastAPI + OpenHands SDK AI agent runtime.
+- `docs` — architecture, guides, API, deployment, and plugin documentation.
+- `deploy` — Docker Compose files and environment templates.
+- `plugins` — local plugin store (WASM + frontend bundles).
+- `scripts` — install and plugin management scripts.
 
-## How to Contribute Right Now
+## Development Setup
 
-- Improve documentation clarity.
-- Propose architecture decisions with clear tradeoffs.
-- Open issues for missing project structure, contributor workflow, or product concepts.
-- Avoid introducing implementation-heavy detail unless it is necessary for a foundational decision.
+See [docs/guides/local-development.md](docs/guides/local-development.md) for a complete walkthrough of the local dev environment.
+
+**Quick start:**
+
+```bash
+# Start infrastructure
+docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey
+
+# Run the API
+cd services/api && make run
+
+# Run the web app
+cd apps/web && bun install && bun run dev
+```
 
 ## Contribution Guidelines
 
-- Keep pull requests focused.
-- Prefer documentation-first changes while the repository is still in planning.
-- Explain the reasoning behind structure changes.
-- Avoid premature abstraction in repo layout or service boundaries.
+- Keep pull requests focused on one concern.
+- Explain the reasoning behind non-obvious changes.
+- Update relevant docs when changing behavior or interfaces.
+- Avoid premature abstraction — add it when reuse is proven.
+
+## Pull Request Checklist
+
+- The change is scoped to one concern.
+- Tests are added or updated for changed behaviour.
+- Related documentation is updated.
+- New decisions or non-obvious tradeoffs are explained clearly.
 
 ## Discussion Areas
 
 - Product workflow and user experience.
 - Service responsibilities and system boundaries.
-- Local development and deployment approach.
+- Plugin system design and extension points.
+- AI agent behaviour and collaboration model.
 - Open-source governance and contributor experience.
-
-## Pull Request Checklist
-
-- The change is scoped to one concern.
-- Documentation stays consistent with the planned repository shape.
-- New decisions are explained clearly.
-- Related docs are updated when needed.
-
-As the codebase becomes runnable, this document should expand to include setup, testing, and review workflow.

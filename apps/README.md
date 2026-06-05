@@ -1,9 +1,11 @@
 # Apps
 
-This directory contains user-facing applications.
+This directory contains user-facing applications and their support tooling.
 
-## Planned App
+## Apps
 
-- `web`: the main React + shadcn/ui product interface.
+- `web` — the main React + TanStack Start + shadcn/ui product interface.
+- `mcp` — the `@paca-ai/paca-mcp` MCP server npm package.
+- `e2e` — Playwright end-to-end test suite.
 
-The app layer should stay focused on user experience and presentation concerns.
+The app layer stays focused on user experience, presentation concerns, and tooling that directly exercises the product surface.

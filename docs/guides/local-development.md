@@ -1,40 +1,77 @@
 # Local Development
 
+## Quick Start
+
+One command starts the full stack with hot-reload from your local source files:
+
+```bash
+docker compose -f deploy/docker-compose.dev.yml up -d
+```
+
+Open `http://localhost`. All services watch the source tree and reload automatically — no manual rebuild needed.
+
+To stop:
+```bash
+docker compose -f deploy/docker-compose.dev.yml down
+```
+
+To also remove data volumes:
+```bash
+docker compose -f deploy/docker-compose.dev.yml down -v
+```
+
+---
+
 ## Runtime Stack
 
-| Service | Technology | Port |
-|---|---|---|
-| `apps/web` | React + Vite + shadcn/ui | 3000 |
-| `services/api` | Go + Gin | 8080 |
-| `services/realtime` | Node.js + Socket.IO | — (not scaffolded) |
-| `services/ai-agent` | FastAPI + LangGraph | — (not scaffolded) |
-| PostgreSQL | postgres:16-alpine | 5432 |
-| Valkey | valkey/valkey:8-alpine | 6379 |
+| Service | Technology | Port | Hot-reload |
+|---|---|---|---|
+| `apps/web` | React + TanStack Start + shadcn/ui | 3000 (via nginx on 80) | Vite HMR |
+| `services/api` | Go + Gin | 8080 (via nginx on 80) | [air](https://github.com/air-verse/air) |
+| `services/realtime` | Node.js + Socket.IO | 3001 (internal) | `bun --watch` |
+| `services/ai-agent` | Python + FastAPI + OpenHands SDK | 8082 (external) | source volume |
+| PostgreSQL | postgres:16-alpine | 5432 | — |
+| Valkey | valkey/valkey:8-alpine | 6379 | — |
+| MinIO S3 API | minio/minio | 9000 | — |
+| MinIO Console | minio/minio | 9001 | http://localhost:9001 (user: `minioadmin`, pass: `minioadmin`) |
+
+The nginx gateway (port 80) routes `/api/v1/…` to the API, socket traffic to realtime, and `/storage/…` to MinIO. `apps/web` is served at the root.
+
+---
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with the Compose plugin
-- Go 1.26+ (for `services/api`)
-- Node.js / Bun (for `apps/web`)
 
-## Start infrastructure
+That is the only hard requirement for the full containerized stack. The services build their own images from `Dockerfile.dev` in each service directory.
 
-All infra (PostgreSQL, Valkey) is defined in `deploy/docker-compose.dev.yml`. Run from the repository root:
+---
+
+## Infra Only
+
+If you only want PostgreSQL and Valkey (to run services on the host yourself):
 
 ```bash
 docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey
 ```
 
-The Postgres schema is seeded automatically from `services/api/migrations/` on first start.
+---
 
-## Start services
+## Running Services on the Host
+
+For faster feedback loops or IDE-integrated debugging, you can run individual services directly on the host and point them at the containerized infra.
+
+**Prerequisites for host-side development:**
+- Go 1.23+ (for `services/api`)
+- Bun (for `apps/web` and `services/realtime`)
+- Python 3.12+ with [uv](https://docs.astral.sh/uv/) (for `services/ai-agent`)
 
 ### API (`services/api`)
 
 ```bash
 cd services/api
-cp .env.example .env   # first time only — credentials match docker-compose defaults
-make run
+cp .env.example .env   # first time — credentials match docker-compose defaults
+make run               # uses air for hot-reload
 ```
 
 ### Web (`apps/web`)
@@ -42,33 +79,56 @@ make run
 ```bash
 cd apps/web
 bun install            # first time only
-bun run dev            # http://localhost:3000
+bun run dev            # Vite dev server at http://localhost:3000
 ```
 
-Or run API + web in Docker alongside infra:
+### Realtime (`services/realtime`)
 
 ```bash
-docker compose -f deploy/docker-compose.dev.yml up -d
+cd services/realtime
+bun install            # first time only
+bun run dev
 ```
+
+### AI Agent (`services/ai-agent`)
+
+```bash
+cd services/ai-agent
+uv sync                # first time only
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+---
 
 ## Migrations
 
-Migrations are plain SQL files under `services/api/migrations/` and run in lexicographic order. To apply them manually against a running Postgres instance:
+Migrations are plain SQL files under `services/api/migrations/` named in lexicographic order. They run automatically when the Postgres container first starts (mounted at `/docker-entrypoint-initdb.d`).
+
+To apply migrations manually against a running instance:
 
 ```bash
 cd services/api
-make migrate-up        # requires DATABASE_URL to be set
+make migrate-up   # requires DATABASE_URL to be set
 ```
 
-## Stop infra
+---
 
-```bash
-docker compose -f deploy/docker-compose.dev.yml down
-```
+## Default Dev Credentials
 
-Use `down -v` to also remove the Postgres data volume.
+| Resource | Value |
+|---|---|
+| App login | `admin` / `adminpassword` |
+| PostgreSQL | `paca:paca@localhost:5432/paca` |
+| MinIO console | `minioadmin` / `minioadmin` at http://localhost:9001 |
+| Agent API key | `dev-agent-api-key-change-in-production` |
 
-## Architecture notes
+These are intentionally weak defaults — never use them in production.
 
-- `services/api` owns all persistent state changes and publishes domain events to a Valkey Stream.
-- `services/realtime` will consume those events and fan them out to Socket.IO clients.
+---
+
+## Architecture Notes
+
+- `services/api` owns all persistent state changes and publishes domain events to Valkey Streams.
+- `services/realtime` consumes those events and fans them out to Socket.IO clients.
+- `services/ai-agent` reads agent trigger events from a separate Valkey Stream and manages Docker containers for OpenHands conversations.
+- `apps/mcp` is stateless; run it with `npx @paca-ai/paca-mcp` pointed at the running API.

@@ -1,14 +1,15 @@
 # Architecture Overview
 
-Paca is planned as a single open-source monorepo with a small set of clearly separated runtime surfaces.
+Paca is a single open-source monorepo with a small set of clearly separated runtime surfaces.
 
 ## Runtime Areas
 
-- `apps/web`: the user-facing application built with React and shadcn/ui.
-- `apps/e2e`: the end-to-end test suite built with Playwright; not a deployed runtime, but an external verifier of the full stack.
-- `services/api`: the main application backend built with Go and Gin.
-- `services/realtime`: the real-time delivery service built with Socket.IO.
-- `services/ai-agent`: the AI orchestration runtime built with FastAPI and LangGraph.
+- `apps/web` — the user-facing application built with React, TanStack Start, and shadcn/ui.
+- `apps/mcp` — the `@paca-ai/paca-mcp` MCP server; connects AI agents to the Paca data layer.
+- `apps/e2e` — the end-to-end test suite built with Playwright; not a deployed runtime, but an external verifier of the full stack.
+- `services/api` — the main application backend built with Go and Gin.
+- `services/realtime` — the real-time delivery service built with Node.js and Socket.IO.
+- `services/ai-agent` — the AI agent orchestration runtime built with Python, FastAPI, and the OpenHands SDK.
 
 ## Platform Dependencies
 
@@ -19,10 +20,11 @@ Paca is planned as a single open-source monorepo with a small set of clearly sep
 
 - `apps/web` uses HTTP APIs exposed by `services/api` for request-response workflows.
 - `apps/web` connects to `services/realtime` over Socket.IO for live updates.
+- `apps/mcp` calls `services/api` over HTTP using an API key; plugin tools route to `/api/v1/plugins/{pluginId}/…`.
 - `apps/e2e` drives a real browser against the full running stack and validates cross-cutting flows that span multiple runtime surfaces.
 - `services/api` remains the system of record for product state and publishes real-time relevant domain events to a Valkey Stream.
 - `services/realtime` consumes Valkey Stream messages from `services/api` and fans out client-safe events to connected Socket.IO rooms and users.
-- `services/ai-agent` integrates with the core backend and should publish or consume asynchronous events through explicit contracts rather than direct coupling.
+- `services/ai-agent` reads agent trigger events from a Valkey Stream, spawns Docker containers for each conversation via the OpenHands SDK, and publishes conversation events back to Valkey.
 
 ## Architectural Intent
 
@@ -32,7 +34,5 @@ Paca is planned as a single open-source monorepo with a small set of clearly sep
 - Avoid adding shared layers before reuse is proven.
 - Separate product-facing documentation from implementation-facing documentation.
 - Keep the repository easy to read in public from the root.
-
-This document is intentionally high level. More detailed decisions should be added only when implementation forces them.
 
 For the shared sprint, backlog, and timeline view model, see [interaction-views.md](interaction-views.md).

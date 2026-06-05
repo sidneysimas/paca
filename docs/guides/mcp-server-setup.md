@@ -71,7 +71,7 @@ Claude Desktop provides the most seamless integration with the Paca MCP server.
 
 **Usage in Claude Desktop:**
 
-Once configured, Claude will automatically have access to all 86 Paca tools. You can ask Claude to:
+Once configured, Claude will automatically have access to all 81 Paca tools. You can ask Claude to:
 
 - "List all projects in my Paca workspace"
 - "Create a new task for user authentication"

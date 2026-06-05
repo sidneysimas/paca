@@ -22,7 +22,7 @@ Table agent_types {
   description text [not null, default: '']
   slug varchar [not null, note: 'Machine-readable identifier: po-assistant | ba | developer | manual-tester | custom']
   default_llm_provider varchar [not null, note: 'LiteLLM provider prefix, e.g. anthropic, openai, azure']
-  default_llm_model varchar [not null, note: 'LiteLLM model name, e.g. claude-sonnet-4-5-20250929']
+  default_llm_model varchar [not null, note: 'LiteLLM model name, e.g. claude-sonnet-4-6']
   default_system_prompt text [not null, default: '']
   is_builtin boolean [not null, default: false]
   created_at timestamp [not null]
