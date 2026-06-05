@@ -105,17 +105,13 @@ func New(cfg *config.Config) (*App, error) {
 	refreshStore := redisRepo.NewRefreshTokenStore(redisClient)
 	pluginRepo := pgRepo.NewPluginRepository(db)
 
-	// --- Schema migration (non-production only) -----------------------------
-	// In development the embedded SQL migrations are run on every startup so
-	// that a fresh database is always in the correct state without requiring
-	// a manual migration step.  All statements use CREATE TABLE IF NOT EXISTS
-	// / INSERT … ON CONFLICT so they are idempotent and safe to re-run.
-	if cfg.Env != "production" {
-		if err := database.RunMigrationsFS(db, migrations.FS); err != nil {
-			return nil, fmt.Errorf("bootstrap: auto-migrate: %w", err)
-		}
-		log.Info("schema migrations applied")
+	// --- Schema migration ---------------------------------------------------
+	// All statements use CREATE TABLE IF NOT EXISTS / INSERT … ON CONFLICT so
+	// they are idempotent and safe to re-run on every startup.
+	if err := database.RunMigrationsFS(db, migrations.FS); err != nil {
+		return nil, fmt.Errorf("bootstrap: auto-migrate: %w", err)
 	}
+	log.Info("schema migrations applied")
 
 	// --- Admin seeding -------------------------------------------------------
 	// seedDefaultRoles must run first so the ADMIN global role exists before

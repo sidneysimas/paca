@@ -39,8 +39,9 @@ func RunMigrations(db *gorm.DB, migrationsDir string) error {
 }
 
 // RunMigrationsFS executes all *.sql files found in the root of fsys (in
-// lexicographic order) against db.  Use this with an embedded FS for
-// zero-configuration startup migration in non-production environments.
+// lexicographic order) against db.  All SQL files must be idempotent
+// (CREATE TABLE IF NOT EXISTS, INSERT … ON CONFLICT, etc.) so the function
+// is safe to call on every startup in any environment.
 func RunMigrationsFS(db *gorm.DB, fsys fs.FS) error {
 	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {

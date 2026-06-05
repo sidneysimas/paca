@@ -53,11 +53,27 @@ curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compo
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/gateway.conf      -o nginx/gateway.conf
 ```
 
-Create your environment file:
+Download the example environment file and edit it:
 
 ```bash
-cp /path/to/repo/deploy/.env.production.example .env
-# Edit .env — set JWT_SECRET, ADMIN_PASSWORD, POSTGRES_PASSWORD, storage credentials, etc.
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml -o docker-compose.yml
+# Or use the .env.production.example from the repo as a reference:
+# https://github.com/Paca-AI/paca/blob/master/deploy/.env.production.example
+```
+
+Create a `.env` with the required variables:
+
+```bash
+# Required: generate with 'openssl rand -hex 32'
+JWT_SECRET=<strong-random-secret>
+ADMIN_PASSWORD=<strong-password>
+POSTGRES_PASSWORD=<strong-random-password>
+# Required when using AI agent: generate with 'openssl rand -hex 32'
+AGENT_API_KEY=<strong-random-secret>
+INTERNAL_API_KEY=<strong-random-secret>
+# Required for plugin secrets at rest: generate with 'openssl rand -hex 32'
+ENCRYPTION_KEY=<64-char-hex>
+PUBLIC_URL=http://your-domain-or-ip
 ```
 
 Start the full stack (bundled PostgreSQL + MinIO):
@@ -91,6 +107,33 @@ Flags can be combined:
 ```bash
 docker compose --env-file .env up -d --scale postgres=0 --scale minio=0
 ```
+
+### Upgrading from an earlier installation
+
+The compose project was renamed from `paca-prod` to `paca` in this release.
+Docker Compose namespaces volumes by project name, so existing volumes
+(`paca-prod_postgres_data`, `paca-prod_minio_data`, etc.) are **not** automatically
+attached to the new stack. To migrate:
+
+```bash
+# 1. Stop the old stack (volumes are preserved on disk).
+docker compose -p paca-prod --env-file .env down
+
+# 2. Rename each volume you want to keep.
+docker volume create paca_postgres_data
+docker run --rm \
+  -v paca-prod_postgres_data:/from \
+  -v paca_postgres_data:/to \
+  alpine sh -c "cp -av /from/. /to/"
+docker volume rm paca-prod_postgres_data
+
+# Repeat for minio_data, valkey_data, and plugin volumes as needed.
+
+# 3. Start the new stack.
+docker compose --env-file .env up -d
+```
+
+If you are doing a fresh install (no data to keep), no migration is needed.
 
 ### Pinning a release version
 

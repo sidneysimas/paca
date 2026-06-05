@@ -1,8 +1,9 @@
 # Standalone production compose — no local source tree required.
 #
 # Designed to be downloaded and run without cloning the repository.
-# All application images are pulled from DockerHub. Database migrations are
-# applied automatically by the API service at startup (embedded SQL files).
+# All application images are pulled from DockerHub. Database schema migrations
+# are embedded in the API binary and applied automatically on every startup
+# using idempotent SQL (CREATE TABLE IF NOT EXISTS / INSERT … ON CONFLICT).
 #
 # ── Quick start ───────────────────────────────────────────────────────────────
 # The recommended way to set this up is via the install script:
@@ -111,7 +112,8 @@ services:
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-168h}
       JWT_REFRESH_SESSION_TTL: ${JWT_REFRESH_SESSION_TTL:-24h}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Set to false only when serving over plain HTTP (no TLS termination).
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required — set it in your .env file}
       # Object storage. Defaults to MinIO. Set STORAGE_PROVIDER=s3 for AWS S3.
@@ -206,6 +208,8 @@ services:
       VALKEY_URL: ${REDIS_URL:-redis://valkey:6379/0}
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-paca}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-paca}?sslmode=disable}
       # Pre-shared key for authenticating requests to the AI agent service.
+      # WARNING: always set this to a strong random secret (e.g. openssl rand -hex 32).
+      # An empty key disables authentication on the agent service endpoint.
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       API_BASE_URL: http://api:8080
       GATEWAY_BASE_URL: http://gateway

@@ -135,7 +135,7 @@ download() {
     if command -v curl &>/dev/null; then
         curl -fsSL --retry 3 "$url" -o "$dest"
     elif command -v wget &>/dev/null; then
-        wget -qO "$dest" "$url"
+        wget -q --tries=3 -O "$dest" "$url"
     else
         die "Neither curl nor wget found. Install one and retry."
     fi
