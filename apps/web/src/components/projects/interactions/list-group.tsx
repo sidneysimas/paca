@@ -398,6 +398,17 @@ export function ListGroup({
 		groupDef.key !== "__none" &&
 		(isStatusGrouping || !!extraCreateFields);
 
+	const viewMoreButton = groupPagination?.hasMore ? (
+		<button
+			type="button"
+			onClick={groupPagination.onLoadMore}
+			disabled={groupPagination.isLoadingMore}
+			className="flex w-full items-center justify-center border-t border-border/10 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
+		>
+			{groupPagination.isLoadingMore ? "Loading…" : "View more"}
+		</button>
+	) : null;
+
 	// ── Render ────────────────────────────────────────────────────────────────
 
 	return (
@@ -592,16 +603,7 @@ export function ListGroup({
 							/>
 						)}
 
-						{groupPagination?.hasMore && (
-							<button
-								type="button"
-								onClick={groupPagination.onLoadMore}
-								disabled={groupPagination.isLoadingMore}
-								className="flex w-full items-center justify-center gap-1.5 border-t border-border/10 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
-							>
-								{groupPagination.isLoadingMore ? "Loading…" : "View more"}
-							</button>
-						)}
+						{viewMoreButton}
 					</>
 				) : (
 					<>
@@ -623,16 +625,7 @@ export function ListGroup({
 							/>
 						)}
 
-						{groupPagination?.hasMore && (
-							<button
-								type="button"
-								onClick={groupPagination.onLoadMore}
-								disabled={groupPagination.isLoadingMore}
-								className="flex w-full items-center justify-center gap-1.5 border-t border-border/10 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
-							>
-								{groupPagination.isLoadingMore ? "Loading…" : "View more"}
-							</button>
-						)}
+						{viewMoreButton}
 					</>
 				))}
 		</div>
