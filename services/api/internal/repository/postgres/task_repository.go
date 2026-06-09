@@ -3,6 +3,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,31 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// --- Cursor helpers ---------------------------------------------------------
+
+// taskCursor holds the stable ordering fields for cursor-based pagination.
+type taskCursor struct {
+	CreatedAt time.Time `json:"ca"`
+	ID        string    `json:"id"`
+}
+
+func encodeTaskCursor(createdAt time.Time, id string) string {
+	b, _ := json.Marshal(taskCursor{CreatedAt: createdAt, ID: id})
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+func decodeTaskCursor(s string) (*taskCursor, error) {
+	b, err := base64.URLEncoding.DecodeString(s)
+	if err != nil {
+		return nil, fmt.Errorf("decode cursor base64: %w", err)
+	}
+	var c taskCursor
+	if err := json.Unmarshal(b, &c); err != nil {
+		return nil, fmt.Errorf("decode cursor json: %w", err)
+	}
+	return &c, nil
+}
 
 // --- GORM models ------------------------------------------------------------
 
@@ -318,6 +344,9 @@ func (r *TaskRepository) FindDefaultTaskStatus(ctx context.Context, projectID uu
 // --- Tasks ------------------------------------------------------------------
 
 // ListTasks returns a page of tasks for a project with optional filters.
+// When filter.CursorAfter is set, cursor-based pagination is used (offset is ignored).
+// In cursor mode, the returned int64 is 1 if a next page exists, 0 if not.
+// In offset mode, the returned int64 is the total count.
 func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, offset, limit int) ([]*taskdom.Task, int64, error) {
 	q := r.db.WithContext(ctx).Model(&taskRecord{}).
 		Where("project_id = ?", projectID.String())
@@ -332,27 +361,67 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 	case filter.SprintID != nil:
 		q = q.Where("sprint_id = ?", filter.SprintID.String())
 	}
+
 	if len(filter.StatusIDs) > 0 {
 		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
 	} else if filter.StatusID != nil {
 		q = q.Where("status_id = ?", filter.StatusID.String())
 	}
-	if len(filter.AssigneeIDs) > 0 {
+
+	if filter.AssigneeNull {
+		q = q.Where("assignee_id IS NULL")
+	} else if len(filter.AssigneeIDs) > 0 {
 		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
 	} else if filter.AssigneeID != nil {
 		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
 	}
-	if len(filter.TaskTypeIDs) > 0 {
+
+	if filter.TaskTypeNull {
+		q = q.Where("task_type_id IS NULL")
+	} else if len(filter.TaskTypeIDs) > 0 {
 		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
 	}
 
+	// Cursor pagination: bypass COUNT, use keyset WHERE clause
+	if filter.CursorAfter != nil {
+		cur, err := decodeTaskCursor(*filter.CursorAfter)
+		if err != nil {
+			return nil, 0, fmt.Errorf("task repo: invalid cursor: %w", err)
+		}
+		q = q.Where("(created_at, id) > (?, ?)", cur.CreatedAt, cur.ID)
+
+		var records []taskRecord
+		if err := q.Order("created_at ASC, id ASC").
+			Limit(limit + 1).
+			Find(&records).Error; err != nil {
+			return nil, 0, fmt.Errorf("task repo: list cursor: %w", err)
+		}
+
+		hasMore := int64(0)
+		if len(records) > limit {
+			records = records[:limit]
+			hasMore = 1
+		}
+
+		tasks := make([]*taskdom.Task, 0, len(records))
+		for i := range records {
+			t, err := toTaskEntity(&records[i])
+			if err != nil {
+				return nil, 0, err
+			}
+			tasks = append(tasks, t)
+		}
+		return tasks, hasMore, nil
+	}
+
+	// Offset pagination (backward-compatible)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("task repo: list count: %w", err)
 	}
 
 	var records []taskRecord
-	if err := q.Order("created_at ASC").
+	if err := q.Order("created_at ASC, id ASC").
 		Offset(offset).Limit(limit).
 		Find(&records).Error; err != nil {
 		return nil, 0, fmt.Errorf("task repo: list: %w", err)
