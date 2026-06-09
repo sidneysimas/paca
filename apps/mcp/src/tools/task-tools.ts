@@ -30,6 +30,7 @@ const CreateTaskSchema = z.object({
 	typeId: z.string().optional(),
 	sprintId: z.string().optional(),
 	assigneeId: z.string().optional(),
+	parentTaskId: z.string().optional(),
 	importance: z.number().optional(),
 	storyPoints: z.number().int().min(0).nullable().optional(),
 	tags: z.array(z.string()).optional(),
@@ -46,6 +47,7 @@ const UpdateTaskSchema = z.object({
 	typeId: z.string().optional(),
 	sprintId: z.string().optional(),
 	assigneeId: z.string().optional(),
+	parentTaskId: z.string().nullable().optional(),
 	importance: z.number().optional(),
 	storyPoints: z.number().int().min(0).nullable().optional(),
 	tags: z.array(z.string()).optional(),
@@ -160,6 +162,11 @@ export function getTaskTools(): Tool[] {
 						description:
 							"The technical UUID of the user to assign the task to (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
 					},
+					parentTaskId: {
+						type: "string",
+						description:
+							"The technical UUID of the parent task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use this to set the epic for a task or to create a subtask under a parent task.",
+					},
 					importance: {
 						type: "number",
 						description: "The importance of the task",
@@ -230,6 +237,11 @@ export function getTaskTools(): Tool[] {
 						type: "string",
 						description:
 							"The technical UUID of the user to assign the task to (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
+					},
+					parentTaskId: {
+						type: ["string", "null"],
+						description:
+							"The technical UUID of the parent task. Use this to set or change the epic/parent for a task. Set to null to remove the parent relationship.",
 					},
 					importance: {
 						type: "number",
@@ -341,6 +353,7 @@ export async function handleTaskTool(
 				typeId,
 				sprintId,
 				assigneeId,
+				parentTaskId,
 				importance,
 				storyPoints,
 				tags,
@@ -355,6 +368,7 @@ export async function handleTaskTool(
 				task_type_id: typeId,
 				sprint_id: sprintId,
 				assignee_id: assigneeId,
+				parent_task_id: parentTaskId,
 				importance,
 				story_points: storyPoints,
 				tags,
@@ -381,6 +395,7 @@ export async function handleTaskTool(
 				typeId,
 				sprintId,
 				assigneeId,
+				parentTaskId,
 				importance,
 				storyPoints,
 				tags,
@@ -394,6 +409,7 @@ export async function handleTaskTool(
 				task_type_id: typeId,
 				sprint_id: sprintId,
 				assignee_id: assigneeId,
+				parent_task_id: parentTaskId,
 				importance,
 				story_points: storyPoints,
 				tags,
