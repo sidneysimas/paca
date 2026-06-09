@@ -364,11 +364,12 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 		q = q.Where("status_id = ?", filter.StatusID.String())
 	}
 
-	if filter.AssigneeNull {
+	switch {
+	case filter.AssigneeNull:
 		q = q.Where("assignee_id IS NULL")
-	} else if len(filter.AssigneeIDs) > 0 {
+	case len(filter.AssigneeIDs) > 0:
 		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	} else if filter.AssigneeID != nil {
+	case filter.AssigneeID != nil:
 		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
 	}
 
