@@ -844,7 +844,19 @@ export function InteractionLayout({
 				return true;
 			});
 		}
-		return [...(fallbackQuery.data?.items ?? []), ...globalExtraTasks];
+		// Deduplicate by task ID: when globalExpandedPageSize changes and triggers
+		// a refetch, fallbackQuery.data.items and globalExtraTasks can momentarily
+		// overlap, producing duplicate keys that corrupt React's DOM ordering.
+		const combined = [
+			...(fallbackQuery.data?.items ?? []),
+			...globalExtraTasks,
+		];
+		const seen = new Set<string>();
+		return combined.filter((t) => {
+			if (seen.has(t.id)) return false;
+			seen.add(t.id);
+			return true;
+		});
 	}, [
 		colQueriesEnabled,
 		columnQueries,
