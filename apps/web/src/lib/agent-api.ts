@@ -393,13 +393,18 @@ export async function listChatSessions(
 	return data.data.items;
 }
 
+export interface StartChatSessionResponse {
+	session: AgentChatSession;
+	conversation: AgentConversation;
+}
+
 export async function startChatSession(
 	projectId: string,
 	agentId: string,
 	payload: { message: string; title?: string },
-): Promise<AgentChatSession> {
+): Promise<StartChatSessionResponse> {
 	const { data } = await apiClient.instance.post<
-		SuccessEnvelope<AgentChatSession>
+		SuccessEnvelope<StartChatSessionResponse>
 	>(`/projects/${projectId}/agents/${agentId}/chat-sessions`, payload);
 	return data.data;
 }
@@ -411,12 +416,12 @@ export async function sendChatMessage(
 	payload: { message: string },
 ): Promise<AgentConversation> {
 	const { data } = await apiClient.instance.post<
-		SuccessEnvelope<AgentConversation>
+		SuccessEnvelope<{ conversation: AgentConversation }>
 	>(
 		`/projects/${projectId}/agents/${agentId}/chat-sessions/${sessionId}/messages`,
 		payload,
 	);
-	return data.data;
+	return data.data.conversation;
 }
 
 // ── Query Options ─────────────────────────────────────────────────────────────
