@@ -12,6 +12,11 @@ const ListTasksSchema = z.object({
 	projectId: z.string(),
 	cursor: z.string().optional(),
 	pageSize: z.number().int().positive().max(200).optional(),
+	sprintId: z.string().nullable().optional(),
+	statusId: z.string().optional(),
+	assigneeId: z.string().optional(),
+	taskTypeIds: z.array(z.string()).optional(),
+	parentTaskId: z.string().optional(),
 });
 
 const GetTaskSchema = z.object({
@@ -70,7 +75,7 @@ export function getTaskTools(): Tool[] {
 	return [
 		{
 			name: "list_tasks",
-			description: "List all tasks in a project",
+			description: "List tasks in a project with optional filters",
 			inputSchema: {
 				type: "object",
 				properties: {
@@ -88,6 +93,27 @@ export function getTaskTools(): Tool[] {
 						type: "number",
 						description:
 							"Number of tasks to return per page (1–200, default 20). Use smaller values for faster responses when you only need a few tasks.",
+					},
+					sprintId: {
+						type: "string",
+						description: "Filter tasks by sprint ID. Pass null to list backlog tasks.",
+					},
+					statusId: {
+						type: "string",
+						description: "Filter tasks by status ID.",
+					},
+					assigneeId: {
+						type: "string",
+						description: "Filter tasks by assignee user ID.",
+					},
+					taskTypeIds: {
+						type: "array",
+						items: { type: "string" },
+						description: "Filter tasks by one or more task type IDs.",
+					},
+					parentTaskId: {
+						type: "string",
+						description: "Filter to subtasks of a specific parent task ID.",
 					},
 				},
 				required: ["projectId"],
@@ -320,8 +346,8 @@ export async function handleTaskTool(
 ): Promise<any> {
 	switch (toolName) {
 		case "list_tasks": {
-			const { projectId, cursor, pageSize } = ListTasksSchema.parse(args);
-			const result = await client.listTasks(projectId, { cursor, pageSize });
+			const { projectId, cursor, pageSize, sprintId, statusId, assigneeId, taskTypeIds, parentTaskId } = ListTasksSchema.parse(args);
+			const result = await client.listTasks(projectId, { cursor, pageSize, sprintId, statusId, assigneeId, taskTypeIds, parentTaskId });
 			const formatted = formatList(result.items, formatTask);
 			const hasMore = Boolean(result.nextCursor);
 			const nextCursorNote = hasMore

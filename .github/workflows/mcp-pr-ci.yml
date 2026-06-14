@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   mcp-quality:
-    name: Lint, typecheck, and build MCP server
+    name: Lint, typecheck, build, and test MCP server
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -51,3 +51,6 @@ jobs:
 
       - name: Typecheck and build
         run: bun run build
+
+      - name: Run tests
+        run: bun run test
