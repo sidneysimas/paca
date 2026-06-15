@@ -18,6 +18,7 @@ import (
 	"github.com/Paca-AI/api/internal/transport/http/presenter"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 // TaskHandler handles task management endpoints.
@@ -287,6 +288,35 @@ func (h *TaskHandler) SetDefaultTaskStatus(c *gin.Context) {
 
 // --- Tasks ------------------------------------------------------------------
 
+// parseTaskSort resolves the sort_by query parameter into a TaskSort.
+// For custom field sort keys the field definition is looked up via the service
+// (ListCustomFieldDefinitions is cached, so this is cheap).
+// Note: the public "created" key maps to the DB column created_at in applyTaskSort.
+func parseTaskSort(ctx context.Context, svc taskdom.Service, projectID uuid.UUID, sortByRaw string) taskdom.TaskSort {
+	sortBy := strings.TrimSpace(sortByRaw)
+	switch sortBy {
+	case "importance", "title", "story_points", "start_date", "due_date", "created":
+		return taskdom.TaskSort{By: sortBy}
+	case "", "manual":
+		return taskdom.TaskSort{}
+	default:
+		cfs, err := svc.ListCustomFieldDefinitions(ctx, projectID)
+		if err != nil {
+			return taskdom.TaskSort{}
+		}
+		for _, cf := range cfs {
+			if cf.FieldKey == sortBy {
+				return taskdom.TaskSort{
+					By:     sortBy,
+					CFType: string(cf.FieldType),
+					CFOpts: cf.Options,
+				}
+			}
+		}
+		return taskdom.TaskSort{}
+	}
+}
+
 // ListTasks handles GET /projects/:projectId/tasks.
 // Supported filter query params:
 //   - sprint_id=<uuid>|null or sprint_ids=<uuid,uuid>
@@ -388,6 +418,7 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	if cursorRaw := c.Query("cursor"); cursorRaw != "" {
 		filter.CursorAfter = &cursorRaw
 	}
+	sort := parseTaskSort(c.Request.Context(), h.svc, projectID, c.Query("sort_by"))
 
 	var posMap map[uuid.UUID]*sprintdom.ViewTaskPosition
 	if raw := c.Query("view_id"); raw != "" {
@@ -406,12 +437,53 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 			cp := p
 			posMap[p.TaskID] = cp
 		}
+		// When no explicit sort_by is requested (manual sort), order by the saved
+		// view positions so the first page reflects the user's manual order.
+		if sort.By == "" {
+			sort.By = "view_position"
+			sort.ViewID = &viewID
+		}
 	}
 
-	tasks, hasMore, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, pageSize)
-	if err != nil {
+	// Count without cursor so the total reflects all matching tasks, not just the current page.
+	aggFilter := filter
+	aggFilter.CursorAfter = nil
+	// Optionally sum a numeric field across all matching tasks.
+	// Returns null in the response when sum_field is absent or "count".
+	sumField := strings.TrimSpace(c.Query("sum_field"))
+
+	var (
+		tasks      []*taskdom.Task
+		hasMore    bool
+		totalCount int64
+		fieldSumV  float64
+	)
+	g, gctx := errgroup.WithContext(c.Request.Context())
+	g.Go(func() error {
+		var err error
+		tasks, hasMore, err = h.svc.ListTasks(gctx, projectID, filter, pageSize, sort)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		totalCount, err = h.svc.CountTasks(gctx, projectID, aggFilter)
+		return err
+	})
+	if sumField != "" && sumField != "count" {
+		g.Go(func() error {
+			var err error
+			fieldSumV, err = h.svc.SumTaskField(gctx, projectID, aggFilter, sumField)
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
 		presenter.Error(c, err)
 		return
+	}
+
+	var fieldSum *float64
+	if sumField != "" && sumField != "count" {
+		fieldSum = &fieldSumV
 	}
 
 	resp := make([]dto.TaskResponse, 0, len(tasks))
@@ -427,13 +499,15 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	var nextCursor *string
 	if hasMore && len(tasks) > 0 {
 		last := tasks[len(tasks)-1]
-		s := taskdom.EncodeTaskCursor(last.CreatedAt, last.ID.String())
+		s := taskdom.EncodeTaskCursor(last, sort)
 		nextCursor = &s
 	}
 	presenter.OK(c, gin.H{
 		"items":       resp,
 		"page_size":   pageSize,
 		"next_cursor": nextCursor,
+		"total_count": totalCount,
+		"field_sum":   fieldSum,
 	})
 }
 
@@ -990,159 +1064,6 @@ func parseCustomFieldID(c *gin.Context) (uuid.UUID, error) {
 		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid custom field id")
 	}
 	return id, nil
-}
-
-// ListBacklogTasks handles GET /projects/:projectId/product-backlog.
-// Returns a paginated list of tasks not assigned to any sprint (sprint_id IS NULL).
-// This represents the product backlog — work that has been identified but not yet
-// committed to a sprint, distinct from any sprint's own task list.
-func (h *TaskHandler) ListBacklogTasks(c *gin.Context) {
-	projectID, err := parseProjectID(c)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	if pageSize < 1 || pageSize > 200 {
-		pageSize = 20
-	}
-	filter := taskdom.TaskFilter{BacklogOnly: true}
-	if raw := c.Query("status_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.StatusID = &id
-		}
-	}
-	if raw := c.Query("assignee_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.AssigneeID = &id
-		}
-	}
-	if cursorRaw := c.Query("cursor"); cursorRaw != "" {
-		filter.CursorAfter = &cursorRaw
-	}
-
-	var posMap map[uuid.UUID]*sprintdom.ViewTaskPosition
-	if raw := c.Query("view_id"); raw != "" {
-		viewID, err := uuid.Parse(raw)
-		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
-			return
-		}
-		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), projectID, viewID)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-		posMap = make(map[uuid.UUID]*sprintdom.ViewTaskPosition, len(positions))
-		for _, p := range positions {
-			cp := p
-			posMap[p.TaskID] = cp
-		}
-	}
-
-	tasks, hasMore, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, pageSize)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
-	resp := make([]dto.TaskResponse, 0, len(tasks))
-	for _, t := range tasks {
-		r := dto.TaskFromEntity(t)
-		if pos, ok := posMap[t.ID]; ok {
-			r.ViewPosition = &pos.Position
-			r.ViewGroupKey = pos.GroupKey
-		}
-		resp = append(resp, r)
-	}
-
-	var nextCursor *string
-	if hasMore && len(tasks) > 0 {
-		last := tasks[len(tasks)-1]
-		s := taskdom.EncodeTaskCursor(last.CreatedAt, last.ID.String())
-		nextCursor = &s
-	}
-	presenter.OK(c, gin.H{"items": resp, "page_size": pageSize, "next_cursor": nextCursor})
-}
-
-// ListTimelineTasks handles GET /projects/:projectId/timeline.
-// Returns a paginated list of Epic tasks for the project.
-// Epics are tracked on the timeline regardless of sprint assignment.
-func (h *TaskHandler) ListTimelineTasks(c *gin.Context) {
-	projectID, err := parseProjectID(c)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	if pageSize < 1 || pageSize > 200 {
-		pageSize = 20
-	}
-	filter := taskdom.TaskFilter{}
-	if ids, err := parseQueryUUIDs(c.Query("task_type_ids")); err != nil {
-		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid task_type_ids"))
-		return
-	} else if len(ids) > 0 {
-		filter.TaskTypeIDs = ids
-	}
-	if raw := c.Query("status_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.StatusID = &id
-		}
-	}
-	if raw := c.Query("assignee_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.AssigneeID = &id
-		}
-	}
-	if cursorRaw := c.Query("cursor"); cursorRaw != "" {
-		filter.CursorAfter = &cursorRaw
-	}
-
-	var posMap map[uuid.UUID]*sprintdom.ViewTaskPosition
-	if raw := c.Query("view_id"); raw != "" {
-		viewID, err := uuid.Parse(raw)
-		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
-			return
-		}
-		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), projectID, viewID)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-		posMap = make(map[uuid.UUID]*sprintdom.ViewTaskPosition, len(positions))
-		for _, p := range positions {
-			cp := p
-			posMap[p.TaskID] = cp
-		}
-	}
-
-	tasks, hasMore, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, pageSize)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
-	resp := make([]dto.TaskResponse, 0, len(tasks))
-	for _, t := range tasks {
-		r := dto.TaskFromEntity(t)
-		if pos, ok := posMap[t.ID]; ok {
-			r.ViewPosition = &pos.Position
-			r.ViewGroupKey = pos.GroupKey
-		}
-		resp = append(resp, r)
-	}
-
-	var nextCursor *string
-	if hasMore && len(tasks) > 0 {
-		last := tasks[len(tasks)-1]
-		s := taskdom.EncodeTaskCursor(last.CreatedAt, last.ID.String())
-		nextCursor = &s
-	}
-	presenter.OK(c, gin.H{"items": resp, "page_size": pageSize, "next_cursor": nextCursor})
 }
 
 // --- Activities / Comments --------------------------------------------------
