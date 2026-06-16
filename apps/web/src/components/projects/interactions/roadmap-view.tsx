@@ -2,7 +2,12 @@ import { CalendarDays } from "lucide-react";
 import { useMemo } from "react";
 
 import type { Sprint, Task } from "@/lib/interaction-api";
-import type { ProjectMember, TaskStatus, TaskType } from "@/lib/project-api";
+import type {
+	CustomFieldDefinition,
+	ProjectMember,
+	TaskStatus,
+	TaskType,
+} from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 import { AddTaskRow } from "./add-task-row";
 import {
@@ -40,6 +45,7 @@ interface RoadmapViewProps {
 	taskTypes: TaskType[];
 	members?: ProjectMember[];
 	sprints?: Sprint[];
+	customFields?: CustomFieldDefinition[];
 	columnBy?: string;
 	searchQuery: string;
 	canCreate?: boolean;
@@ -78,6 +84,7 @@ export function RoadmapView({
 	taskTypes,
 	members = [],
 	sprints = [],
+	customFields = [],
 	columnBy = "status",
 	searchQuery,
 	canCreate = false,
@@ -104,8 +111,8 @@ export function RoadmapView({
 	);
 
 	const viewCtx = useMemo(
-		() => ({ statuses, taskTypes, members, customFields: [], sprints }),
-		[statuses, taskTypes, members, sprints],
+		() => ({ statuses, taskTypes, members, customFields, sprints }),
+		[statuses, taskTypes, members, customFields, sprints],
 	);
 
 	const groupDefs = useMemo(
@@ -115,9 +122,8 @@ export function RoadmapView({
 
 	const defaultStatusId = useMemo(
 		() =>
-			statuses.find((s) => s.category === "backlog")?.id ??
-			statuses.find((s) => s.category === "todo")?.id ??
-			statuses[0]?.id ??
+			statuses.find((s) => s.is_default)?.id ??
+			[...statuses].sort((a, b) => a.position - b.position)[0]?.id ??
 			"",
 		[statuses],
 	);

@@ -1551,6 +1551,7 @@ export function InteractionLayout({
 						taskTypes={creatableTaskTypes}
 						members={members}
 						sprints={sprints}
+						customFields={customFields}
 						columnBy={columnBy}
 						searchQuery={searchQuery}
 						canCreate={canCreate}

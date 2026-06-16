@@ -96,11 +96,15 @@ export function getColumnGroupDefs(
 
 	if (columnBy === "reporter") {
 		return [
-			...ctx.members.map((m) => ({
-				key: m.id,
-				label: m.full_name || m.username,
-				fieldValue: m.id,
-			})),
+			...[...ctx.members]
+				.sort((a, b) =>
+					(a.full_name || a.username).localeCompare(b.full_name || b.username),
+				)
+				.map((m) => ({
+					key: m.id,
+					label: m.full_name || m.username,
+					fieldValue: m.id,
+				})),
 			{ key: "__none", label: "No Reporter", fieldValue: null },
 		];
 	}
