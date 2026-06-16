@@ -1,10 +1,20 @@
 import { CalendarDays } from "lucide-react";
 import { useMemo } from "react";
 
-import type { Task } from "@/lib/interaction-api";
-import type { TaskStatus, TaskType } from "@/lib/project-api";
+import type { Sprint, Task } from "@/lib/interaction-api";
+import type {
+	CustomFieldDefinition,
+	ProjectMember,
+	TaskStatus,
+	TaskType,
+} from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 import { AddTaskRow } from "./add-task-row";
+import {
+	type ColumnGroupDef,
+	getColumnGroupDefs,
+	getTaskColumnKeys,
+} from "./view-utils";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 const LEFT_COL_W = 280; // px — sticky task-name column
@@ -33,6 +43,10 @@ interface RoadmapViewProps {
 	taskIdPrefix?: string;
 	statuses: TaskStatus[];
 	taskTypes: TaskType[];
+	members?: ProjectMember[];
+	sprints?: Sprint[];
+	customFields?: CustomFieldDefinition[];
+	columnBy?: string;
 	searchQuery: string;
 	canCreate?: boolean;
 	onCreateTask?: (
@@ -68,6 +82,10 @@ export function RoadmapView({
 	taskIdPrefix = "",
 	statuses,
 	taskTypes,
+	members = [],
+	sprints = [],
+	customFields = [],
+	columnBy = "status",
 	searchQuery,
 	canCreate = false,
 	onCreateTask,
@@ -92,16 +110,20 @@ export function RoadmapView({
 		[tasks, searchQuery, taskIdPrefix],
 	);
 
-	const sortedStatuses = useMemo(
-		() => [...statuses].sort((a, b) => a.position - b.position),
-		[statuses],
+	const viewCtx = useMemo(
+		() => ({ statuses, taskTypes, members, customFields, sprints }),
+		[statuses, taskTypes, members, customFields, sprints],
+	);
+
+	const groupDefs = useMemo(
+		() => getColumnGroupDefs(columnBy, viewCtx),
+		[columnBy, viewCtx],
 	);
 
 	const defaultStatusId = useMemo(
 		() =>
-			statuses.find((s) => s.category === "backlog")?.id ??
-			statuses.find((s) => s.category === "todo")?.id ??
-			statuses[0]?.id ??
+			statuses.find((s) => s.is_default)?.id ??
+			[...statuses].sort((a, b) => a.position - b.position)[0]?.id ??
 			"",
 		[statuses],
 	);
@@ -271,12 +293,10 @@ export function RoadmapView({
 
 	// ── Group header ──────────────────────────────────────────────────────────
 	function GroupHeader({
-		color,
-		name,
+		group,
 		count,
 	}: {
-		color?: string | null;
-		name: string;
+		group: ColumnGroupDef;
 		count: number;
 	}) {
 		return (
@@ -284,12 +304,12 @@ export function RoadmapView({
 				<span
 					className="size-2 shrink-0 rounded-full"
 					style={{
-						background: color ?? "oklch(var(--muted-foreground) / 0.4)",
-						boxShadow: color ? `0 0 6px ${color}40` : undefined,
+						background: group.color ?? "oklch(var(--muted-foreground) / 0.4)",
+						boxShadow: group.color ? `0 0 6px ${group.color}40` : undefined,
 					}}
 				/>
 				<span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-foreground/65">
-					{name}
+					{group.label}
 				</span>
 				<span className="rounded-full bg-muted/70 px-2 py-px text-[10px] font-bold tabular-nums text-muted-foreground/60">
 					{count}
@@ -368,49 +388,24 @@ export function RoadmapView({
 							<p className="text-[12px] font-medium">No tasks to display</p>
 						</div>
 					) : (
-						<>
-							{sortedStatuses.map((status) => {
-								const groupTasks = filtered.filter(
-									(t) => t.status_id === status.id,
-								);
-								if (groupTasks.length === 0 && !pagination?.hasMore)
-									return null;
+						groupDefs.map((group) => {
+							const groupTasks = filtered.filter((t) =>
+								getTaskColumnKeys(t, columnBy, viewCtx).includes(group.key),
+							);
+							if (groupTasks.length === 0) return null;
 
-								return (
-									<div
-										key={status.id}
-										className="border-b border-border/20 last:border-0"
-									>
-										<GroupHeader
-											color={status.color}
-											name={status.name}
-											count={groupTasks.length}
-										/>
-										{groupTasks.map((t) => (
-											<RoadmapTaskRow key={t.id} task={t} />
-										))}
-									</div>
-								);
-							})}
-
-							{/* Unstatused tasks */}
-							{(() => {
-								const uns = filtered.filter((t) => !t.status_id);
-								if (!uns.length && !pagination?.hasMore) return null;
-								return (
-									<div className="border-b border-border/20 last:border-0">
-										<GroupHeader
-											color={null}
-											name="No Status"
-											count={uns.length}
-										/>
-										{uns.map((t) => (
-											<RoadmapTaskRow key={t.id} task={t} />
-										))}
-									</div>
-								);
-							})()}
-						</>
+							return (
+								<div
+									key={group.key}
+									className="border-b border-border/20 last:border-0"
+								>
+									<GroupHeader group={group} count={groupTasks.length} />
+									{groupTasks.map((t) => (
+										<RoadmapTaskRow key={t.id} task={t} />
+									))}
+								</div>
+							);
+						})
 					)}
 
 					{/* ── Pagination button ─────────────────────────────────── */}
