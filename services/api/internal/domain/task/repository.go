@@ -22,11 +22,13 @@ type TaskLinkRepository interface {
 	ListTaskLinks(ctx context.Context, taskID uuid.UUID) ([]*TaskLink, error)
 	// FindTaskLinkByID returns a single link by primary key.
 	FindTaskLinkByID(ctx context.Context, id uuid.UUID) (*TaskLink, error)
-	// LinkExists reports whether a link of linkType between source and target
-	// already exists (checked in both directions for relates_to).
-	LinkExists(ctx context.Context, sourceID, targetID uuid.UUID, linkType LinkType) (bool, error)
-	// CreateTaskLink persists a new link.
-	CreateTaskLink(ctx context.Context, l *TaskLink) error
+	// CreateTaskLinkIfNotExists persists l, unless an equivalent link already
+	// exists (checked in both directions for relates_to), in which case it
+	// returns created=false and no error. The existence check and insert run
+	// in the same transaction with both task rows locked, so concurrent
+	// attempts to link the same pair of tasks serialize instead of racing
+	// past the duplicate check.
+	CreateTaskLinkIfNotExists(ctx context.Context, l *TaskLink) (created bool, err error)
 	// DeleteTaskLink removes the link identified by id.
 	DeleteTaskLink(ctx context.Context, id uuid.UUID) error
 }

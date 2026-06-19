@@ -1,18 +1,29 @@
 import { Link2, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type LinkType, listAllTasks, type Task } from "@/lib/interaction-api";
+import {
+	type DisplayLinkType,
+	type LinkType,
+	listAllTasks,
+	type Task,
+} from "@/lib/interaction-api";
+
+export interface AddTaskLinkPayload {
+	sourceTaskId: string;
+	targetTaskId: string;
+	linkType: LinkType;
+}
 
 interface AddTaskLinkModalProps {
 	open: boolean;
 	onClose: () => void;
-	onAdd: (targetTaskId: string, linkType: LinkType) => void;
+	onAdd: (payload: AddTaskLinkPayload) => void;
 	projectId: string;
 	currentTaskId: string;
 	taskIdPrefix?: string;
 }
 
 const LINK_TYPE_OPTIONS: {
-	value: LinkType;
+	value: DisplayLinkType;
 	label: string;
 	description: string;
 }[] = [
@@ -22,7 +33,7 @@ const LINK_TYPE_OPTIONS: {
 		description: "This task must be completed before the other",
 	},
 	{
-		value: "is_blocked_by" as LinkType,
+		value: "is_blocked_by",
 		label: "Is blocked by",
 		description: "This task cannot start until the other is done",
 	},
@@ -38,16 +49,36 @@ const LINK_TYPE_OPTIONS: {
 	},
 ];
 
-// Maps display types back to the canonical storage type and direction
-const DISPLAY_TO_CANONICAL: Record<
-	string,
-	{ linkType: LinkType; swap: boolean }
+// Maps the display type chosen in the UI to the canonical (source, target)
+// orientation the API stores. "is_blocked_by" is the only option where the
+// other task is the source: the API only has "blocks", so "X is blocked by
+// Y" is created as source=Y, target=currentTask, link_type=blocks.
+const DISPLAY_TO_CANONICAL: Partial<
+	Record<DisplayLinkType, { linkType: LinkType; otherTaskIsSource: boolean }>
 > = {
-	blocks: { linkType: "blocks", swap: false },
-	is_blocked_by: { linkType: "blocks", swap: true },
-	relates_to: { linkType: "relates_to", swap: false },
-	duplicates: { linkType: "duplicates", swap: false },
+	blocks: { linkType: "blocks", otherTaskIsSource: false },
+	is_blocked_by: { linkType: "blocks", otherTaskIsSource: true },
+	relates_to: { linkType: "relates_to", otherTaskIsSource: false },
+	duplicates: { linkType: "duplicates", otherTaskIsSource: false },
 };
+
+// The task list API caps page_size at 200, so the search box needs to page
+// through the full project rather than fetching a single page - otherwise
+// tasks past the first 200 are invisible to the search.
+const MAX_TASK_PAGES = 25;
+
+async function fetchAllProjectTasks(projectId: string): Promise<Task[]> {
+	const all: Task[] = [];
+	let cursor: string | undefined;
+	for (let page = 0; page < MAX_TASK_PAGES; page++) {
+		const result = await listAllTasks(projectId, { pageSize: 200, cursor });
+		all.push(...result.items);
+		const next = result.next_cursor;
+		if (!next) break;
+		cursor = next;
+	}
+	return all;
+}
 
 export function AddTaskLinkModal({
 	open,
@@ -57,7 +88,8 @@ export function AddTaskLinkModal({
 	currentTaskId,
 	taskIdPrefix = "",
 }: AddTaskLinkModalProps) {
-	const [selectedLinkType, setSelectedLinkType] = useState<string>("blocks");
+	const [selectedLinkType, setSelectedLinkType] =
+		useState<DisplayLinkType>("blocks");
 	const [query, setQuery] = useState("");
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -67,8 +99,9 @@ export function AddTaskLinkModal({
 	useEffect(() => {
 		if (!open) return;
 		setLoading(true);
-		listAllTasks(projectId, { pageSize: 200 })
-			.then((result) => setTasks(result.items))
+		fetchAllProjectTasks(projectId)
+			.then(setTasks)
+			.catch(() => setTasks([]))
 			.finally(() => setLoading(false));
 		setTimeout(() => searchRef.current?.focus(), 50);
 	}, [open, projectId]);
@@ -90,20 +123,11 @@ export function AddTaskLinkModal({
 	function handleSelect(task: Task) {
 		const canonical = DISPLAY_TO_CANONICAL[selectedLinkType];
 		if (!canonical) return;
-		if (canonical.swap) {
-			// "is blocked by" means target blocks source — we store it as target→source
-			// but the API takes (source=currentTask, target=otherTask, type=blocks).
-			// For "is_blocked_by", we flip: the other task IS the source.
-			// We handle this by calling onAdd with the other task as source using a
-			// reversed direction: CreateTaskLink(source=target, target=current).
-			// Since our API creates source→target, for "is_blocked_by" we need to
-			// create a link where target_task_id = currentTaskId and source = this task.
-			// We pass a special signal via a negative swap — the parent will call the
-			// API as: CreateTaskLink(source=task.id, target=currentTaskId, type="blocks").
-			onAdd(`__swap__${task.id}`, canonical.linkType);
-		} else {
-			onAdd(task.id, canonical.linkType);
-		}
+		onAdd({
+			sourceTaskId: canonical.otherTaskIsSource ? task.id : currentTaskId,
+			targetTaskId: canonical.otherTaskIsSource ? currentTaskId : task.id,
+			linkType: canonical.linkType,
+		});
 	}
 
 	if (!open) return null;

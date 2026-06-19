@@ -6,11 +6,13 @@ import {
 	type DisplayLinkType,
 	deleteTaskLink,
 	LINK_TYPE_LABELS,
-	type LinkType,
 	type TaskLink,
 	taskLinksQueryOptions,
 } from "@/lib/interaction-api";
-import { AddTaskLinkModal } from "./add-task-link-modal";
+import {
+	AddTaskLinkModal,
+	type AddTaskLinkPayload,
+} from "./add-task-link-modal";
 
 interface TaskLinksSectionProps {
 	projectId: string;
@@ -57,14 +59,10 @@ export function TaskLinksSection({
 
 	const createMutation = useMutation({
 		mutationFn: ({
+			sourceTaskId,
 			targetTaskId,
 			linkType,
-			sourceTaskId,
-		}: {
-			targetTaskId: string;
-			linkType: LinkType;
-			sourceTaskId: string;
-		}) =>
+		}: AddTaskLinkPayload) =>
 			createTaskLink(projectId, sourceTaskId, {
 				target_task_id: targetTaskId,
 				link_type: linkType,
@@ -85,23 +83,9 @@ export function TaskLinksSection({
 		},
 	});
 
-	function handleAdd(targetTaskId: string, linkType: LinkType) {
+	function handleAdd(payload: AddTaskLinkPayload) {
 		setModalOpen(false);
-		// The "__swap__" prefix signals that source/target are reversed (for "is_blocked_by")
-		if (targetTaskId.startsWith("__swap__")) {
-			const realTargetId = targetTaskId.replace("__swap__", "");
-			// Create link with the other task as source and current task as target
-			createTaskLink(projectId, realTargetId, {
-				target_task_id: taskId,
-				link_type: linkType,
-			}).then(() => {
-				qc.invalidateQueries({
-					queryKey: taskLinksQueryOptions(projectId, taskId).queryKey,
-				});
-			});
-		} else {
-			createMutation.mutate({ targetTaskId, linkType, sourceTaskId: taskId });
-		}
+		createMutation.mutate(payload);
 	}
 
 	const grouped = groupLinks(links);
@@ -125,6 +109,12 @@ export function TaskLinksSection({
 					</button>
 				)}
 			</div>
+
+			{createMutation.error && (
+				<p className="text-xs text-destructive">
+					{createMutation.error.message}
+				</p>
+			)}
 
 			{orderedKeys.length > 0 && (
 				<div className="space-y-3">

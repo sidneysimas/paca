@@ -298,6 +298,62 @@ func TestE2ETaskLinkManagement_ErrorCases(t *testing.T) {
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
+	t.Run("create_duplicate_link_rejected", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"target_task_id": otherTaskID,
+			"link_type":      "relates_to",
+		})
+		req := mustRequest(env.ctx, t, http.MethodPost,
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks/%s/links", env.base, projID, taskID), body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+loginToken)
+		resp := mustDo(t, loginClient, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusCreated)
+
+		// Creating the exact same link again should be rejected as a duplicate.
+		dupBody := jsonBody(t, map[string]any{
+			"target_task_id": otherTaskID,
+			"link_type":      "relates_to",
+		})
+		req2 := mustRequest(env.ctx, t, http.MethodPost,
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks/%s/links", env.base, projID, taskID), dupBody)
+		req2.Header.Set("Content-Type", "application/json")
+		req2.Header.Set("Authorization", "Bearer "+loginToken)
+		resp2 := mustDo(t, loginClient, req2)
+		defer func() { _ = resp2.Body.Close() }()
+		assertStatus(t, resp2, http.StatusConflict)
+
+		// relates_to is symmetric: the reverse direction is the same relationship
+		// and must also be rejected as a duplicate.
+		reverseBody := jsonBody(t, map[string]any{
+			"target_task_id": taskID,
+			"link_type":      "relates_to",
+		})
+		req3 := mustRequest(env.ctx, t, http.MethodPost,
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks/%s/links", env.base, projID, otherTaskID), reverseBody)
+		req3.Header.Set("Content-Type", "application/json")
+		req3.Header.Set("Authorization", "Bearer "+loginToken)
+		resp3 := mustDo(t, loginClient, req3)
+		defer func() { _ = resp3.Body.Close() }()
+		assertStatus(t, resp3, http.StatusConflict)
+	})
+
+	t.Run("list_links_for_task_in_different_project_not_found", func(t *testing.T) {
+		// A task that exists, but in a different project than the one in the URL.
+		otherProjID := createProjectForTasksViaAPI(t, env, loginClient, loginToken)
+		taskInOtherProj := createTaskViaAPI(t, env, loginClient, loginToken, otherProjID, "Task in other project")
+
+		req := mustRequest(env.ctx, t, http.MethodGet,
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks/%s/links", env.base, projID, taskInOtherProj), nil)
+		req.Header.Set("Authorization", "Bearer "+loginToken)
+		resp := mustDo(t, loginClient, req)
+		defer func() { _ = resp.Body.Close() }()
+		// The task does not belong to projID, so listing its links through that
+		// project's URL must not leak data across the project boundary.
+		assertStatus(t, resp, http.StatusNotFound)
+	})
+
 	t.Run("delete_nonexistent_link", func(t *testing.T) {
 		nonexistentLinkID := uuid.NewString()
 		req := mustRequest(env.ctx, t, http.MethodDelete,

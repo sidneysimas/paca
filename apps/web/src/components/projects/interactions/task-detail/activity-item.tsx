@@ -133,10 +133,10 @@ function activityDescription(
 		case "task.link.added": {
 			const linkType =
 				content.link_type === "blocks"
-					? "blocked by"
+					? "blocks"
 					: content.link_type === "relates_to"
 						? "related to"
-						: "duplicated";
+						: "duplicates";
 			return `added task link (${linkType})`;
 		}
 		case "task.link.removed":

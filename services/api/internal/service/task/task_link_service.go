@@ -9,10 +9,13 @@ import (
 )
 
 // ListTaskLinks returns all links for a task, computing display labels.
-func (s *Service) ListTaskLinks(ctx context.Context, _, taskID uuid.UUID) ([]*taskdom.TaskLink, error) {
-	// Verify task belongs to project.
-	if _, err := s.repo.FindTaskByID(ctx, taskID); err != nil {
+func (s *Service) ListTaskLinks(ctx context.Context, projectID, taskID uuid.UUID) ([]*taskdom.TaskLink, error) {
+	task, err := s.repo.FindTaskByID(ctx, taskID)
+	if err != nil {
 		return nil, err
+	}
+	if task.ProjectID != projectID {
+		return nil, taskdom.ErrTaskNotFound
 	}
 	return s.repo.ListTaskLinks(ctx, taskID)
 }
@@ -23,7 +26,7 @@ func (s *Service) CreateTaskLink(ctx context.Context, in taskdom.CreateTaskLinkI
 		return nil, taskdom.ErrTaskLinkSelf
 	}
 	if !taskdom.ValidLinkTypes[in.LinkType] {
-		return nil, taskdom.ErrTaskLinkTypInvalid
+		return nil, taskdom.ErrTaskLinkTypeInvalid
 	}
 
 	source, err := s.repo.FindTaskByID(ctx, in.SourceTaskID)
@@ -42,14 +45,6 @@ func (s *Service) CreateTaskLink(ctx context.Context, in taskdom.CreateTaskLinkI
 		return nil, taskdom.ErrTaskLinkCrossProject
 	}
 
-	exists, err := s.repo.LinkExists(ctx, in.SourceTaskID, in.TargetTaskID, in.LinkType)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return nil, taskdom.ErrTaskLinkDuplicate
-	}
-
 	link := &taskdom.TaskLink{
 		ID:           uuid.New(),
 		SourceTaskID: in.SourceTaskID,
@@ -58,8 +53,12 @@ func (s *Service) CreateTaskLink(ctx context.Context, in taskdom.CreateTaskLinkI
 		CreatedBy:    in.CreatedBy,
 		CreatedAt:    time.Now(),
 	}
-	if err := s.repo.CreateTaskLink(ctx, link); err != nil {
+	created, err := s.repo.CreateTaskLinkIfNotExists(ctx, link)
+	if err != nil {
 		return nil, err
+	}
+	if !created {
+		return nil, taskdom.ErrTaskLinkDuplicate
 	}
 
 	// Populate the linked task summary for the response.

@@ -91,10 +91,10 @@ export function TaskActivityPane({
 				case "task.link.added": {
 					const linkType =
 						(c as Record<string, unknown>).link_type === "blocks"
-							? "blocked by"
+							? "blocks"
 							: (c as Record<string, unknown>).link_type === "relates_to"
 								? "related to"
-								: "duplicated";
+								: "duplicates";
 					return `added task link (${linkType})`;
 				}
 				case "task.link.removed":

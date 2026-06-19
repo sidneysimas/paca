@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	taskdom "github.com/Paca-AI/api/internal/domain/task"
@@ -108,9 +109,60 @@ func (r *TaskLinkRepository) FindTaskLinkByID(ctx context.Context, id uuid.UUID)
 	return rec.toDomain()
 }
 
-// LinkExists reports whether a link of linkType between source and target already exists.
-// For relates_to it checks both directions.
-func (r *TaskLinkRepository) LinkExists(ctx context.Context, sourceID, targetID uuid.UUID, linkType taskdom.LinkType) (bool, error) {
+// CreateTaskLinkIfNotExists creates l unless an equivalent link already
+// exists (checked in both directions for relates_to). Both task rows are
+// locked (in a stable, id-ascending order to avoid deadlocks) for the
+// duration of the transaction, so two concurrent requests linking the same
+// pair of tasks - including the two row-orderings possible for the
+// symmetric relates_to type, which the unique index alone cannot catch -
+// serialize instead of both passing the existence check.
+func (r *TaskLinkRepository) CreateTaskLinkIfNotExists(ctx context.Context, l *taskdom.TaskLink) (bool, error) {
+	created := false
+	err := WithTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		var locked []string
+		if err := tx.SelectContext(ctx, &locked,
+			`SELECT id FROM tasks WHERE id IN ($1, $2) ORDER BY id FOR UPDATE`,
+			l.SourceTaskID.String(), l.TargetTaskID.String(),
+		); err != nil {
+			return fmt.Errorf("task link repo: lock tasks: %w", err)
+		}
+
+		exists, err := linkExistsTx(ctx, tx, l.SourceTaskID, l.TargetTaskID, l.LinkType)
+		if err != nil {
+			return fmt.Errorf("task link repo: check exists: %w", err)
+		}
+		if exists {
+			return nil
+		}
+
+		var createdBy *string
+		if l.CreatedBy != nil {
+			s := l.CreatedBy.String()
+			createdBy = &s
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO task_links (id, source_task_id, target_task_id, link_type, created_by, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)`,
+			l.ID.String(), l.SourceTaskID.String(), l.TargetTaskID.String(),
+			string(l.LinkType), createdBy, l.CreatedAt,
+		)
+		if err != nil {
+			if isUniqueViolation(err) {
+				// Lost a race to a concurrent insert outside this lock's scope
+				// (e.g. a differently-ordered id pair); treat as already-exists.
+				return nil
+			}
+			return fmt.Errorf("task link repo: create: %w", err)
+		}
+		created = true
+		return nil
+	})
+	return created, err
+}
+
+// linkExistsTx reports whether a link of linkType between source and target
+// already exists. For relates_to it checks both directions.
+func linkExistsTx(ctx context.Context, tx *sqlx.Tx, sourceID, targetID uuid.UUID, linkType taskdom.LinkType) (bool, error) {
 	var q string
 	var args []interface{}
 
@@ -131,33 +183,10 @@ func (r *TaskLinkRepository) LinkExists(ctx context.Context, sourceID, targetID 
 	}
 
 	var exists bool
-	if err := r.db.GetContext(ctx, &exists, q, args...); err != nil {
+	if err := tx.GetContext(ctx, &exists, q, args...); err != nil {
 		return false, err
 	}
 	return exists, nil
-}
-
-// CreateTaskLink inserts a new task_links row.
-func (r *TaskLinkRepository) CreateTaskLink(ctx context.Context, l *taskdom.TaskLink) error {
-	const q = `
-		INSERT INTO task_links (id, source_task_id, target_task_id, link_type, created_by, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`
-
-	var createdBy *string
-	if l.CreatedBy != nil {
-		s := l.CreatedBy.String()
-		createdBy = &s
-	}
-
-	_, err := r.db.ExecContext(ctx, q,
-		l.ID.String(),
-		l.SourceTaskID.String(),
-		l.TargetTaskID.String(),
-		string(l.LinkType),
-		createdBy,
-		l.CreatedAt,
-	)
-	return err
 }
 
 // DeleteTaskLink removes a task_links row by primary key.

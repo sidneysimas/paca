@@ -29,7 +29,7 @@ var (
 	ErrTaskLinkNotFound     = errors.New("task link: not found")
 	ErrTaskLinkSelf         = errors.New("task link: a task cannot be linked to itself")
 	ErrTaskLinkDuplicate    = errors.New("task link: this relationship already exists")
-	ErrTaskLinkTypInvalid   = errors.New("task link: invalid link type")
+	ErrTaskLinkTypeInvalid  = errors.New("task link: invalid link type")
 	ErrTaskLinkCrossProject = errors.New("task link: cannot link tasks from different projects")
 
 	// Activity / comment errors.

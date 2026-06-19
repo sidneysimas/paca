@@ -182,12 +182,8 @@ func (r *fakeTaskRepo) FindTaskLinkByID(_ context.Context, _ uuid.UUID) (*taskdo
 	return nil, taskdom.ErrTaskLinkNotFound
 }
 
-func (r *fakeTaskRepo) LinkExists(_ context.Context, _, _ uuid.UUID, _ taskdom.LinkType) (bool, error) {
-	return false, nil
-}
-
-func (r *fakeTaskRepo) CreateTaskLink(_ context.Context, _ *taskdom.TaskLink) error {
-	return nil
+func (r *fakeTaskRepo) CreateTaskLinkIfNotExists(_ context.Context, _ *taskdom.TaskLink) (bool, error) {
+	return true, nil
 }
 
 func (r *fakeTaskRepo) DeleteTaskLink(_ context.Context, _ uuid.UUID) error {
