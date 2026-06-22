@@ -271,7 +271,7 @@ function CreateAgentDialog({
 									)}
 								/>
 							</div>
-							<span className="text-[10px] text-muted-foreground font-medium ml-1">
+							<span className="text-xs text-muted-foreground font-medium ml-1">
 								{step} / 2
 							</span>
 						</div>
@@ -283,7 +283,7 @@ function CreateAgentDialog({
 					<div className="overflow-y-auto max-h-[62vh] px-6 py-5 space-y-5">
 						{/* Preset grid */}
 						<div className="space-y-2">
-							<Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+							<Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
 								Start from a preset
 							</Label>
 							<div className="grid grid-cols-2 gap-2">
@@ -316,7 +316,7 @@ function CreateAgentDialog({
 												<p className="text-xs font-semibold leading-tight">
 													{preset.label}
 												</p>
-												<p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground">
+												<p className="mt-0.5 line-clamp-2 text-xs leading-tight text-muted-foreground">
 													{preset.description}
 												</p>
 											</div>
@@ -356,7 +356,7 @@ function CreateAgentDialog({
 										className="pl-7"
 									/>
 								</div>
-								<p className="text-[10px] text-muted-foreground">
+								<p className="text-xs text-muted-foreground">
 									Auto-derived from name. Used for @mentions in comments.
 								</p>
 							</div>
@@ -381,7 +381,7 @@ function CreateAgentDialog({
 									))}
 								</SelectContent>
 							</Select>
-							<p className="text-[10px] text-muted-foreground">
+							<p className="text-xs text-muted-foreground">
 								Controls what the agent can read and modify in this project.
 							</p>
 						</div>
@@ -395,7 +395,7 @@ function CreateAgentDialog({
 						<div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
 							<div className="flex items-center gap-1.5">
 								<Cpu className="size-3.5 text-muted-foreground" />
-								<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+								<span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
 									Model
 								</span>
 							</div>
@@ -499,7 +499,7 @@ function CreateAgentDialog({
 									)}
 								</button>
 							</div>
-							<p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+							<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 								<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 inline-block" />
 								Stored encrypted — never exposed in API responses.
 							</p>
@@ -528,7 +528,7 @@ function CreateAgentDialog({
 									</span>
 								</Label>
 								{systemPrompt.length > 0 && (
-									<span className="text-[10px] text-muted-foreground">
+									<span className="text-xs text-muted-foreground">
 										{systemPrompt.length} chars
 									</span>
 								)}
@@ -658,7 +658,7 @@ function AgentCard({
 					</div>
 
 					<div className="flex items-center gap-1.5 shrink-0">
-						<Badge variant="secondary" className="text-[10px] font-medium">
+						<Badge variant="secondary" className="text-xs font-medium">
 							{agent.llm_provider}
 						</Badge>
 						{canWrite && (

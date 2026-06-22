@@ -110,7 +110,7 @@ export function AddFieldDialog({
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between mb-6">
-					<h2 className="font-[Syne] text-[15px] font-bold tracking-tight text-foreground">
+					<h2 className="font-[Syne] text-base font-bold tracking-tight text-foreground">
 						Create custom field
 					</h2>
 					<button
@@ -130,7 +130,7 @@ export function AddFieldDialog({
 					<div className="space-y-2">
 						<label
 							htmlFor="add-field-display-name"
-							className="text-[12px] font-semibold text-foreground/80 uppercase tracking-wide"
+							className="text-sm font-semibold text-foreground/80 uppercase tracking-wide"
 						>
 							Display name <span className="text-destructive/70">*</span>
 						</label>
@@ -142,7 +142,7 @@ export function AddFieldDialog({
 								if (!keyManual) setFieldKey(slugify(e.target.value));
 							}}
 							placeholder="e.g. Release Tag"
-							className="w-full rounded-lg border border-border/30 bg-muted/15 px-3.5 py-2.5 text-[13px] outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/45 transition-all duration-150"
+							className="w-full rounded-lg border border-border/30 bg-muted/15 px-3.5 py-2.5 text-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/45 transition-all duration-150"
 						/>
 					</div>
 
@@ -150,7 +150,7 @@ export function AddFieldDialog({
 					<div className="space-y-2">
 						<label
 							htmlFor="add-field-key"
-							className="text-[12px] font-semibold text-foreground/80 uppercase tracking-wide"
+							className="text-sm font-semibold text-foreground/80 uppercase tracking-wide"
 						>
 							Field key
 						</label>
@@ -162,13 +162,13 @@ export function AddFieldDialog({
 								setFieldKey(slugify(e.target.value));
 							}}
 							placeholder="release_tag"
-							className="w-full rounded-lg border border-border/30 bg-muted/15 px-3.5 py-2.5 text-[13px] font-mono outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/45 transition-all duration-150"
+							className="w-full rounded-lg border border-border/30 bg-muted/15 px-3.5 py-2.5 text-sm font-mono outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/45 transition-all duration-150"
 						/>
 					</div>
 
 					{/* Field type */}
 					<div className="space-y-2.5">
-						<p className="text-[12px] font-semibold text-foreground/80 uppercase tracking-wide">
+						<p className="text-sm font-semibold text-foreground/80 uppercase tracking-wide">
 							Field type
 						</p>
 						<div className="flex flex-wrap gap-1.5">
@@ -178,7 +178,7 @@ export function AddFieldDialog({
 									type="button"
 									onClick={() => setFieldType(ft)}
 									className={cn(
-										"rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150",
+										"rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150",
 										fieldType === ft
 											? "border-primary/40 bg-primary/10 text-primary shadow-sm shadow-primary/10"
 											: "border-border/25 text-muted-foreground/70 hover:border-border/50 hover:bg-muted/30 hover:text-muted-foreground",
@@ -192,7 +192,7 @@ export function AddFieldDialog({
 
 					{/* Required toggle */}
 					<div className="flex items-center justify-between rounded-xl border border-border/20 bg-muted/15 px-4 py-3">
-						<span className="text-[13px] text-foreground/80 font-medium">
+						<span className="text-sm text-foreground/80 font-medium">
 							Required
 						</span>
 						<button
@@ -225,7 +225,7 @@ export function AddFieldDialog({
 							reset();
 							onOpenChange(false);
 						}}
-						className="rounded-lg border border-border/30 px-4 py-2 text-[13px] font-medium text-muted-foreground/80 hover:bg-muted/30 hover:text-foreground transition-all duration-150"
+						className="rounded-lg border border-border/30 px-4 py-2 text-sm font-medium text-muted-foreground/80 hover:bg-muted/30 hover:text-foreground transition-all duration-150"
 					>
 						Cancel
 					</button>
@@ -233,7 +233,7 @@ export function AddFieldDialog({
 						type="button"
 						disabled={!displayName.trim() || submitting}
 						onClick={handleCreate}
-						className="rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-all duration-150 shadow-sm disabled:shadow-none"
+						className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-all duration-150 shadow-sm disabled:shadow-none"
 					>
 						{submitting ? "Creating…" : "Create field"}
 					</button>

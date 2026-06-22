@@ -43,7 +43,7 @@ export function TaskDetailPanel({
 							<div className="flex items-center gap-2 flex-wrap">
 								{taskType && (
 									<span
-										className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold leading-tight tracking-wide border"
+										className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold leading-tight tracking-wide border"
 										style={{
 											borderColor: taskType.color
 												? `${taskType.color}44`
@@ -58,7 +58,7 @@ export function TaskDetailPanel({
 									</span>
 								)}
 								{status && (
-									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide">
+									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-xs font-semibold text-muted-foreground tracking-wide">
 										<span
 											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{
@@ -72,7 +72,7 @@ export function TaskDetailPanel({
 									</span>
 								)}
 							</div>
-							<SheetTitle className="font-[Syne] text-[18px] font-bold leading-snug pr-6 tracking-tight">
+							<SheetTitle className="font-[Syne] text-lg font-bold leading-snug pr-6 tracking-tight">
 								{task.title}
 							</SheetTitle>
 						</SheetHeader>
@@ -80,19 +80,19 @@ export function TaskDetailPanel({
 						<div className="px-5 py-4 flex flex-col gap-5">
 							{/* Properties */}
 							<div>
-								<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
+								<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
 									<span>Properties</span>
 									<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 								</h3>
 								<div className="flex flex-col gap-0">
 									{/* Priority */}
 									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
-										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+										<span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground leading-snug select-none">
 											<Flag className="size-3.5 opacity-70" />
 											Priority
 										</span>
 										<span
-											className="inline-flex items-center gap-1.5 text-[13px] font-medium"
+											className="inline-flex items-center gap-1.5 text-sm font-medium"
 											style={{ color: priority.color }}
 										>
 											<span
@@ -105,21 +105,21 @@ export function TaskDetailPanel({
 
 									{/* Assignee */}
 									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
-										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+										<span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground leading-snug select-none">
 											<User className="size-3.5 opacity-70" />
 											Assignee
 										</span>
 										{task.assignee_id ? (
 											<div className="flex items-center gap-2">
-												<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+												<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold ring-1 ring-primary/20">
 													<User className="size-3" />
 												</div>
-												<span className="text-[13px] font-medium text-foreground">
+												<span className="text-sm font-medium text-foreground">
 													Assigned
 												</span>
 											</div>
 										) : (
-											<span className="text-[13px] text-muted-foreground/50 italic">
+											<span className="text-sm text-muted-foreground/50 italic">
 												Unassigned
 											</span>
 										)}
@@ -128,11 +128,11 @@ export function TaskDetailPanel({
 									{/* Sprint */}
 									{task.sprint_id && (
 										<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
-											<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+											<span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground leading-snug select-none">
 												<GitBranch className="size-3.5 opacity-70" />
 												Sprint
 											</span>
-											<span className="text-[13px] font-medium text-muted-foreground font-[JetBrains_Mono,monospace] tracking-wider truncate">
+											<span className="text-sm font-medium text-muted-foreground font-[JetBrains_Mono,monospace] tracking-wider truncate">
 												{task.sprint_id}
 											</span>
 										</div>
@@ -140,11 +140,11 @@ export function TaskDetailPanel({
 
 									{/* Created */}
 									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
-										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+										<span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground leading-snug select-none">
 											<Calendar className="size-3.5 opacity-70" />
 											Created
 										</span>
-										<span className="text-[13px] font-medium text-muted-foreground">
+										<span className="text-sm font-medium text-muted-foreground">
 											{new Date(task.created_at).toLocaleDateString(undefined, {
 												year: "numeric",
 												month: "short",
@@ -155,11 +155,11 @@ export function TaskDetailPanel({
 
 									{/* Updated */}
 									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
-										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+										<span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground leading-snug select-none">
 											<Calendar className="size-3.5 opacity-70" />
 											Updated
 										</span>
-										<span className="text-[13px] font-medium text-muted-foreground">
+										<span className="text-sm font-medium text-muted-foreground">
 											{new Date(task.updated_at).toLocaleDateString(undefined, {
 												year: "numeric",
 												month: "short",
@@ -173,11 +173,11 @@ export function TaskDetailPanel({
 							{/* Description */}
 							{task.description && task.description.length > 0 && (
 								<div>
-									<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
+									<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
 										<span>Description</span>
 										<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 									</h3>
-									<p className="text-[14px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
+									<p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
 										{(
 											task.description as Array<{
 												content?: Array<{ type: string; text?: string }>;

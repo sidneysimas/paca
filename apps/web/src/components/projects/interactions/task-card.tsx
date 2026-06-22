@@ -90,13 +90,13 @@ export function TaskCard({
 							className="flex size-5 items-center justify-center rounded-full transition-all duration-150 hover:ring-2 hover:ring-primary/30"
 						>
 							{assignee ? (
-								<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/15 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+								<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/15 text-primary text-xs font-bold ring-1 ring-primary/20">
 									{(assignee.full_name || assignee.username)
 										.slice(0, 1)
 										.toUpperCase()}
 								</div>
 							) : (
-								<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold ring-1 ring-border/25">
+								<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-xs font-bold ring-1 ring-border/25">
 									<User className="size-2.5" />
 								</div>
 							)}
@@ -107,7 +107,7 @@ export function TaskCard({
 						>
 							<button
 								type="button"
-								className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
+								className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 								onClick={(e) => {
 									e.stopPropagation();
 									onUpdate?.(task.id, { assignee_id: null });
@@ -121,13 +121,13 @@ export function TaskCard({
 								<button
 									key={m.id}
 									type="button"
-									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 									onClick={(e) => {
 										e.stopPropagation();
 										onUpdate?.(task.id, { assignee_id: m.id });
 									}}
 								>
-									<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[9px] font-bold">
+									<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
 										{(m.full_name || m.username).slice(0, 1).toUpperCase()}
 									</div>
 									<span className="flex-1 text-left truncate">
@@ -144,7 +144,7 @@ export function TaskCard({
 					<div
 						key="assignee"
 						className={cn(
-							"flex size-5 items-center justify-center rounded-full text-[10px] font-bold ring-1",
+							"flex size-5 items-center justify-center rounded-full text-xs font-bold ring-1",
 							task.assignee_id
 								? "bg-linear-to-br from-primary/20 to-primary/15 text-primary ring-primary/20"
 								: "bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground ring-border/25",
@@ -184,7 +184,7 @@ export function TaskCard({
 										/>
 									) : (
 										<span
-											className="text-[10px] font-bold"
+											className="text-xs font-bold"
 											style={
 												taskType.color ? { color: taskType.color } : undefined
 											}
@@ -194,7 +194,7 @@ export function TaskCard({
 									);
 								})()
 							) : (
-								<span className="text-[10px] text-muted-foreground/50">--</span>
+								<span className="text-xs text-muted-foreground/50">--</span>
 							)}
 						</PopoverTrigger>
 						<PopoverContent
@@ -207,7 +207,7 @@ export function TaskCard({
 									<button
 										key={tt.id}
 										type="button"
-										className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+										className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 										onClick={(e) => {
 											e.stopPropagation();
 											onUpdate?.(task.id, { task_type_id: tt.id });
@@ -241,7 +241,7 @@ export function TaskCard({
 						) : (
 							<span
 								key="type"
-								className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-tight border shrink-0"
+								className="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-bold leading-tight border shrink-0"
 								style={{
 									borderColor: taskType.color
 										? `${taskType.color}44`
@@ -263,7 +263,7 @@ export function TaskCard({
 					<DropdownMenu key="status">
 						<DropdownMenuTrigger
 							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
+							className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-0.5 text-xs font-semibold text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
 						>
 							{status ? (
 								<>
@@ -274,7 +274,7 @@ export function TaskCard({
 									{status.name}
 								</>
 							) : (
-								<span className="text-[10px] text-muted-foreground/50">—</span>
+								<span className="text-xs text-muted-foreground/50">—</span>
 							)}
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="start">
@@ -301,7 +301,7 @@ export function TaskCard({
 				) : status ? (
 					<span
 						key="status"
-						className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+						className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-0.5 text-xs font-semibold text-muted-foreground"
 					>
 						<span
 							className="size-1.5 rounded-full shrink-0"
@@ -317,7 +317,7 @@ export function TaskCard({
 					<span
 						key="story_points"
 						title="Story Points"
-						className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary/80 shrink-0 tabular-nums"
+						className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary/80 shrink-0 tabular-nums"
 					>
 						{task.story_points}
 					</span>
@@ -331,7 +331,7 @@ export function TaskCard({
 					<DropdownMenu key="importance">
 						<DropdownMenuTrigger
 							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 text-[10px] font-medium shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+							className="inline-flex items-center gap-1 text-xs font-medium shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
 							style={task.importance > 0 ? { color: p.color } : undefined}
 						>
 							{task.importance > 0 ? (
@@ -343,7 +343,7 @@ export function TaskCard({
 									{p.label}
 								</>
 							) : (
-								<span className="text-[10px] text-muted-foreground/40">
+								<span className="text-xs text-muted-foreground/40">
 									Priority
 								</span>
 							)}
@@ -375,7 +375,7 @@ export function TaskCard({
 				) : task.importance > 0 ? (
 					<span
 						key="importance"
-						className="inline-flex items-center gap-1 text-[10px] font-medium shrink-0"
+						className="inline-flex items-center gap-1 text-xs font-medium shrink-0"
 						style={{ color: p.color }}
 					>
 						<span
@@ -397,7 +397,7 @@ export function TaskCard({
 						title={
 							reporter ? reporter.full_name || reporter.username : "Reporter"
 						}
-						className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold ring-1 ring-border/25"
+						className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-xs font-bold ring-1 ring-border/25"
 					>
 						{reporter ? (
 							(reporter.full_name || reporter.username)
@@ -414,7 +414,7 @@ export function TaskCard({
 				return task.start_date ? (
 					<span
 						key="start_date"
-						className="text-[10px] text-muted-foreground/70 shrink-0"
+						className="text-xs text-muted-foreground/70 shrink-0"
 					>
 						{formatDate(task.start_date)}
 					</span>
@@ -424,7 +424,7 @@ export function TaskCard({
 				return task.due_date ? (
 					<span
 						key="due_date"
-						className="text-[10px] text-muted-foreground/70 shrink-0"
+						className="text-xs text-muted-foreground/70 shrink-0"
 					>
 						{formatDate(task.due_date)}
 					</span>
@@ -434,7 +434,7 @@ export function TaskCard({
 				return (
 					<span
 						key="created"
-						className="text-[10px] text-muted-foreground/50 shrink-0"
+						className="text-xs text-muted-foreground/50 shrink-0"
 					>
 						{formatDate(task.created_at)}
 					</span>
@@ -449,7 +449,7 @@ export function TaskCard({
 						<PopoverTrigger
 							type="button"
 							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:opacity-80 transition-opacity shrink-0"
+							className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:opacity-80 transition-opacity shrink-0"
 						>
 							<Layers className="size-2.5 shrink-0 opacity-70" />
 							{epic ? (
@@ -464,7 +464,7 @@ export function TaskCard({
 						>
 							<button
 								type="button"
-								className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
+								className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 								onClick={(e) => {
 									e.stopPropagation();
 									onUpdate?.(task.id, { parent_task_id: null });
@@ -479,7 +479,7 @@ export function TaskCard({
 								<button
 									key={e.id}
 									type="button"
-									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 									onClick={(ev) => {
 										ev.stopPropagation();
 										onUpdate?.(task.id, { parent_task_id: e.id });
@@ -497,7 +497,7 @@ export function TaskCard({
 				) : epic ? (
 					<span
 						key="epic"
-						className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 shrink-0"
+						className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 shrink-0"
 					>
 						<Layers className="size-2.5 shrink-0 opacity-70" />
 						<span className="max-w-20 truncate">{epic.title}</span>
@@ -512,10 +512,7 @@ export function TaskCard({
 				const val = task.custom_fields[cf.field_key];
 				if (val === null || val === undefined || val === "")
 					return (
-						<span
-							key={fieldKey}
-							className="text-[10px] text-muted-foreground/30"
-						>
+						<span key={fieldKey} className="text-xs text-muted-foreground/30">
 							—
 						</span>
 					);
@@ -525,10 +522,7 @@ export function TaskCard({
 						return val ? (
 							<Check key={fieldKey} className="size-3 text-primary shrink-0" />
 						) : (
-							<span
-								key={fieldKey}
-								className="text-[10px] text-muted-foreground/40"
-							>
+							<span key={fieldKey} className="text-xs text-muted-foreground/40">
 								✗
 							</span>
 						);
@@ -536,7 +530,7 @@ export function TaskCard({
 						return (
 							<span
 								key={fieldKey}
-								className="text-[10px] font-medium text-foreground/70 shrink-0"
+								className="text-xs font-medium text-foreground/70 shrink-0"
 							>
 								{String(val)}
 							</span>
@@ -545,7 +539,7 @@ export function TaskCard({
 						return (
 							<span
 								key={fieldKey}
-								className="text-[10px] text-muted-foreground/70 shrink-0"
+								className="text-xs text-muted-foreground/70 shrink-0"
 							>
 								{formatDate(String(val))}
 							</span>
@@ -554,7 +548,7 @@ export function TaskCard({
 						return (
 							<span
 								key={fieldKey}
-								className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary/80 shrink-0"
+								className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary/80 shrink-0"
 							>
 								{String(val)}
 							</span>
@@ -566,7 +560,7 @@ export function TaskCard({
 								{arr.map((v) => (
 									<span
 										key={v}
-										className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary/80"
+										className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary/80"
 									>
 										{v}
 									</span>
@@ -585,7 +579,7 @@ export function TaskCard({
 						return (
 							<span
 								key={fieldKey}
-								className="text-[10px] text-foreground/60 truncate max-w-24"
+								className="text-xs text-foreground/60 truncate max-w-24"
 							>
 								{String(val)}
 							</span>
@@ -622,7 +616,7 @@ export function TaskCard({
 
 			{(taskIdPrefix || task.task_number > 0) && (
 				<div className="mb-1 flex items-center">
-					<span className="font-[JetBrains_Mono,monospace] text-[10px] font-semibold text-muted-foreground/50 tracking-wide">
+					<span className="font-[JetBrains_Mono,monospace] text-xs font-semibold text-muted-foreground/50 tracking-wide">
 						{taskIdPrefix
 							? `${taskIdPrefix}-${task.task_number}`
 							: `#${task.task_number}`}

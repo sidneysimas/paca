@@ -33,7 +33,7 @@ export function TagsEditor({
 			{tags.map((tag) => (
 				<span
 					key={tag}
-					className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-foreground/80 border border-border/20 hover:border-border/40 transition-colors duration-150"
+					className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs font-medium text-foreground/80 border border-border/20 hover:border-border/40 transition-colors duration-150"
 				>
 					{tag}
 					{canEdit && (
@@ -51,7 +51,7 @@ export function TagsEditor({
 				<Popover>
 					<PopoverTrigger
 						type="button"
-						className="inline-flex items-center gap-1 rounded-md border border-dashed border-border/30 px-2 py-0.5 text-[11px] text-muted-foreground/60 hover:border-border/60 hover:text-muted-foreground transition-all duration-150"
+						className="inline-flex items-center gap-1 rounded-md border border-dashed border-border/30 px-2 py-0.5 text-xs text-muted-foreground/60 hover:border-border/60 hover:text-muted-foreground transition-all duration-150"
 					>
 						<Plus className="size-2.5" />
 						Add tag
@@ -73,7 +73,7 @@ export function TagsEditor({
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
 								placeholder="Add tag..."
-								className="w-full rounded-lg border border-border/30 bg-muted/25 px-3 py-2 text-[13px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
+								className="w-full rounded-lg border border-border/30 bg-muted/25 px-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
 								onKeyDown={(e) => {
 									if (e.key === "Enter") {
 										e.preventDefault();

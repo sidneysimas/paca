@@ -67,17 +67,17 @@ export function AttachmentItem({
 				className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary/12 to-primary/5 text-primary/80 hover:from-primary/20 hover:to-primary/10 transition-all duration-150"
 				aria-label={`Preview ${attachment.file.file_name}`}
 			>
-				<span className="text-[10px] font-bold tracking-tight">{ext}</span>
+				<span className="text-xs font-bold tracking-tight">{ext}</span>
 			</button>
 			<button
 				type="button"
 				onClick={handlePreview}
 				className="flex-1 min-w-0 text-left"
 			>
-				<p className="text-[13px] font-medium text-foreground truncate">
+				<p className="text-sm font-medium text-foreground truncate">
 					{attachment.file.file_name}
 				</p>
-				<p className="text-[11px] text-muted-foreground/60 mt-0.5">
+				<p className="text-xs text-muted-foreground/60 mt-0.5">
 					{formatBytes(attachment.file.file_size)} ·{" "}
 					{timeAgo(attachment.created_at)}
 				</p>

@@ -72,7 +72,7 @@ export function AttachmentsSection({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+				<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
 					<span>Attachments</span>
 					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
@@ -141,10 +141,10 @@ export function AttachmentsSection({
 					>
 						<Paperclip className="size-5" />
 					</div>
-					<p className="text-[13px] font-medium text-muted-foreground/70 group-hover/drop:text-muted-foreground transition-colors">
+					<p className="text-sm font-medium text-muted-foreground/70 group-hover/drop:text-muted-foreground transition-colors">
 						Drop your files here to upload
 					</p>
-					<p className="text-[11px] mt-1.5 text-muted-foreground/45 transition-colors">
+					<p className="text-xs mt-1.5 text-muted-foreground/45 transition-colors">
 						or click to browse
 					</p>
 				</button>

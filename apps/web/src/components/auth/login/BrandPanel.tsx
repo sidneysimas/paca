@@ -44,12 +44,12 @@ export function BrandPanel() {
 					<span className="text-xl font-bold tracking-tight text-white">
 						paca
 					</span>
-					<span className="rounded-full border border-white/20 bg-white/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-white/60">
+					<span className="rounded-full border border-white/20 bg-white/8 px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-white/60">
 						OSS
 					</span>
 				</div>
 
-				<h2 className="display-title mb-3 text-[1.85rem] font-bold leading-tight text-balance text-white">
+				<h2 className="display-title mb-3 text-3xl font-bold leading-tight text-balance text-white">
 					One team, one board,{" "}
 					<span className="text-[#9ed957]">human and AI.</span>
 				</h2>
@@ -94,7 +94,7 @@ export function BrandPanel() {
 						<GitHubIcon className="size-3.5" />
 						View on GitHub
 					</a>
-					<p className="text-[11px] text-white/30">Apache-2.0 · Open Source</p>
+					<p className="text-xs text-white/30">Apache-2.0 · Open Source</p>
 				</div>
 			</div>
 		</div>

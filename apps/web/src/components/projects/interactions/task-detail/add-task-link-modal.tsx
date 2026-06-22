@@ -150,7 +150,7 @@ export function AddTaskLinkModal({
 						<div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center">
 							<Link2 className="size-3.5 text-primary" />
 						</div>
-						<h2 className="text-[14px] font-semibold text-foreground">
+						<h2 className="text-base font-semibold text-foreground">
 							Link task
 						</h2>
 					</div>
@@ -165,7 +165,7 @@ export function AddTaskLinkModal({
 
 				{/* Link type selector */}
 				<div className="px-5 pt-4 pb-3">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/60 mb-2">
+					<p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/60 mb-2">
 						Relationship
 					</p>
 					<div className="grid grid-cols-2 gap-1.5">
@@ -174,7 +174,7 @@ export function AddTaskLinkModal({
 								key={opt.value}
 								type="button"
 								onClick={() => setSelectedLinkType(opt.value)}
-								className={`px-3 py-2 rounded-lg text-left text-[12px] font-medium transition-all duration-150 border ${
+								className={`px-3 py-2 rounded-lg text-left text-sm font-medium transition-all duration-150 border ${
 									selectedLinkType === opt.value
 										? "bg-primary/10 border-primary/30 text-primary"
 										: "bg-muted/20 border-border/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
@@ -197,7 +197,7 @@ export function AddTaskLinkModal({
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
 							placeholder="Search tasks by title or number..."
-							className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-border/30 bg-muted/20 text-[13px] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
+							className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-border/30 bg-muted/20 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
 						/>
 					</div>
 				</div>
@@ -205,12 +205,12 @@ export function AddTaskLinkModal({
 				{/* Task list */}
 				<div className="mx-5 mb-5 rounded-xl border border-border/20 overflow-hidden max-h-64 overflow-y-auto [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40">
 					{loading && (
-						<div className="flex items-center justify-center py-8 text-muted-foreground/50 text-[13px]">
+						<div className="flex items-center justify-center py-8 text-muted-foreground/50 text-sm">
 							Loading tasks…
 						</div>
 					)}
 					{!loading && filteredTasks.length === 0 && (
-						<div className="flex items-center justify-center py-8 text-muted-foreground/45 text-[13px] italic">
+						<div className="flex items-center justify-center py-8 text-muted-foreground/45 text-sm italic">
 							No tasks found
 						</div>
 					)}
@@ -226,10 +226,10 @@ export function AddTaskLinkModal({
 									onClick={() => handleSelect(task)}
 									className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors duration-100 border-b border-border/10 last:border-0"
 								>
-									<span className="shrink-0 text-[11px] font-mono text-muted-foreground/60 min-w-13">
+									<span className="shrink-0 text-xs font-mono text-muted-foreground/60 min-w-13">
 										{prefix}
 									</span>
-									<span className="text-[13px] text-foreground truncate">
+									<span className="text-sm text-foreground truncate">
 										{task.title}
 									</span>
 								</button>

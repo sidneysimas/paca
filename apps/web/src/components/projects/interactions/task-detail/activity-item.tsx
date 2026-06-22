@@ -167,7 +167,7 @@ export function ActivityItem({
 		<div className="flex gap-3">
 			<div
 				className={cn(
-					"flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold mt-0.5 ring-1",
+					"flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5 ring-1",
 					isComment
 						? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/15"
 						: "bg-muted/40 text-muted-foreground/80 ring-border/20",
@@ -179,32 +179,32 @@ export function ActivityItem({
 				{isComment ? (
 					<div className="rounded-xl rounded-tl-lg border border-border/25 bg-card/70 px-3.5 py-2.5">
 						<div className="mb-1 flex items-center gap-2">
-							<span className="text-[12px] font-semibold text-foreground">
+							<span className="text-sm font-semibold text-foreground">
 								{displayName}
 							</span>
-							<span className="text-[10px] text-muted-foreground/50">
+							<span className="text-xs text-muted-foreground/50">
 								{timeAgo(entry.created_at)}
 							</span>
 						</div>
 						{commentBlocks && commentBlocks.length > 0 ? (
-							<div className="[&_.bn-editor]:text-[13px] [&_.bn-editor]:leading-relaxed [&_.bn-editor]:p-0">
+							<div className="[&_.bn-editor]:text-sm [&_.bn-editor]:leading-relaxed [&_.bn-editor]:p-0">
 								<CommentDisplay blocks={commentBlocks} />
 							</div>
 						) : (
-							<p className="text-[13px] text-foreground leading-relaxed">
+							<p className="text-sm text-foreground leading-relaxed">
 								{(entry.content as { text?: string })?.text ?? ""}
 							</p>
 						)}
 					</div>
 				) : (
 					<div className="flex flex-wrap items-baseline gap-1.5 py-0.5">
-						<span className="text-[12px] font-medium text-foreground/80">
+						<span className="text-sm font-medium text-foreground/80">
 							{displayName}
 						</span>
-						<span className="text-[12px] text-muted-foreground/70">
+						<span className="text-sm text-muted-foreground/70">
 							{activityDescription(entry, names)}
 						</span>
-						<span className="text-[10px] text-muted-foreground/45">
+						<span className="text-xs text-muted-foreground/45">
 							{timeAgo(entry.created_at)}
 						</span>
 					</div>

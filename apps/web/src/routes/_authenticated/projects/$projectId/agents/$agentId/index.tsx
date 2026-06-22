@@ -350,10 +350,10 @@ function OverviewTab({
 
 			<div className="space-y-2">
 				<div>
-					<Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+					<Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
 						Auto-appended trigger prompts
 					</Label>
-					<p className="mt-1 text-[10px] text-muted-foreground">
+					<p className="mt-1 text-xs text-muted-foreground">
 						Automatically appended to the system prompt at runtime based on how
 						the agent is invoked.
 					</p>
@@ -391,7 +391,7 @@ function OverviewTab({
 								onChange={(e) => setValue(e.target.value)}
 								rows={6}
 								disabled={!canWrite}
-								className="font-mono text-[10px] leading-relaxed"
+								className="font-mono text-xs leading-relaxed"
 							/>
 						</div>
 					</details>
@@ -1003,7 +1003,7 @@ function ConversationRow({
 					</span>
 					<Badge
 						variant="outline"
-						className={`text-[10px] font-semibold shrink-0 ${statusColor}`}
+						className={`text-xs font-semibold shrink-0 ${statusColor}`}
 					>
 						{statusLabel}
 					</Badge>
@@ -1182,7 +1182,7 @@ function AgentDetailPage() {
 								@{agent.handle}
 							</span>
 							<span className="text-muted-foreground/40">·</span>
-							<Badge variant="secondary" className="text-[10px]">
+							<Badge variant="secondary" className="text-xs">
 								{agent.llm_provider}
 							</Badge>
 						</div>

@@ -522,7 +522,7 @@ export function BoardView({
 			>
 				{laneTasks.length === 0 && !columnPagination?.[colDef.key]?.hasMore && (
 					<div className="flex flex-1 flex-col items-center justify-center py-6 text-muted-foreground/30">
-						<p className="text-[11px]">No tasks</p>
+						<p className="text-sm">No tasks</p>
 					</div>
 				)}
 				{laneTasks.map((task, index) => (
@@ -579,7 +579,7 @@ export function BoardView({
 							type="button"
 							onClick={pg.onLoadMore}
 							disabled={pg.isLoadingMore}
-							className="mt-1 w-full rounded-lg border border-dashed border-border/40 py-1.5 text-[11px] font-medium text-muted-foreground/70 hover:border-primary/40 hover:text-primary transition-all duration-150 disabled:opacity-50"
+							className="mt-1 w-full rounded-lg border border-dashed border-border/40 py-1.5 text-sm font-medium text-muted-foreground/70 hover:border-primary/40 hover:text-primary transition-all duration-150 disabled:opacity-50"
 						>
 							{pg.isLoadingMore ? "Loading…" : "View more"}
 						</button>
@@ -645,7 +645,7 @@ export function BoardView({
 						}}
 					/>
 				)}
-				<span className="text-[11px] font-bold text-foreground/80 tracking-[0.08em] uppercase flex-1 truncate">
+				<span className="text-xs font-bold text-foreground/80 tracking-[0.08em] uppercase flex-1 truncate">
 					{colDef.label}
 				</span>
 				<button
@@ -660,7 +660,7 @@ export function BoardView({
 						<ChevronLeft className="size-3 text-muted-foreground" />
 					)}
 				</button>
-				<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+				<span className="rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold text-muted-foreground/70 tabular-nums">
 					{displayCount}
 				</span>
 			</div>
@@ -703,7 +703,7 @@ export function BoardView({
 										>
 											<ChevronRight className="size-3.5 text-muted-foreground" />
 										</button>
-										<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+										<span className="rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold text-muted-foreground/70 tabular-nums">
 											{displayCount}
 										</span>
 										{colDef.color && (
@@ -717,7 +717,7 @@ export function BoardView({
 										)}
 										<div className="flex flex-1 items-start justify-center pt-1">
 											<span
-												className="text-[11px] font-bold text-foreground/60 tracking-[0.08em] uppercase whitespace-nowrap"
+												className="text-xs font-bold text-foreground/60 tracking-[0.08em] uppercase whitespace-nowrap"
 												style={{
 													writingMode: "vertical-rl",
 													transform: "rotate(180deg)",
@@ -753,7 +753,7 @@ export function BoardView({
 											style={{ background: swimDef.color }}
 										/>
 									)}
-									<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/70 wrap-break-word leading-snug">
+									<span className="text-xs font-bold uppercase tracking-[0.08em] text-foreground/70 wrap-break-word leading-snug">
 										{swimDef.label}
 									</span>
 								</div>
@@ -806,7 +806,7 @@ export function BoardView({
 							>
 								<ChevronRight className="size-3.5 text-muted-foreground" />
 							</button>
-							<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+							<span className="rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold text-muted-foreground/70 tabular-nums">
 								{displayCount}
 							</span>
 							{colDef.color && (
@@ -820,7 +820,7 @@ export function BoardView({
 							)}
 							<div className="flex flex-1 items-start justify-center pt-1">
 								<span
-									className="text-[11px] font-bold text-foreground/60 tracking-[0.08em] uppercase whitespace-nowrap"
+									className="text-xs font-bold text-foreground/60 tracking-[0.08em] uppercase whitespace-nowrap"
 									style={{
 										writingMode: "vertical-rl",
 										transform: "rotate(180deg)",

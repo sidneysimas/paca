@@ -245,7 +245,7 @@ function ToolCallMessage({ msg }: { msg: ChatMessage }) {
 				<button
 					type="button"
 					onClick={() => setExpanded((p) => !p)}
-					className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 hover:text-foreground/70 transition-colors"
+					className="flex items-center gap-1.5 text-xs text-muted-foreground/70 hover:text-foreground/70 transition-colors"
 				>
 					{expanded ? (
 						<ChevronDown className="size-3" />
@@ -261,7 +261,7 @@ function ToolCallMessage({ msg }: { msg: ChatMessage }) {
 					</span>
 				</button>
 				{expanded && (
-					<pre className="mt-1.5 rounded-lg border border-border/40 bg-muted/30 px-3 py-2 text-[11px] font-mono text-muted-foreground/80 overflow-x-auto whitespace-pre-wrap wrap-break-word">
+					<pre className="mt-1.5 rounded-lg border border-border/40 bg-muted/30 px-3 py-2 text-xs font-mono text-muted-foreground/80 overflow-x-auto whitespace-pre-wrap wrap-break-word">
 						{msg.text}
 					</pre>
 				)}
@@ -282,7 +282,7 @@ function ThinkingMessage({ msg }: { msg: ChatMessage }) {
 				<button
 					type="button"
 					onClick={() => setExpanded((p) => !p)}
-					className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 italic hover:text-foreground/60 transition-colors"
+					className="flex items-center gap-1.5 text-xs text-muted-foreground/60 italic hover:text-foreground/60 transition-colors"
 				>
 					{expanded ? (
 						<ChevronDown className="size-3" />
@@ -292,7 +292,7 @@ function ThinkingMessage({ msg }: { msg: ChatMessage }) {
 					Thinking…
 				</button>
 				{expanded && (
-					<p className="mt-1.5 text-[12px] text-muted-foreground/60 italic leading-relaxed border-l-2 border-border/30 pl-3">
+					<p className="mt-1.5 text-xs text-muted-foreground/60 italic leading-relaxed border-l-2 border-border/30 pl-3">
 						{msg.text}
 					</p>
 				)}
@@ -309,11 +309,11 @@ function AgentBubble({ msg }: { msg: ChatMessage }) {
 			</div>
 			<div className="flex-1 min-w-0 max-w-[85%]">
 				<div className="rounded-2xl rounded-tl-md bg-card border border-border/40 px-4 py-3 shadow-sm">
-					<p className="text-[13px] leading-relaxed text-foreground whitespace-pre-wrap wrap-break-word">
+					<p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap wrap-break-word">
 						{msg.text}
 					</p>
 				</div>
-				<p className="text-[10px] text-muted-foreground/40 mt-1 pl-1">
+				<p className="text-xs text-muted-foreground/40 mt-1 pl-1">
 					{new Date(msg.createdAt).toLocaleTimeString([], {
 						hour: "2-digit",
 						minute: "2-digit",
@@ -332,11 +332,11 @@ function UserBubble({ msg }: { msg: ChatMessage }) {
 			</div>
 			<div className="flex-1 min-w-0 max-w-[85%] flex flex-col items-end">
 				<div className="rounded-2xl rounded-tr-md bg-primary text-primary-foreground px-4 py-3 shadow-sm">
-					<p className="text-[13px] leading-relaxed whitespace-pre-wrap wrap-break-word">
+					<p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
 						{msg.text}
 					</p>
 				</div>
-				<p className="text-[10px] text-muted-foreground/40 mt-1 pr-1">
+				<p className="text-xs text-muted-foreground/40 mt-1 pr-1">
 					{new Date(msg.createdAt).toLocaleTimeString([], {
 						hour: "2-digit",
 						minute: "2-digit",
@@ -350,7 +350,7 @@ function UserBubble({ msg }: { msg: ChatMessage }) {
 function SystemNote({ msg }: { msg: ChatMessage }) {
 	return (
 		<div className="flex justify-center">
-			<span className="text-[11px] text-muted-foreground/50 bg-muted/30 rounded-full px-3 py-0.5">
+			<span className="text-xs text-muted-foreground/50 bg-muted/30 rounded-full px-3 py-0.5">
 				{msg.text}
 			</span>
 		</div>
@@ -506,7 +506,7 @@ export function ConversationView({
 					</span>
 					<Badge
 						variant="outline"
-						className={cn("text-[10px] font-semibold shrink-0", statusColor)}
+						className={cn("text-xs font-semibold shrink-0", statusColor)}
 					>
 						{statusLabel}
 					</Badge>

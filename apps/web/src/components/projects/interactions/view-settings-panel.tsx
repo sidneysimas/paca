@@ -66,7 +66,7 @@ function PanelSectionHeader({
 }) {
 	return (
 		<div className="flex items-center justify-between px-3 pt-3.5 pb-1.5">
-			<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+			<span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
 				{children}
 			</span>
 			{action}
@@ -83,7 +83,7 @@ function SettingRow({
 }) {
 	return (
 		<div className="flex items-center gap-3 px-3 py-1.5">
-			<span className="w-19 shrink-0 text-[12px] font-medium text-muted-foreground/80">
+			<span className="w-19 shrink-0 text-xs font-medium text-muted-foreground/80">
 				{label}
 			</span>
 			{children}
@@ -106,7 +106,7 @@ function DynamicSelect({
 			onChange={(e) =>
 				onChange(e.target.value === "" ? undefined : e.target.value)
 			}
-			className="flex-1 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-[12px] font-medium outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
+			className="flex-1 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-xs font-medium outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
 		>
 			{options.map((o) => (
 				<option key={o.key} value={o.key}>
@@ -133,7 +133,7 @@ function FilterPill({
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-all duration-100",
+				"inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium transition-all duration-100",
 				selected
 					? "border-primary/30 bg-primary/8 text-primary"
 					: "border-border/30 bg-transparent text-muted-foreground hover:border-border/60 hover:text-foreground",
@@ -174,7 +174,7 @@ function CheckRow({
 	return (
 		<label
 			htmlFor={`check-${id}`}
-			className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] transition-colors hover:bg-muted/40"
+			className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-muted/40"
 		>
 			<input
 				ref={ref}
@@ -260,7 +260,7 @@ function FieldPicker({
 					/>
 					<label
 						htmlFor={`field-${f.key}`}
-						className="flex-1 cursor-pointer truncate text-[12px] font-medium"
+						className="flex-1 cursor-pointer truncate text-xs font-medium"
 					>
 						{f.label}
 					</label>
@@ -284,7 +284,7 @@ function FieldPicker({
 					/>
 					<label
 						htmlFor={`field-${f.key}`}
-						className="flex-1 cursor-pointer truncate text-[12px] font-medium text-muted-foreground/60"
+						className="flex-1 cursor-pointer truncate text-xs font-medium text-muted-foreground/60"
 					>
 						{f.label}
 					</label>
@@ -309,9 +309,7 @@ function SprintFilterSection({
 
 	if (sprints.length === 0) {
 		return (
-			<p className="px-3 pb-2 text-[11px] text-muted-foreground/50">
-				No sprints
-			</p>
+			<p className="px-3 pb-2 text-xs text-muted-foreground/50">No sprints</p>
 		);
 	}
 
@@ -389,9 +387,7 @@ function StatusFilterSection({
 
 	if (statuses.length === 0) {
 		return (
-			<p className="px-3 pb-2 text-[11px] text-muted-foreground/50">
-				No statuses
-			</p>
+			<p className="px-3 pb-2 text-xs text-muted-foreground/50">No statuses</p>
 		);
 	}
 
@@ -419,13 +415,13 @@ function StatusFilterSection({
 									CATEGORY_COLORS[cat],
 								)}
 							/>
-							<span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
+							<span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
 								{STATUS_CATEGORY_LABELS[cat]}
 							</span>
 							<button
 								type="button"
 								onClick={() => toggleGroup(groupIds)}
-								className="ml-auto text-[10px] text-muted-foreground/50 hover:text-primary transition-colors font-medium"
+								className="ml-auto text-xs text-muted-foreground/50 hover:text-primary transition-colors font-medium"
 							>
 								{allChecked ? "Clear" : "All"}
 							</button>
@@ -493,9 +489,7 @@ function AssigneeFilterSection({
 				onChange={() => onChange([])}
 			/>
 			{members.length === 0 ? (
-				<p className="px-2 py-1 text-[11px] text-muted-foreground/50">
-					No members
-				</p>
+				<p className="px-2 py-1 text-xs text-muted-foreground/50">No members</p>
 			) : (
 				members.map((m) => {
 					const display = m.full_name || m.username;
@@ -507,7 +501,7 @@ function AssigneeFilterSection({
 							checked={isAll || selectedIds.includes(m.id)}
 							onChange={() => toggle(m.id)}
 							icon={
-								<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+								<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold ring-1 ring-primary/20">
 									{display.slice(0, 1).toUpperCase()}
 								</div>
 							}
@@ -521,7 +515,7 @@ function AssigneeFilterSection({
 				checked={isAll || selectedIds.includes(UNASSIGNED_FILTER_ID)}
 				onChange={() => toggle(UNASSIGNED_FILTER_ID)}
 				icon={
-					<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] ring-1 ring-border">
+					<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-xs ring-1 ring-border">
 						–
 					</div>
 				}
@@ -630,7 +624,7 @@ function TaskTypeFilterSection({
 			{normalTypes.length > 0 && (
 				<>
 					<div className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
-						<span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
+						<span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
 							Normal types
 						</span>
 					</div>
@@ -670,7 +664,7 @@ function TaskTypeFilterSection({
 			{systemTypes.length > 0 && (
 				<>
 					<div className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
-						<span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
+						<span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
 							System types
 						</span>
 					</div>
@@ -688,7 +682,7 @@ function TaskTypeFilterSection({
 			)}
 
 			{taskTypes.length === 0 && (
-				<p className="px-2 py-1 text-[11px] text-muted-foreground/50">
+				<p className="px-2 py-1 text-xs text-muted-foreground/50">
 					No task types
 				</p>
 			)}
@@ -722,11 +716,11 @@ function CollapsibleFilter({
 				) : (
 					<ChevronRight className="size-3 shrink-0 text-muted-foreground/50" />
 				)}
-				<span className="flex-1 text-[12px] font-medium text-foreground/80">
+				<span className="flex-1 text-xs font-medium text-foreground/80">
 					{label}
 				</span>
 				{badge != null && badge > 0 && (
-					<span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/15 px-1 text-[10px] font-semibold text-primary">
+					<span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/15 px-1 text-xs font-semibold text-primary">
 						{badge}
 					</span>
 				)}
@@ -883,27 +877,27 @@ export function ViewSettingsPanel({
 				<div className="flex items-center justify-between px-3 py-2.5 border-b border-border/30 bg-muted/20">
 					{fieldsOpen ? (
 						<>
-							<p className="text-[11px] font-semibold text-muted-foreground/80">
+							<p className="text-xs font-semibold text-muted-foreground/80">
 								Choose fields
 							</p>
 							<button
 								type="button"
 								onClick={() => setFieldsOpen(false)}
-								className="text-[11px] font-medium text-primary/80 hover:text-primary transition-colors"
+								className="text-xs font-medium text-primary/80 hover:text-primary transition-colors"
 							>
 								← Back
 							</button>
 						</>
 					) : (
 						<>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
+							<p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
 								View settings
 							</p>
 							{hasSavedFilters && (
 								<button
 									type="button"
 									onClick={() => update({ filters: {} })}
-									className="text-[11px] font-medium text-muted-foreground/60 hover:text-foreground transition-colors"
+									className="text-xs font-medium text-muted-foreground/60 hover:text-foreground transition-colors"
 								>
 									Clear filters
 								</button>
@@ -930,7 +924,7 @@ export function ViewSettingsPanel({
 								<button
 									type="button"
 									onClick={() => setFieldsOpen(true)}
-									className="flex-1 truncate text-left text-[12px] font-medium text-foreground hover:text-primary transition-colors duration-150"
+									className="flex-1 truncate text-left text-xs font-medium text-foreground hover:text-primary transition-colors duration-150"
 								>
 									{fieldsLabel}
 								</button>
@@ -956,7 +950,7 @@ export function ViewSettingsPanel({
 								<select
 									value={sortByValue}
 									onChange={(e) => update({ sort_by: e.target.value })}
-									className="flex-1 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-[12px] font-medium outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
+									className="flex-1 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-xs font-medium outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
 								>
 									{sortByOpts.map((o) => (
 										<option key={o.key} value={o.key}>
@@ -1068,7 +1062,7 @@ export function ViewSettingsPanel({
 					<button
 						type="button"
 						onClick={handleReset}
-						className="rounded-lg bg-muted/50 px-2.5 py-1.5 text-[11px] font-semibold text-muted-foreground/80 transition-all duration-150 hover:bg-muted hover:text-foreground"
+						className="rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs font-semibold text-muted-foreground/80 transition-all duration-150 hover:bg-muted hover:text-foreground"
 					>
 						Reset
 					</button>
@@ -1076,7 +1070,7 @@ export function ViewSettingsPanel({
 						type="button"
 						onClick={handleSave}
 						disabled={isPending}
-						className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:bg-primary/90 disabled:opacity-40"
+						className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:bg-primary/90 disabled:opacity-40"
 					>
 						{isPending ? "Saving…" : "Save"}
 					</button>

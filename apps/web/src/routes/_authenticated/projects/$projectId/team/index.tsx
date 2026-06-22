@@ -99,7 +99,7 @@ function UserPickerItem({
 			onClick={() => onSelect(user)}
 		>
 			<Avatar className="size-7 shrink-0">
-				<AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+				<AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
 					{getInitials(display)}
 				</AvatarFallback>
 			</Avatar>
@@ -218,7 +218,7 @@ function AddMemberDialog({
 						{selectedUser ? (
 							<div className="flex items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2">
 								<Avatar className="size-7 shrink-0">
-									<AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+									<AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
 										{getInitials(
 											selectedUser.full_name || selectedUser.username,
 										)}
@@ -438,7 +438,7 @@ function RoleChip({
 				)}
 			</PopoverTrigger>
 			<PopoverContent className="w-52 p-1.5" align="end">
-				<p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+				<p className="px-2 py-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
 					Change role
 				</p>
 				<div className="mt-0.5 space-y-px">

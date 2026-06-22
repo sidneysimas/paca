@@ -66,7 +66,7 @@ export function PropertyField({
 					return (
 						<button
 							type="button"
-							className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-[12px] font-semibold text-muted-foreground"
+							className="inline-flex items-center gap-2 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-sm font-semibold text-muted-foreground"
 						>
 							{selected.colorDot && (
 								<span
@@ -91,7 +91,7 @@ export function PropertyField({
 			case "date":
 				if (!canEdit) {
 					return (
-						<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground font-medium">
+						<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
 							{dateValue ?? "Empty"}
 						</span>
 					);
@@ -112,7 +112,7 @@ export function PropertyField({
 			case "number":
 				if (!canEdit) {
 					return (
-						<span className="text-[13px] tabular-nums font-medium text-foreground">
+						<span className="text-sm tabular-nums font-medium text-foreground">
 							{numberValue}
 						</span>
 					);
@@ -163,7 +163,7 @@ export function PropertyField({
 					<button
 						type="button"
 						onClick={onLinkClick}
-						className="flex items-center gap-1.5 text-[13px] text-primary/80 hover:text-primary font-medium hover:underline underline-offset-2 transition-colors duration-150"
+						className="flex items-center gap-1.5 text-sm text-primary/80 hover:text-primary font-medium hover:underline underline-offset-2 transition-colors duration-150"
 					>
 						{linkIcon}
 						<span className="truncate">{linkValue}</span>

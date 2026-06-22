@@ -22,7 +22,7 @@ export function UserEditor({
 	if (!canEdit) {
 		if (!userValue) {
 			return (
-				<span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic">
+				<span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/50 italic">
 					<User className="size-3.5 opacity-60" />
 					Unassigned
 				</span>
@@ -30,10 +30,10 @@ export function UserEditor({
 		}
 		return (
 			<div className="flex items-center gap-2.5">
-				<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+				<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold ring-1 ring-primary/20">
 					{userValue.initials}
 				</div>
-				<span className="text-[13px] font-medium text-foreground">
+				<span className="text-sm font-medium text-foreground">
 					{userValue.label}
 				</span>
 			</div>
@@ -47,15 +47,15 @@ export function UserEditor({
 				className={
 					userValue
 						? "flex items-center gap-2.5 hover:opacity-80 transition-opacity duration-150"
-						: "inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
+						: "inline-flex items-center gap-1.5 text-sm text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
 				}
 			>
 				{userValue ? (
 					<>
-						<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+						<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold ring-1 ring-primary/20">
 							{userValue.initials}
 						</div>
-						<span className="text-[13px] font-medium text-foreground">
+						<span className="text-sm font-medium text-foreground">
 							{userValue.label}
 						</span>
 					</>
@@ -73,7 +73,7 @@ export function UserEditor({
 				{showUnassigned && (
 					<button
 						type="button"
-						className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
+						className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 						onClick={() => onChange?.(null)}
 					>
 						<User className="size-3.5 opacity-60" />
@@ -85,10 +85,10 @@ export function UserEditor({
 					<button
 						key={u.value}
 						type="button"
-						className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+						className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 						onClick={() => onChange?.(u.value)}
 					>
-						<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[9px] font-bold">
+						<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
 							{u.initials}
 						</div>
 						<span className="flex-1 text-left truncate">{u.label}</span>

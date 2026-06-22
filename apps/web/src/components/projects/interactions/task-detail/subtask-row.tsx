@@ -74,12 +74,12 @@ export function SubtaskRow({
 			)}
 		>
 			{/* Task ID */}
-			<span className="w-16 shrink-0 font-[JetBrains_Mono,monospace] text-[10px] font-semibold text-muted-foreground/50 tracking-wide truncate">
+			<span className="w-16 shrink-0 font-[JetBrains_Mono,monospace] text-xs font-semibold text-muted-foreground/50 tracking-wide truncate">
 				{displayId}
 			</span>
 
 			{/* Title */}
-			<span className="flex-1 text-[13px] font-medium text-foreground truncate min-w-0">
+			<span className="flex-1 text-sm font-medium text-foreground truncate min-w-0">
 				{task.title}
 			</span>
 
@@ -95,7 +95,7 @@ export function SubtaskRow({
 						<Popover>
 							<PopoverTrigger
 								type="button"
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold leading-tight tracking-wide border hover:opacity-80 transition-opacity"
+								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border hover:opacity-80 transition-opacity"
 								style={
 									taskType
 										? {
@@ -126,7 +126,7 @@ export function SubtaskRow({
 										<button
 											key={tt.id}
 											type="button"
-											className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+											className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 											onClick={() =>
 												onUpdate?.(task.id, { task_type_id: tt.id })
 											}
@@ -149,7 +149,7 @@ export function SubtaskRow({
 					) : (
 						taskType && (
 							<span
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold leading-tight tracking-wide border"
+								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border"
 								style={{
 									borderColor: taskType.color
 										? `${taskType.color}44`
@@ -182,7 +182,7 @@ export function SubtaskRow({
 						>
 							<div
 								className={cn(
-									"flex size-5.5 items-center justify-center rounded-full text-[9px] font-bold ring-1",
+									"flex size-5.5 items-center justify-center rounded-full text-xs font-bold ring-1",
 									assignee
 										? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/20"
 										: "bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground ring-border/25",
@@ -203,7 +203,7 @@ export function SubtaskRow({
 						>
 							<button
 								type="button"
-								className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
+								className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 								onClick={() => onUpdate?.(task.id, { assignee_id: null })}
 							>
 								<User className="size-3.5 opacity-60" />
@@ -214,10 +214,10 @@ export function SubtaskRow({
 								<button
 									key={m.id}
 									type="button"
-									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 									onClick={() => onUpdate?.(task.id, { assignee_id: m.id })}
 								>
-									<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[9px] font-bold">
+									<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
 										{(m.full_name || m.username).slice(0, 1).toUpperCase()}
 									</div>
 									<span className="flex-1 text-left truncate">
@@ -233,7 +233,7 @@ export function SubtaskRow({
 				) : (
 					<div
 						className={cn(
-							"flex size-5.5 items-center justify-center rounded-full text-[9px] font-bold ring-1",
+							"flex size-5.5 items-center justify-center rounded-full text-xs font-bold ring-1",
 							assignee
 								? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/20"
 								: "bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground ring-border/25",
@@ -267,14 +267,14 @@ export function SubtaskRow({
 										style={{ background: priority.color }}
 									/>
 									<span
-										className="text-[11px] font-medium truncate"
+										className="text-xs font-medium truncate"
 										style={{ color: priority.color }}
 									>
 										{priority.label}
 									</span>
 								</>
 							) : (
-								<span className="text-[11px] text-muted-foreground/40">—</span>
+								<span className="text-xs text-muted-foreground/40">—</span>
 							)}
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
@@ -306,14 +306,14 @@ export function SubtaskRow({
 							style={{ background: priority.color }}
 						/>
 						<span
-							className="text-[11px] font-medium truncate"
+							className="text-xs font-medium truncate"
 							style={{ color: priority.color }}
 						>
 							{priority.label}
 						</span>
 					</>
 				) : (
-					<span className="text-[11px] text-muted-foreground/40">—</span>
+					<span className="text-xs text-muted-foreground/40">—</span>
 				)}
 			</div>
 
@@ -326,7 +326,7 @@ export function SubtaskRow({
 			>
 				{canEditField && statuses.length > 0 ? (
 					<DropdownMenu>
-						<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground tracking-wide hover:opacity-80 transition-opacity cursor-pointer truncate max-w-full">
+						<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2 py-0.5 text-xs font-semibold text-muted-foreground tracking-wide hover:opacity-80 transition-opacity cursor-pointer truncate max-w-full">
 							{status ? (
 								<>
 									<span
@@ -360,7 +360,7 @@ export function SubtaskRow({
 						</DropdownMenuContent>
 					</DropdownMenu>
 				) : status ? (
-					<span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground tracking-wide truncate max-w-full">
+					<span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2 py-0.5 text-xs font-semibold text-muted-foreground tracking-wide truncate max-w-full">
 						<span
 							className="size-1.5 rounded-full shrink-0"
 							style={{ background: status.color ?? "var(--muted-foreground)" }}
@@ -368,7 +368,7 @@ export function SubtaskRow({
 						<span className="truncate">{status.name}</span>
 					</span>
 				) : (
-					<span className="text-[11px] text-muted-foreground/40">—</span>
+					<span className="text-xs text-muted-foreground/40">—</span>
 				)}
 			</div>
 		</div>

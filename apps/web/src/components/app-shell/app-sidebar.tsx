@@ -116,7 +116,7 @@ function TreeInlineRename({
 		<Input
 			autoFocus
 			value={value}
-			className="h-6 text-[12px] px-1.5 rounded border border-primary/30 bg-sidebar focus:ring-1 focus:ring-primary/25 flex-1 min-w-0"
+			className="h-6 text-xs px-1.5 rounded border border-primary/30 bg-sidebar focus:ring-1 focus:ring-primary/25 flex-1 min-w-0"
 			onChange={(e) => setValue(e.target.value)}
 			onFocus={(e) => e.target.select()}
 			onKeyDown={(e) => {
@@ -180,7 +180,7 @@ function DocsDocRow({
 			<button
 				type="button"
 				className={cn(
-					"flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer transition-all duration-150 text-[12.5px]",
+					"flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer transition-all duration-150 text-xs",
 					isActive
 						? "bg-primary/10 text-primary font-medium"
 						: "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -335,7 +335,7 @@ function DocsFolderNode({
 			>
 				<button
 					type="button"
-					className="flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 text-[12.5px] text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+					className="flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 text-xs text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
 					onClick={() => {
 						if (!renaming) onToggle(folder.id);
 					}}
@@ -435,7 +435,7 @@ function DocsFolderNode({
 						childFolders.length === 0 &&
 						!addingDoc && (
 							<div
-								className="text-[11px] text-sidebar-foreground/30 italic py-1"
+								className="text-xs text-sidebar-foreground/30 italic py-1"
 								style={{ paddingLeft: `${8 + (depth + 1) * 16 + 26}px` }}
 							>
 								Empty folder
@@ -444,7 +444,7 @@ function DocsFolderNode({
 					{canWrite && (
 						<div style={{ paddingLeft: `${8 + (depth + 1) * 16 + 16}px` }}>
 							<DropdownMenu>
-								<DropdownMenuTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-all duration-150">
+								<DropdownMenuTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-all duration-150">
 									<Plus className="size-3 shrink-0" />
 									<span>Add</span>
 								</DropdownMenuTrigger>
@@ -631,7 +631,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 				<SidebarGroupContent>
 					<div className="py-1 space-y-0.5">
 						{isEmpty ? (
-							<div className="px-4 py-2 text-[11.5px] text-sidebar-foreground/40 italic">
+							<div className="px-4 py-2 text-xs text-sidebar-foreground/40 italic">
 								No documents yet
 							</div>
 						) : (
@@ -662,7 +662,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 						{canWrite && (
 							<div className="px-2 pt-1">
 								<DropdownMenu>
-									<DropdownMenuTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-all duration-150">
+									<DropdownMenuTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-all duration-150">
 										<Plus className="size-3 shrink-0" />
 										<span>Add</span>
 									</DropdownMenuTrigger>
@@ -718,7 +718,7 @@ function ProjectSwitcher({
 	if (!user) {
 		return (
 			<div className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm font-medium text-sidebar-foreground/80 select-none">
-				<div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary text-[10px] font-bold">
+				<div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary text-xs font-bold">
 					{initials ?? <FolderKanban className="size-3" />}
 				</div>
 				<span className="flex-1 truncate text-left">{label}</span>
@@ -736,7 +736,7 @@ function ProjectSwitcher({
 						: "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
 				)}
 			>
-				<div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary text-[10px] font-bold">
+				<div className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary text-xs font-bold">
 					{initials ?? <FolderKanban className="size-3" />}
 				</div>
 				<span className="flex-1 truncate text-left">{label}</span>
@@ -767,7 +767,7 @@ function ProjectSwitcher({
 									/>
 								}
 							>
-								<div className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/15 text-primary text-[9px] font-bold">
+								<div className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/15 text-primary text-xs font-bold">
 									{p.name.slice(0, 2).toUpperCase()}
 								</div>
 								<span className="truncate">{p.name}</span>
@@ -1288,7 +1288,7 @@ export function AppSidebar() {
 							className="size-8 shrink-0"
 						/>
 					)}
-					<span className="font-[Syne] font-bold text-[15px] tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+					<span className="font-[Syne] font-bold text-base tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden">
 						paca
 					</span>
 				</div>

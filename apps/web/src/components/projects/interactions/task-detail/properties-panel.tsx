@@ -174,7 +174,7 @@ export function PropertiesPanel({
 				<FieldRow label="Track Time">
 					<button
 						type="button"
-						className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
+						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
 					>
 						<Clock className="size-3.5 opacity-70" />
 						Add time
@@ -196,7 +196,7 @@ export function PropertiesPanel({
 				<FieldRow label="Relationships">
 					<button
 						type="button"
-						className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
+						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
 					>
 						<Link2 className="size-3.5 opacity-70" />
 						<FieldValue empty />
@@ -217,7 +217,7 @@ export function PropertiesPanel({
 					{canEdit ? (
 						<div className="flex items-center gap-2 flex-wrap">
 							<DropdownMenu>
-								<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-[12px] font-semibold text-muted-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-150">
+								<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-150">
 									{(() => {
 										const bucket = getImportanceBucket(task.importance ?? 0);
 										const level = PRIORITY_LEVELS.find(
@@ -276,7 +276,7 @@ export function PropertiesPanel({
 						(() => {
 							const p = getPriority(task.importance ?? 0);
 							return (
-								<div className="flex items-center gap-2 text-[13px] font-medium">
+								<div className="flex items-center gap-2 text-sm font-medium">
 									<span
 										className="size-2 rounded-full shrink-0"
 										style={{ background: p.color }}
@@ -300,7 +300,7 @@ export function PropertiesPanel({
 							onChange={(v) => onUpdate?.({ story_points: v })}
 						/>
 					) : (
-						<span className="text-[13px] font-medium tabular-nums">
+						<span className="text-sm font-medium tabular-nums">
 							{task.story_points != null ? task.story_points : "—"}
 						</span>
 					)}
@@ -353,7 +353,7 @@ export function PropertiesPanel({
 						return (
 							<FieldRow label="Epic">
 								<DropdownMenu>
-									<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium hover:bg-muted/50 transition-colors duration-150 cursor-pointer -ml-2 max-w-52 truncate">
+									<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-muted/50 transition-colors duration-150 cursor-pointer -ml-2 max-w-52 truncate">
 										{epic ? (
 											<>
 												<Layers className="size-3.5 shrink-0 text-violet-500/80" />
@@ -417,7 +417,7 @@ export function PropertiesPanel({
 									: null;
 								return (
 									<DropdownMenu>
-										<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium hover:bg-muted/50 transition-colors duration-150 cursor-pointer -ml-2 max-w-52 truncate">
+										<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-muted/50 transition-colors duration-150 cursor-pointer -ml-2 max-w-52 truncate">
 											{ParentIcon ? (
 												<ParentIcon className="size-3.5 shrink-0 text-muted-foreground/80" />
 											) : (
@@ -477,7 +477,7 @@ export function PropertiesPanel({
 				<button
 					type="button"
 					onClick={() => setAddFieldOpen(true)}
-					className="mt-3 flex items-center gap-2 text-[12px] text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
+					className="mt-3 flex items-center gap-2 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
 				>
 					<Plus className="size-3.5" />
 					Add fields

@@ -94,7 +94,7 @@ export function TaskLinksSection({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+				<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
 					<span>Linked Tasks</span>
 					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
@@ -102,7 +102,7 @@ export function TaskLinksSection({
 					<button
 						type="button"
 						onClick={() => setModalOpen(true)}
-						className="flex items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
+						className="flex items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-xs font-semibold transition-all duration-150"
 					>
 						<Plus className="size-3" />
 						Add Link
@@ -111,7 +111,7 @@ export function TaskLinksSection({
 			</div>
 
 			{createMutation.error && (
-				<p className="text-xs text-destructive">
+				<p className="text-sm text-destructive">
 					{createMutation.error.message}
 				</p>
 			)}
@@ -120,7 +120,7 @@ export function TaskLinksSection({
 				<div className="space-y-3">
 					{orderedKeys.map((displayType) => (
 						<div key={displayType}>
-							<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5 px-0.5">
+							<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5 px-0.5">
 								{LINK_TYPE_LABELS[displayType as DisplayLinkType]}
 							</p>
 							<div className="rounded-xl border border-border/25 bg-card/50 divide-y divide-border/15 overflow-hidden">
@@ -135,14 +135,14 @@ export function TaskLinksSection({
 											className="flex items-center gap-3 px-4 py-2.5 group"
 										>
 											<Link2 className="size-3 text-muted-foreground/40 shrink-0" />
-											<span className="shrink-0 text-[11px] font-mono text-muted-foreground/50">
+											<span className="shrink-0 text-xs font-mono text-muted-foreground/50">
 												{prefix}
 											</span>
 											{/* biome-ignore lint/a11y/useSemanticElements: span for styling and truncation */}
 											<span
 												role="button"
 												tabIndex={onNavigateToTask ? 0 : -1}
-												className={`flex-1 text-[13px] text-foreground truncate ${
+												className={`flex-1 text-sm text-foreground truncate ${
 													onNavigateToTask
 														? "cursor-pointer hover:text-primary transition-colors duration-100"
 														: ""
@@ -191,7 +191,7 @@ export function TaskLinksSection({
 			{orderedKeys.length === 0 && (
 				<div className="flex items-center gap-3 px-1 py-3 text-muted-foreground/45">
 					<Link2 className="size-4 opacity-70" />
-					<p className="text-[13px] italic">No linked tasks</p>
+					<p className="text-sm italic">No linked tasks</p>
 				</div>
 			)}
 

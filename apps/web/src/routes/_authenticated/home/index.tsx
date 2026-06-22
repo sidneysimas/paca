@@ -348,7 +348,7 @@ function ProjectCard({ project }: { project: Project }) {
 						{project.is_public && (
 							<Badge
 								variant="secondary"
-								className="gap-1 px-1.5 py-0 text-[10px] font-medium border border-border/60 shrink-0"
+								className="gap-1 px-1.5 py-0 text-xs font-medium border border-border/60 shrink-0"
 							>
 								<Globe className="size-3" />
 								Public
@@ -482,7 +482,7 @@ function HomePage() {
 								Scrumban workspace
 							</Badge>
 						</div>
-						<h1 className="font-[Syne] text-[2rem] font-bold tracking-tight leading-tight">
+						<h1 className="font-[Syne] text-3xl font-bold tracking-tight leading-tight">
 							{greeting},{" "}
 							<span
 								className="bg-clip-text text-transparent"
@@ -621,7 +621,7 @@ function HomePage() {
 										const isLocked = step > 1;
 										const inner = (
 											<>
-												<div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/20 font-mono text-[11px] font-bold text-primary tabular-nums">
+												<div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/20 font-mono text-xs font-bold text-primary tabular-nums">
 													{step}
 												</div>
 												<div className="min-w-0 flex-1">

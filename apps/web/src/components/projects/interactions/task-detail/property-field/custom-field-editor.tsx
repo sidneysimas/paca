@@ -35,7 +35,7 @@ export function CustomFieldEditor({
 				typeof rawValue === "number" ? rawValue : Number(rawValue) || 0;
 			if (!canEdit) {
 				return (
-					<span className="text-[13px] tabular-nums font-medium text-foreground">
+					<span className="text-sm tabular-nums font-medium text-foreground">
 						{num}
 					</span>
 				);
@@ -45,7 +45,7 @@ export function CustomFieldEditor({
 		case "Date":
 			if (!canEdit) {
 				return (
-					<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground font-medium">
+					<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
 						<CalendarDays className="size-3 shrink-0 opacity-70" />
 						{displayDate(rawValue as string | null) ?? "Empty"}
 					</span>

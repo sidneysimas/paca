@@ -1282,7 +1282,7 @@ export function InteractionLayout({
 			{/* Header */}
 			<div className="shrink-0 border-b border-border/30 px-8 py-5">
 				<div className="flex items-center gap-3">
-					<h1 className="font-[Syne] text-[26px] font-bold tracking-tight flex-1">
+					<h1 className="font-[Syne] text-2xl font-bold tracking-tight flex-1">
 						{title}
 					</h1>
 					{headerActions}
@@ -1291,7 +1291,7 @@ export function InteractionLayout({
 							type="button"
 							onClick={handleNewSprint}
 							disabled={createSprintMutation.isPending}
-							className="flex items-center gap-1.5 rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-1.5 text-[12px] font-semibold text-muted-foreground hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-150 disabled:opacity-50"
+							className="flex items-center gap-1.5 rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-150 disabled:opacity-50"
 						>
 							<Plus className="size-3.5 shrink-0" />
 							New sprint
@@ -1299,9 +1299,7 @@ export function InteractionLayout({
 					)}
 				</div>
 				{description && (
-					<p className="mt-1 text-[13px] text-muted-foreground">
-						{description}
-					</p>
+					<p className="mt-1 text-sm text-muted-foreground">{description}</p>
 				)}
 			</div>
 
@@ -1356,7 +1354,7 @@ export function InteractionLayout({
 										setPreferredViewId(view.id);
 									}}
 									className={cn(
-										"flex items-center gap-1.5 px-2.5 py-2.5 text-[12px] font-medium transition-all duration-150",
+										"flex items-center gap-1.5 px-2.5 py-2.5 text-xs font-medium transition-all duration-150",
 										isActive
 											? "text-primary"
 											: "text-muted-foreground/80 hover:text-foreground",
@@ -1434,7 +1432,7 @@ export function InteractionLayout({
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								placeholder="Search tasks…"
-								className="w-36 bg-transparent text-[12px] font-medium outline-none placeholder:text-muted-foreground/50"
+								className="w-36 bg-transparent text-xs font-medium outline-none placeholder:text-muted-foreground/50"
 								onKeyDown={(e) => {
 									if (e.key === "Escape") {
 										setSearchOpen(false);

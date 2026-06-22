@@ -190,7 +190,7 @@ function CreateCustomFieldDialog({
 							placeholder="release_tag"
 							className="font-mono text-sm"
 						/>
-						<p className="text-[10px] text-muted-foreground/60">
+						<p className="text-xs text-muted-foreground/60">
 							Used as the identifier in the API and data exports.
 						</p>
 					</div>
@@ -281,7 +281,7 @@ function CreateCustomFieldDialog({
 					<div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
 						<div>
 							<p className="text-sm font-medium">Required</p>
-							<p className="text-[11px] text-muted-foreground/70">
+							<p className="text-xs text-muted-foreground/70">
 								Users must fill this field when creating or editing a task.
 							</p>
 						</div>
@@ -431,7 +431,7 @@ function EditCustomFieldDialog({
 							disabled
 							className="font-mono text-sm opacity-60"
 						/>
-						<p className="text-[10px] text-muted-foreground/60">
+						<p className="text-xs text-muted-foreground/60">
 							Field key cannot be changed after creation.
 						</p>
 					</div>
@@ -447,7 +447,7 @@ function EditCustomFieldDialog({
 								{uiFieldType}
 							</button>
 						</div>
-						<p className="text-[10px] text-muted-foreground/60">
+						<p className="text-xs text-muted-foreground/60">
 							Field type cannot be changed after creation.
 						</p>
 					</div>
@@ -515,7 +515,7 @@ function EditCustomFieldDialog({
 					<div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
 						<div>
 							<p className="text-sm font-medium">Required</p>
-							<p className="text-[11px] text-muted-foreground/70">
+							<p className="text-xs text-muted-foreground/70">
 								Users must fill this field when creating or editing a task.
 							</p>
 						</div>
@@ -786,7 +786,7 @@ export function CustomFieldsSettings({
 										{field.field_key}
 									</TableCell>
 									<TableCell className="px-5">
-										<span className="inline-flex items-center rounded-md border border-border/40 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+										<span className="inline-flex items-center rounded-md border border-border/40 bg-muted/40 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
 											{toUIFieldType(field.field_type)}
 										</span>
 									</TableCell>

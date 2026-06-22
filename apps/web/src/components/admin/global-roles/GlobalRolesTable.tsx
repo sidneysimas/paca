@@ -70,7 +70,7 @@ export function GlobalRolesTable({
 											{active.map((permission) => (
 												<span
 													key={permission}
-													className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[0.68rem] font-medium leading-none ${permissionBadgeClass(permission)}`}
+													className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-xs font-medium leading-none ${permissionBadgeClass(permission)}`}
 												>
 													{permission}
 												</span>

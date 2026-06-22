@@ -34,7 +34,7 @@ export function LoginFormPanel() {
 				</div>
 
 				{/* Heading */}
-				<h1 className="display-title mb-1 text-2xl font-bold text-(--sea-ink) sm:text-[1.75rem]">
+				<h1 className="display-title mb-1 text-2xl font-bold text-(--sea-ink) sm:text-3xl">
 					Welcome back
 				</h1>
 				<p className="mb-8 text-sm text-(--sea-ink-soft)">

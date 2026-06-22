@@ -65,7 +65,7 @@ export function SubtasksSection({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+				<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
 					<span>Subtasks</span>
 					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
@@ -73,7 +73,7 @@ export function SubtasksSection({
 					<button
 						type="button"
 						onClick={() => setAdding(true)}
-						className="flex items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
+						className="flex items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-xs font-semibold transition-all duration-150"
 					>
 						<Plus className="size-3" />
 						Add Subtask
@@ -112,7 +112,7 @@ export function SubtasksSection({
 						<select
 							value={selectedTypeId}
 							onChange={(e) => setSelectedTypeId(e.target.value)}
-							className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150 self-start"
+							className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150 self-start"
 						>
 							{normalTaskTypes.map((t) => (
 								<option key={t.id} value={t.id}>
@@ -129,7 +129,7 @@ export function SubtasksSection({
 							value={newTitle}
 							onChange={(e) => setNewTitle(e.target.value)}
 							placeholder="Subtask title..."
-							className="flex-1 rounded-lg border border-border/30 bg-muted/20 px-3 py-2.5 text-[13px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
+							className="flex-1 rounded-lg border border-border/30 bg-muted/20 px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
 							onKeyDown={(e) => {
 								if (e.key === "Escape") {
 									setAdding(false);
@@ -139,7 +139,7 @@ export function SubtasksSection({
 						/>
 						<button
 							type="submit"
-							className="rounded-lg bg-primary px-3.5 py-2.5 text-[12px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors duration-150 shadow-sm"
+							className="rounded-lg bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors duration-150 shadow-sm"
 						>
 							Add
 						</button>
@@ -149,7 +149,7 @@ export function SubtasksSection({
 								setAdding(false);
 								setNewTitle("");
 							}}
-							className="rounded-lg border border-border/30 px-3.5 py-2.5 text-[12px] text-muted-foreground/80 hover:text-foreground hover:bg-muted/30 transition-all duration-150"
+							className="rounded-lg border border-border/30 px-3.5 py-2.5 text-sm text-muted-foreground/80 hover:text-foreground hover:bg-muted/30 transition-all duration-150"
 						>
 							Cancel
 						</button>
@@ -160,7 +160,7 @@ export function SubtasksSection({
 			{!adding && subtasks.length === 0 && (
 				<div className="flex items-center gap-3 px-1 py-3 text-muted-foreground/45">
 					<ListChecks className="size-4 opacity-70" />
-					<p className="text-[13px] italic">No subtasks yet</p>
+					<p className="text-sm italic">No subtasks yet</p>
 				</div>
 			)}
 		</div>

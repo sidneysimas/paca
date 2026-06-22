@@ -41,7 +41,7 @@ export function TextEditor({
 						setDraft(value ?? "");
 					}
 				}}
-				className="w-full min-w-30 rounded-lg border border-border/30 bg-muted/25 px-2.5 py-1 text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
+				className="w-full min-w-30 rounded-lg border border-border/30 bg-muted/25 px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150"
 			/>
 		);
 	}
@@ -53,7 +53,7 @@ export function TextEditor({
 				setDraft(value ?? "");
 				setEditing(true);
 			}}
-			className="rounded-lg px-2.5 py-1 -mx-2.5 text-[13px] font-medium text-foreground hover:bg-muted/30 transition-colors duration-150 min-w-15 text-left"
+			className="rounded-lg px-2.5 py-1 -mx-2.5 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors duration-150 min-w-15 text-left"
 		>
 			{value ? (
 				value

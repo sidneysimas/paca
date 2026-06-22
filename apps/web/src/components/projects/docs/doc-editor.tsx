@@ -167,7 +167,7 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 			// biome-ignore lint/a11y/noStaticElementInteractions: wrapper captures keydown from BlockNote rich-text editor
 			<div
 				data-testid="blocknote-editor"
-				className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 overflow-hidden [&_.bn-editor]:min-h-80 [&_.bn-editor]:py-4 [&_.bn-editor]:px-6 [&_.bn-editor]:text-[14px] [&_.bn-editor]:leading-relaxed"
+				className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 overflow-hidden [&_.bn-editor]:min-h-80 [&_.bn-editor]:py-4 [&_.bn-editor]:px-6 [&_.bn-editor]:text-sm [&_.bn-editor]:leading-relaxed"
 				onBlur={save}
 				onKeyDown={handleKeyDown}
 			>

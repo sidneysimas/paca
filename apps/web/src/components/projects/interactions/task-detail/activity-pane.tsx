@@ -112,7 +112,7 @@ export function TaskActivityPane({
 									params={{ projectId, conversationId: convId }}
 									target="_blank"
 									rel="noreferrer"
-									className="inline-flex items-center gap-1 text-[11px] font-medium text-primary/80 hover:text-primary underline-offset-2 hover:underline transition-colors"
+									className="inline-flex items-center gap-1 text-xs font-medium text-primary/80 hover:text-primary underline-offset-2 hover:underline transition-colors"
 								>
 									<Bot className="size-3" />
 									Watch session

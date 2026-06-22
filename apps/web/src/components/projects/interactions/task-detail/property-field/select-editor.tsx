@@ -26,8 +26,8 @@ export function SelectEditor({
 				type="button"
 				className={
 					firstSelected
-						? "inline-flex items-center gap-2 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-[12px] font-semibold text-muted-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-150"
-						: "inline-flex items-center gap-1.5 text-[12px] text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
+						? "inline-flex items-center gap-2 rounded-full border border-border/30 bg-muted/30 px-3 py-1 text-sm font-semibold text-muted-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-150"
+						: "inline-flex items-center gap-1.5 text-sm text-muted-foreground/50 italic hover:text-muted-foreground/80 transition-colors"
 				}
 			>
 				{firstSelected ? (
@@ -58,7 +58,7 @@ export function SelectEditor({
 						<button
 							key={opt.value}
 							type="button"
-							className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+							className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 							onClick={() => onChange(isSelected ? null : opt.value)}
 						>
 							{opt.colorDot ? (

@@ -18,7 +18,7 @@ function DiffLineRow({ line }: { line: DiffLine }) {
 	return (
 		<div
 			className={cn(
-				"flex gap-2 px-3 py-0.5 font-mono text-[12px] leading-5",
+				"flex gap-2 px-3 py-0.5 font-mono text-xs leading-5",
 				line.type === "added" &&
 					"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 				line.type === "removed" &&
@@ -52,7 +52,7 @@ export function ContentDiff({ oldContent, newContent }: ContentDiffProps) {
 		return (
 			<div className="flex flex-col items-center py-8 text-muted-foreground/40">
 				<GitBranch className="size-5 mb-2" />
-				<p className="text-[12px] font-medium">No text differences</p>
+				<p className="text-xs font-medium">No text differences</p>
 			</div>
 		);
 	}
@@ -86,16 +86,16 @@ export function ContentDiffDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-2xl max-h-[80vh] flex flex-col gap-0 p-0 overflow-hidden">
 				<DialogHeader className="px-5 py-4 border-b border-border/25 shrink-0">
-					<DialogTitle className="flex items-center gap-2 text-[14px]">
+					<DialogTitle className="flex items-center gap-2 text-sm">
 						<GitBranch className="size-4 text-muted-foreground/60" />
 						{title}
 					</DialogTitle>
 				</DialogHeader>
 				<div className="flex items-center gap-4 px-5 py-2 border-b border-border/25 bg-muted/10 shrink-0">
-					<span className="flex items-center gap-1.5 text-[11px] text-red-600/80 dark:text-red-400/80">
+					<span className="flex items-center gap-1.5 text-xs text-red-600/80 dark:text-red-400/80">
 						<span className="font-mono font-bold">-</span> Removed
 					</span>
-					<span className="flex items-center gap-1.5 text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
+					<span className="flex items-center gap-1.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
 						<span className="font-mono font-bold">+</span> Added
 					</span>
 				</div>

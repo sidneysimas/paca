@@ -172,11 +172,11 @@ export function ActivityPane<T extends ActivityEntry>({
 		<div className="flex w-full lg:w-80 lg:shrink-0 flex-col h-full lg:overflow-hidden border-t lg:border-t-0 lg:border-l border-border/25 bg-muted/10">
 			<div className="flex shrink-0 items-center gap-2.5 border-b border-border/25 px-5 py-3 bg-muted/20">
 				<MessageSquare className="size-3.5 text-muted-foreground/70" />
-				<span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
+				<span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
 					Activity
 				</span>
 				{sorted.length > 0 && (
-					<span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+					<span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold text-muted-foreground/70 tabular-nums">
 						{sorted.length}
 					</span>
 				)}
@@ -190,7 +190,7 @@ export function ActivityPane<T extends ActivityEntry>({
 					{sorted.length === 0 && (
 						<div className="flex flex-col items-center py-8 text-muted-foreground/40">
 							<MessageSquare className="size-6 mb-2" />
-							<p className="text-[12px] font-medium">No activity yet</p>
+							<p className="text-xs font-medium">No activity yet</p>
 						</div>
 					)}
 					{sorted.map((entry) => (
@@ -220,13 +220,13 @@ export function ActivityPane<T extends ActivityEntry>({
 				<div className="shrink-0 border-t border-border/25 p-3 space-y-1 bg-background/50">
 					{editingCommentId && (
 						<div className="flex items-center gap-2 px-1 pb-1">
-							<span className="text-[11px] font-medium text-foreground/70">
+							<span className="text-xs font-medium text-foreground/70">
 								Editing comment...
 							</span>
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-5 text-[10px] rounded-md px-2"
+								className="h-5 text-xs rounded-md px-2"
 								onClick={handleCancelEdit}
 							>
 								Cancel
@@ -237,7 +237,7 @@ export function ActivityPane<T extends ActivityEntry>({
 						className={cn(
 							"rounded-xl border border-border/30 bg-card/80 transition-all duration-200 overflow-hidden",
 							editorFocused && "border-primary/25 shadow-sm shadow-primary/5",
-							"[&_.bn-editor]:min-h-6 [&_.bn-editor]:max-h-48 [&_.bn-editor]:overflow-y-auto [&_.bn-editor]:py-1.5 [&_.bn-editor]:px-3 [&_.bn-editor]:text-[13px] [&_.bn-editor]:leading-relaxed",
+							"[&_.bn-editor]:min-h-6 [&_.bn-editor]:max-h-48 [&_.bn-editor]:overflow-y-auto [&_.bn-editor]:py-1.5 [&_.bn-editor]:px-3 [&_.bn-editor]:text-sm [&_.bn-editor]:leading-relaxed",
 						)}
 						onFocus={() => setEditorFocused(true)}
 						onBlur={(e) => {
@@ -258,7 +258,7 @@ export function ActivityPane<T extends ActivityEntry>({
 					</fieldset>
 					<div className="flex items-center justify-between">
 						{editorFocused && (
-							<p className="text-[10px] text-muted-foreground/40 pl-1">
+							<p className="text-xs text-muted-foreground/40 pl-1">
 								⌘↵ to send
 							</p>
 						)}
@@ -375,7 +375,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 		<div className="flex gap-3">
 			<div
 				className={cn(
-					"flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold mt-0.5 ring-1",
+					"flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5 ring-1",
 					isComment
 						? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/15"
 						: "bg-muted/40 text-muted-foreground/80 ring-border/20",
@@ -387,14 +387,14 @@ function ActivityItemInner<T extends ActivityEntry>({
 				{isComment ? (
 					<div className="group rounded-xl rounded-tl-lg border border-border/25 bg-card/70 px-3.5 py-2.5">
 						<div className="mb-1 flex items-center gap-2">
-							<span className="text-[12px] font-semibold text-foreground">
+							<span className="text-xs font-semibold text-foreground">
 								{displayName}
 							</span>
-							<span className="text-[10px] text-muted-foreground/50">
+							<span className="text-xs text-muted-foreground/50">
 								{timeAgo(entry.created_at)}
 							</span>
 							{isEditing && (
-								<span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-primary">
+								<span className="ml-auto flex items-center gap-1 text-xs font-medium text-primary">
 									<span className="relative flex size-2">
 										<span className="animate-ping absolute inline-flex size-full rounded-full bg-primary/40 opacity-75"></span>
 										<span className="relative inline-flex size-2 rounded-full bg-primary"></span>
@@ -425,11 +425,11 @@ function ActivityItemInner<T extends ActivityEntry>({
 						</div>
 
 						{commentBlocks && commentBlocks.length > 0 ? (
-							<div className="[&_.bn-editor]:text-[13px] [&_.bn-editor]:leading-relaxed [&_.bn-editor]:p-0">
+							<div className="[&_.bn-editor]:text-sm [&_.bn-editor]:leading-relaxed [&_.bn-editor]:p-0">
 								<CommentDisplay blocks={commentBlocks} />
 							</div>
 						) : (
-							<p className="text-[13px] text-foreground leading-relaxed">
+							<p className="text-sm text-foreground leading-relaxed">
 								{blocksToText(commentBlocks ?? [])}
 							</p>
 						)}
@@ -438,13 +438,13 @@ function ActivityItemInner<T extends ActivityEntry>({
 					<div className="flex flex-col min-w-0">
 						<div className="group flex items-start gap-1 py-0.5">
 							<div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
-								<span className="text-[12px] font-medium text-foreground/80">
+								<span className="text-xs font-medium text-foreground/80">
 									{displayName}
 								</span>
-								<span className="text-[12px] text-muted-foreground/70">
+								<span className="text-xs text-muted-foreground/70">
 									{describeActivity(entry)}
 								</span>
-								<span className="text-[10px] text-muted-foreground/45">
+								<span className="text-xs text-muted-foreground/45">
 									{timeAgo(entry.created_at)}
 								</span>
 							</div>
@@ -489,7 +489,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 							)}
 						</div>
 						{revertError && (
-							<p className="text-[11px] text-destructive/70 pl-0.5">
+							<p className="text-xs text-destructive/70 pl-0.5">
 								{revertError}
 							</p>
 						)}

@@ -40,7 +40,7 @@ export type {
 } from "./types";
 
 const TITLE_CLASSES =
-	"font-[Syne] text-xl lg:text-[26px] font-bold leading-snug text-foreground tracking-tight w-full";
+	"font-[Syne] text-xl lg:text-3xl font-bold leading-snug text-foreground tracking-tight w-full";
 
 export function TaskDetailModal({
 	task: taskProp,
@@ -259,7 +259,7 @@ export function TaskDetailModal({
 							<div className="flex items-center gap-2.5 flex-wrap">
 								{taskType && (
 									<span
-										className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold leading-tight tracking-wide border"
+										className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold leading-tight tracking-wide border"
 										style={{
 											borderColor: taskType.color
 												? `${taskType.color}44`
@@ -275,7 +275,7 @@ export function TaskDetailModal({
 									</span>
 								)}
 								{status && (
-									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide">
+									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-xs font-semibold text-muted-foreground tracking-wide">
 										<span
 											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{
@@ -339,7 +339,7 @@ export function TaskDetailModal({
 
 						{/* Properties */}
 						<div>
-							<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
+							<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
 								<span>Properties</span>
 								<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 							</h3>
@@ -456,10 +456,10 @@ export function TaskDetailModal({
 					<AlertCircle className="size-7 text-muted-foreground/60" />
 				</div>
 				<div className="text-center">
-					<p className="text-base font-semibold text-foreground/80">
+					<p className="text-lg font-semibold text-foreground/80">
 						Task not found
 					</p>
-					<p className="text-sm mt-1.5 text-muted-foreground/70">
+					<p className="text-base mt-1.5 text-muted-foreground/70">
 						This task may have been deleted or the link is invalid.
 					</p>
 				</div>

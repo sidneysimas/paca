@@ -134,7 +134,7 @@ function SprintPage() {
 						<button
 							type="button"
 							onClick={() => setCompleteOpen(true)}
-							className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary/20 transition-all duration-150"
+							className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-all duration-150"
 						>
 							<CheckCircle2 className="size-3.5 shrink-0" />
 							Complete sprint
@@ -167,10 +167,10 @@ function SprintPage() {
 						>
 							<X className="size-4" />
 						</button>
-						<h2 className="font-[Syne] text-[18px] font-bold tracking-tight mb-1">
+						<h2 className="font-[Syne] text-lg font-bold tracking-tight mb-1">
 							Complete sprint
 						</h2>
-						<p className="text-[13px] text-muted-foreground mb-5">
+						<p className="text-sm text-muted-foreground mb-5">
 							{incompleteTasks.length > 0
 								? `${incompleteTasks.length} incomplete task${incompleteTasks.length === 1 ? "" : "s"} will be moved to:`
 								: "No incomplete tasks remain in this sprint."}
@@ -197,7 +197,7 @@ function SprintPage() {
 									/>
 									<div>
 										<p className="text-sm font-semibold">Product Backlog</p>
-										<p className="text-[11px] text-muted-foreground">
+										<p className="text-xs text-muted-foreground">
 											Tasks will be unassigned from any sprint
 										</p>
 									</div>
@@ -224,7 +224,7 @@ function SprintPage() {
 										/>
 										<div>
 											<p className="text-sm font-semibold">{s.name}</p>
-											<p className="text-[11px] text-muted-foreground capitalize">
+											<p className="text-xs text-muted-foreground capitalize">
 												{s.status}
 											</p>
 										</div>

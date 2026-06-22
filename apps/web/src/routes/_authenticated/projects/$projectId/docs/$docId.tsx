@@ -118,7 +118,7 @@ function DocEditorPage() {
 			{/* ── Header bar ───────────────────────────────────────────────── */}
 			<div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-b border-border/30 shrink-0 gap-3 min-w-0">
 				{/* Breadcrumb path */}
-				<div className="flex items-center gap-1 min-w-0 text-[12px]">
+				<div className="flex items-center gap-1 min-w-0 text-xs">
 					{folderPath.map((folder) => (
 						<span key={folder.id} className="flex items-center gap-1 min-w-0">
 							<span className="text-muted-foreground/50 truncate max-w-32">
@@ -139,17 +139,13 @@ function DocEditorPage() {
 				{/* Right: save status + panel toggle */}
 				<div className="flex items-center gap-2 shrink-0">
 					{dirty && !updateMutation.isPending && (
-						<span className="text-[11px] text-muted-foreground/50">
-							Unsaved
-						</span>
+						<span className="text-xs text-muted-foreground/50">Unsaved</span>
 					)}
 					{updateMutation.isPending && (
-						<span className="text-[11px] text-muted-foreground/60">
-							Saving…
-						</span>
+						<span className="text-xs text-muted-foreground/60">Saving…</span>
 					)}
 					{!dirty && updateMutation.isSuccess && !updateMutation.isPending && (
-						<span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
+						<span className="text-xs text-muted-foreground/60 flex items-center gap-1">
 							<Check className="size-3 text-emerald-500" />
 							Saved
 						</span>

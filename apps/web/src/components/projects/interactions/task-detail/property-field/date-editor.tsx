@@ -20,7 +20,7 @@ export function SingleDateEditor({
 		<Popover>
 			<PopoverTrigger
 				type="button"
-				className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground hover:border-border/50 hover:bg-muted/40 transition-all duration-150 font-medium"
+				className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border/50 hover:bg-muted/40 transition-all duration-150 font-medium"
 			>
 				<CalendarDays className="size-3 shrink-0 opacity-70" />
 				<span>{displayDate(value) ?? placeholder}</span>
@@ -39,7 +39,7 @@ export function SingleDateEditor({
 					<div className="border-t border-border/30 pt-1.5 px-1 pb-0.5">
 						<button
 							type="button"
-							className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-destructive transition-colors duration-150"
+							className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-destructive transition-colors duration-150"
 							onClick={() => onChange?.(null)}
 						>
 							<Trash2 className="size-3" />
@@ -68,12 +68,12 @@ export function DateRangeEditor({
 	if (!canEdit) {
 		return (
 			<div className="flex items-center gap-2 flex-wrap">
-				<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground font-medium">
+				<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
 					<CalendarDays className="size-3 shrink-0 opacity-70" />
 					{displayDate(startDate) ?? "Start date"}
 				</span>
 				<Minus className="size-3 text-border/40 shrink-0" />
-				<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground font-medium">
+				<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
 					<CalendarDays className="size-3 shrink-0 opacity-70" />
 					{displayDate(dueDate) ?? "Due date"}
 				</span>

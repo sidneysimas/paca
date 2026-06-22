@@ -243,10 +243,10 @@ export function ListGroup({
 	const columnHeaders = (
 		<div className="flex items-center gap-3 px-4 py-1.5 bg-muted/20 border-b border-border/25">
 			{isDraggable && <div className="w-3 shrink-0" />}
-			<div className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
+			<div className="w-20 shrink-0 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 				ID
 			</div>
-			<div className="flex-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
+			<div className="flex-1 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 				Title
 			</div>
 			{visibleFields.map((fk) => {
@@ -256,7 +256,7 @@ export function ListGroup({
 						key={fk}
 						className={cn(
 							col.className,
-							"text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60",
+							"text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/60",
 							col.responsive ? "hidden sm:block" : "",
 						)}
 					>
@@ -415,7 +415,7 @@ export function ListGroup({
 			type="button"
 			onClick={groupPagination.onLoadMore}
 			disabled={groupPagination.isLoadingMore}
-			className="flex w-full items-center justify-center border-t border-border/10 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
+			className="flex w-full items-center justify-center border-t border-border/10 py-2 text-sm font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
 		>
 			{groupPagination.isLoadingMore ? "Loading…" : "View more"}
 		</button>
@@ -467,7 +467,7 @@ export function ListGroup({
 						}}
 					/>
 				)}
-				<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/80 flex-1 text-left truncate">
+				<span className="text-xs font-bold uppercase tracking-[0.08em] text-foreground/80 flex-1 text-left truncate">
 					{groupDef.label}
 				</span>
 
@@ -479,7 +479,7 @@ export function ListGroup({
 							e.stopPropagation();
 							setStartSprintOpen(true);
 						}}
-						className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm hover:bg-emerald-600 active:scale-95 transition-all duration-150 shrink-0"
+						className="flex items-center gap-1.5 rounded-md bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-emerald-600 active:scale-95 transition-all duration-150 shrink-0"
 					>
 						<Play className="size-3 fill-white" />
 						Start sprint
@@ -494,7 +494,7 @@ export function ListGroup({
 							e.stopPropagation();
 							onCreateSprint();
 						}}
-						className="flex items-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 active:scale-95 transition-all duration-150 shrink-0"
+						className="flex items-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 active:scale-95 transition-all duration-150 shrink-0"
 					>
 						<Plus className="size-3" />
 						New sprint
@@ -502,7 +502,7 @@ export function ListGroup({
 				)}
 
 				{/* Task count / field sum badge */}
-				<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
+				<span className="rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold text-muted-foreground/70 tabular-nums">
 					{fieldSum && fieldSum !== "count"
 						? `${apiFieldSum ?? 0}`
 						: (totalCount ?? tasks.length)}
@@ -587,7 +587,7 @@ export function ListGroup({
 								>
 									{swimDef.key !== "__all" && (
 										<div className="flex items-center gap-2 px-8 py-1.5 bg-muted/10">
-											<span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+											<span className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50">
 												{swimDef.label}
 											</span>
 										</div>
@@ -597,7 +597,7 @@ export function ListGroup({
 										columnHeaders}
 									{laneTasks.length === 0 && !groupPagination?.hasMore ? (
 										<div className="flex flex-col items-center py-5 text-muted-foreground/40">
-											<p className="text-[12px] font-medium">No tasks</p>
+											<p className="text-sm font-medium">No tasks</p>
 										</div>
 									) : (
 										laneTasks.map((task, index) =>
@@ -624,7 +624,7 @@ export function ListGroup({
 						{columnHeaders}
 						{orderedTasks.length === 0 && !groupPagination?.hasMore ? (
 							<div className="flex flex-col items-center py-8 text-muted-foreground/40">
-								<p className="text-[12px] font-medium">No tasks</p>
+								<p className="text-sm font-medium">No tasks</p>
 							</div>
 						) : (
 							orderedTasks.map((task, index) =>

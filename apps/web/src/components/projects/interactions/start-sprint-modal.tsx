@@ -101,7 +101,7 @@ export function StartSprintModal({
 				>
 					<X className="size-4" />
 				</button>
-				<h2 className="font-[Syne] text-[18px] font-bold tracking-tight mb-4">
+				<h2 className="font-[Syne] text-lg font-bold tracking-tight mb-4">
 					Start sprint
 				</h2>
 				<div className="flex flex-col gap-4">

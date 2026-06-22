@@ -68,7 +68,7 @@ export function NewViewPopover({
 					<button
 						type="button"
 						aria-label="Add view"
-						className="flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 transition-all duration-150"
+						className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 transition-all duration-150"
 					/>
 				}
 			>
@@ -82,7 +82,7 @@ export function NewViewPopover({
 				sideOffset={6}
 			>
 				<div className="px-3 py-2.5 border-b border-border/30">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
+					<p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
 						New view
 					</p>
 				</div>
@@ -90,7 +90,7 @@ export function NewViewPopover({
 					<div className="flex flex-col gap-1.5">
 						<label
 							htmlFor="new-view-name"
-							className="text-[12px] font-medium text-muted-foreground"
+							className="text-xs font-medium text-muted-foreground"
 						>
 							View name
 						</label>
@@ -100,13 +100,11 @@ export function NewViewPopover({
 							onChange={(e) => setName(e.target.value)}
 							onKeyDown={(e) => e.key === "Enter" && submit()}
 							placeholder={`New ${activeLabel}`}
-							className="w-full rounded-lg border border-border/30 bg-muted/15 px-3 py-2 text-[13px] font-medium outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/50 transition-all duration-150"
+							className="w-full rounded-lg border border-border/30 bg-muted/15 px-3 py-2 text-sm font-medium outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/50 transition-all duration-150"
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<p className="text-[12px] font-medium text-muted-foreground">
-							Layout
-						</p>
+						<p className="text-xs font-medium text-muted-foreground">Layout</p>
 						<div className="flex flex-wrap gap-2">
 							{builtinLayouts.map((l) => {
 								const isActive =
@@ -117,7 +115,7 @@ export function NewViewPopover({
 										type="button"
 										onClick={() => setSelected({ type: "builtin", layout: l })}
 										className={cn(
-											"flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-all duration-150",
+											"flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-150",
 											isActive
 												? "border-primary/40 bg-primary/8 text-primary"
 												: "border-border/25 text-muted-foreground/70 hover:text-foreground hover:border-border/40",
@@ -142,7 +140,7 @@ export function NewViewPopover({
 											setSelected({ type: "plugin", registration: reg })
 										}
 										className={cn(
-											"flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-all duration-150",
+											"flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-150",
 											isActive
 												? "border-primary/40 bg-primary/8 text-primary"
 												: "border-border/25 text-muted-foreground/70 hover:text-foreground hover:border-border/40",
@@ -159,7 +157,7 @@ export function NewViewPopover({
 						type="button"
 						onClick={submit}
 						disabled={isPending}
-						className="w-full rounded-lg bg-primary py-2 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
+						className="w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
 					>
 						{isPending ? "Creating…" : "Create view"}
 					</button>

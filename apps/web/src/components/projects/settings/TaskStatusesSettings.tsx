@@ -38,7 +38,7 @@ function StatusCategoryBadge({ category }: { category: string }) {
 		category;
 	return (
 		<span
-			className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.68rem] font-medium leading-none ${colors[category] ?? "bg-muted text-muted-foreground border-border"}`}
+			className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium leading-none ${colors[category] ?? "bg-muted text-muted-foreground border-border"}`}
 		>
 			{label}
 		</span>

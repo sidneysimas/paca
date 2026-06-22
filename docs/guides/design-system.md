@@ -68,6 +68,7 @@ Paca's visual language is **High-Contrast Minimalism** — an aesthetic built on
 4. **Sharp but subtle radii**: Border radius is `0.5rem` (8px) — just enough softness to feel crafted, not rounded to the point of looking playful.
 5. **Flat shadows**: Shadows are `0 1px 3px rgba(0,0,0,0.07)` at most — present for elevation cues, never decorative.
 6. **Emerald for completion**: The emerald green (`bg-emerald-500`) is reserved exclusively for success/completed states (checkboxes, progress bars at 100%).
+7. **Standard type scale only**: Font sizes always use Tailwind's named scale (`text-xs` … `text-3xl`). Never `text-[13px]`, `text-[0.8rem]`, or any other arbitrary value — see [Type Scale](#typography).
 
 ---
 
@@ -100,23 +101,27 @@ We use **opacity-modulated semantic tokens** — never raw hex values in compone
 
 ### Type Scale
 
-| Role | Size | Weight | Tracking | Class |
+**Rule: only Tailwind's standard type scale.** Never write an arbitrary value like `text-[13px]` or `text-[0.8rem]` — always use the nearest standard class (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`, …). Arbitrary px/rem values don't track the rest of the type system, drift over time, and make it impossible to globally re-tune sizing. If you need something between two steps, pick one — don't invent a value.
+
+This means several formerly-distinct micro-sizes (10px / 11px / 12px) now share `text-xs`, and 13px / 14px now share `text-sm`. The roles below stay visually distinct from each other through weight, tracking, and color — not through one-off pixel sizes.
+
+| Role | Class | Rendered size | Weight | Tracking |
 |---|---|---|---|---|
-| **Page title** | 26px | bold | tight | `text-[26px] font-bold tracking-tight` |
-| **Section heading** | 11px | semibold | 0.08em uppercase | `text-[11px] font-semibold uppercase tracking-[0.08em]` |
-| **Body text** | 14px | normal | default | `text-[14px]` |
-| **Field values** | 13px | medium | default | `text-[13px] font-medium` |
-| **Field labels** | 13px | medium | default | `text-[13px] font-medium text-muted-foreground` |
-| **Small labels** | 12px | medium | default | `text-[12px] font-medium` |
-| **Mini text / IDs** | 11px | semibold/bold | wider | `text-[11px] font-semibold tracking-wider` |
-| **Micro text** | 10px | bold | default | `text-[10px] font-bold` |
+| **Page title** | `text-xl lg:text-3xl` | 20px / 30px (desktop) | bold | tight |
+| **Section heading** | `text-xs` | 12px | semibold | 0.08em uppercase |
+| **Body text** | `text-sm` | 14px | normal | default |
+| **Field values** | `text-sm font-medium` | 14px | medium | default |
+| **Field labels** | `text-sm font-medium text-muted-foreground` | 14px | medium | default |
+| **Small labels** | `text-xs font-medium` | 12px | medium | default |
+| **Mini text / IDs** | `text-xs font-semibold tracking-wider` | 12px | semibold/bold | wider |
+| **Micro text** | `text-xs font-bold` | 12px | bold | default |
 
 ### Inline Edit Pattern
 
 When text is click-to-edit, both display and edit modes share the same typographic class so the layout doesn't shift:
 
 ```tsx
-const TITLE_CLASSES = "font-[Syne] text-[26px] font-bold leading-snug text-foreground tracking-tight w-full";
+const TITLE_CLASSES = "font-[Syne] text-xl lg:text-3xl font-bold leading-snug text-foreground tracking-tight w-full";
 
 // Display
 <h1 className={cn(TITLE_CLASSES, canEdit && "cursor-text hover:bg-muted/15 rounded-md px-2 -ml-2 py-1")}>{title}</h1>
@@ -203,7 +208,7 @@ All container surfaces follow a layered approach with very low opacity:
 Every section heading has a horizontal gradient line that fades to transparent:
 
 ```tsx
-<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
   <span>Section Name</span>
   <div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 </h3>
@@ -255,7 +260,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <button className="flex items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80
-  hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-[11px] font-semibold
+  hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-sm font-semibold
   transition-all duration-150">
   <Plus className="size-3" />
   Add Task
@@ -266,7 +271,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <button className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80
-  hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold
+  hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-xs font-semibold
   transition-all duration-150">
 ```
 
@@ -283,7 +288,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 ### CTA / Submit Button
 
 ```tsx
-<button className="rounded-lg bg-primary px-4 py-2 text-[13px] font-semibold
+<button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold
   text-primary-foreground hover:bg-primary/90 shadow-sm transition-all duration-150">
   Create field
 </button>
@@ -292,7 +297,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 ### Inline Text Button
 
 ```tsx
-<button className="text-[12px] text-muted-foreground/70 hover:text-foreground
+<button className="text-xs text-muted-foreground/70 hover:text-foreground
   transition-colors duration-150 font-medium">
 ```
 
@@ -305,7 +310,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 ```tsx
 <span
   className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1
-    text-[11px] font-bold leading-tight tracking-wide border"
+    text-xs font-bold leading-tight tracking-wide border"
   style={{
     borderColor: color ? `${color}44` : "var(--border)",
     backgroundColor: color ? `${color}15` : "var(--muted)",
@@ -321,7 +326,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <span className="inline-flex items-center gap-2 rounded-full border border-border/40
-  bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground
+  bg-muted/40 px-3 py-1 text-xs font-semibold text-muted-foreground
   tracking-wide backdrop-blur-sm">
   <span className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
     style={{ background: color, boxShadow: `0 0 6px ${color}40` }} />
@@ -335,7 +340,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 <div className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1
   border border-border/30">
   <Hash className="size-3 text-muted-foreground/60" />
-  <span className="font-mono text-[11px] font-semibold text-muted-foreground tracking-wider">
+  <span className="font-mono text-xs font-semibold text-muted-foreground tracking-wider">
     {shortId}
   </span>
 </div>
@@ -344,7 +349,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 ### Count Badge
 
 ```tsx
-<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold
+<span className="rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold
   text-muted-foreground/70 tabular-nums">
   {count}
 </span>
@@ -358,7 +363,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <div className="flex size-6 items-center justify-center rounded-full
-  bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold
+  bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold
   ring-1 ring-primary/20">
   {initial}
 </div>
@@ -368,7 +373,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <div className="flex size-6 items-center justify-center rounded-full
-  bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold
+  bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-xs font-bold
   ring-1 ring-border/25">
   {initial}
 </div>
@@ -382,7 +387,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <input className="w-full rounded-lg border border-border/30 bg-muted/15
-  px-3.5 py-2.5 text-[13px] outline-none
+  px-3.5 py-2.5 text-sm outline-none
   focus:border-primary/40 focus:ring-2 focus:ring-primary/15
   placeholder:text-muted-foreground/50 transition-all duration-150" />
 ```
@@ -391,7 +396,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <label className="inline-flex items-center gap-1.5 rounded-lg border border-border/25
-  bg-muted/25 px-2.5 py-1.5 text-[11px] text-muted-foreground/70
+  bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground/70
   hover:border-border/50 hover:bg-muted/40 transition-all duration-150
   cursor-pointer font-medium">
   <CalendarDays className="size-3 shrink-0 opacity-70" />
@@ -404,7 +409,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <input type="number" className="w-16 rounded-lg border border-border/30 bg-muted/25
-  px-2.5 py-1 text-[13px] text-center tabular-nums font-medium
+  px-2.5 py-1 text-sm text-center tabular-nums font-medium
   focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all duration-150" />
 ```
 
@@ -455,7 +460,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <span className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5
-  text-[11px] font-medium text-foreground/80 border border-border/20
+  text-xs font-medium text-foreground/80 border border-border/20
   hover:border-border/40 transition-colors duration-150">
   {tag}
   <button className="text-muted-foreground/60 hover:text-destructive transition-colors duration-150">
@@ -468,7 +473,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <button className="inline-flex items-center gap-1 rounded-md border border-dashed
-  border-border/30 px-2 py-0.5 text-[11px] text-muted-foreground/60
+  border-border/30 px-2 py-0.5 text-xs text-muted-foreground/60
   hover:border-border/60 hover:text-muted-foreground transition-all duration-150">
   <Plus className="size-2.5" />
   Add tag
@@ -488,7 +493,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 ### Popover Item
 
 ```tsx
-<button className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px]
+<button className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm
   hover:bg-muted/60 transition-colors duration-100">
   <Icon className="size-3.5 text-muted-foreground/80 shrink-0" />
   <span className="flex-1 text-left">{label}</span>
@@ -503,7 +508,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 Every content section uses the same heading pattern — uppercase micro text with a trailing gradient line:
 
 ```tsx
-<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70
+<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70
   mb-3 flex items-center gap-2">
   <span>Section Name</span>
   <div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
@@ -521,14 +526,14 @@ Property rows use a CSS grid with a fixed label column and a flexible value colu
 ```tsx
 <div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1
   group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
-  <span className="text-[13px] font-medium text-muted-foreground leading-snug select-none">
+  <span className="text-sm font-medium text-muted-foreground leading-snug select-none">
     {label}
   </span>
   <div className="min-w-0">{children}</div>
 </div>
 ```
 
-Empty values: `<span className="text-[13px] text-muted-foreground/50 italic">Empty</span>`
+Empty values: `<span className="text-sm text-muted-foreground/50 italic">Empty</span>`
 
 ---
 
@@ -539,7 +544,7 @@ Empty states use an icon inside a rounded container with centered text:
 ```tsx
 <div className="flex flex-col items-center py-8 text-muted-foreground/40">
   <Icon className="size-6 mb-2" />
-  <p className="text-[12px] font-medium">No items yet</p>
+  <p className="text-xs font-medium">No items yet</p>
 </div>
 ```
 
@@ -548,28 +553,32 @@ For inline empty states:
 ```tsx
 <div className="flex items-center gap-3 px-1 py-3 text-muted-foreground/45">
   <ListChecks className="size-4 opacity-70" />
-  <p className="text-[13px] italic">No subtasks yet</p>
+  <p className="text-sm italic">No subtasks yet</p>
 </div>
 ```
 
-### Clickable Empty State (add placeholder)
+### Clickable Empty State (drop zone / add placeholder)
 
 ```tsx
-<button className="w-full rounded-xl border-2 border-dashed border-border/25 bg-muted/10
-  px-5 py-6 text-left hover:border-primary/20 hover:bg-muted/20
-  transition-all duration-200 group/add">
-  <div className="flex items-center gap-3">
-    <div className="flex size-8 items-center justify-center rounded-lg bg-muted/40
-      text-muted-foreground/45 group-hover/add:text-muted-foreground/70 transition-colors">
-      <FileText className="size-4" />
-    </div>
-    <span className="text-[13px] text-muted-foreground/60 group-hover/add:text-muted-foreground
-      font-medium transition-colors">
-      Add a description…
-    </span>
+<button className="w-full rounded-xl border-2 border-dashed p-8 text-center
+  transition-all duration-200 cursor-pointer group/drop
+  border-border/20 bg-muted/5 text-muted-foreground/50
+  hover:border-border/40 hover:bg-muted/10">
+  <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-xl
+    bg-muted/30 text-muted-foreground/45 transition-all duration-200
+    group-hover/drop:bg-muted/40 group-hover/drop:text-muted-foreground/70">
+    <Paperclip className="size-5" />
   </div>
+  <p className="text-sm font-medium text-muted-foreground/70 group-hover/drop:text-muted-foreground transition-colors">
+    Drop your files here to upload
+  </p>
+  <p className="text-xs mt-1.5 text-muted-foreground/45 transition-colors">
+    or click to browse
+  </p>
 </button>
 ```
+
+For drag-active state, swap to `border-primary/50 bg-primary/5 text-primary shadow-sm shadow-primary/10`.
 
 ---
 
@@ -644,9 +653,9 @@ For inline empty states:
     {initial}
   </div>
   <div className="flex flex-wrap items-baseline gap-1.5 py-0.5">
-    <span className="text-[12px] font-medium text-foreground/80">{author}</span>
-    <span className="text-[12px] text-muted-foreground/70">{content}</span>
-    <span className="text-[10px] text-muted-foreground/45">{timeAgo}</span>
+    <span className="text-xs font-medium text-foreground/80">{author}</span>
+    <span className="text-xs text-muted-foreground/70">{content}</span>
+    <span className="text-xs text-muted-foreground/45">{timeAgo}</span>
   </div>
 </div>
 ```
@@ -661,25 +670,34 @@ For inline empty states:
   </div>
   <div className="rounded-xl rounded-tl-lg border border-border/25 bg-card/70 px-3.5 py-2.5">
     <div className="mb-1 flex items-center gap-2">
-      <span className="text-[12px] font-semibold text-foreground">{author}</span>
-      <span className="text-[10px] text-muted-foreground/50">{timeAgo}</span>
+      <span className="text-xs font-semibold text-foreground">{author}</span>
+      <span className="text-xs text-muted-foreground/50">{timeAgo}</span>
     </div>
-    <p className="text-[13px] text-foreground leading-relaxed">{content}</p>
+    <p className="text-sm text-foreground leading-relaxed">{content}</p>
   </div>
 </div>
 ```
 
 ### Comment Input
 
+Comments are rich text (BlockNote `CommentEditor`), not a plain `<textarea>`. The editor sits in its own bordered fieldset; the send button and "⌘↵ to send" hint live in a row below it:
+
 ```tsx
-<div className="flex items-end gap-2 rounded-xl border border-border/30 bg-card/80
-  px-3 py-2.5 transition-all duration-200
-  focus-within:border-primary/25 focus-within:shadow-sm focus-within:shadow-primary/5">
-  <textarea className="flex-1 resize-none bg-transparent text-[13px] outline-none
-    placeholder:text-muted-foreground/55 leading-relaxed" />
+<fieldset className={cn(
+  "rounded-xl border border-border/30 bg-card/80 transition-all duration-200 overflow-hidden",
+  focused && "border-primary/25 shadow-sm shadow-primary/5",
+  "[&_.bn-editor]:min-h-6 [&_.bn-editor]:max-h-48 [&_.bn-editor]:overflow-y-auto",
+  "[&_.bn-editor]:py-1.5 [&_.bn-editor]:px-3 [&_.bn-editor]:text-sm [&_.bn-editor]:leading-relaxed",
+)}>
+  <CommentEditor ref={editorRef} initialBlocks={blocks} onSubmit={handleSend} />
+</fieldset>
+<div className="flex items-center justify-between">
+  {focused && (
+    <p className="text-xs text-muted-foreground/40 pl-1">⌘↵ to send</p>
+  )}
   <button className="flex size-7 shrink-0 items-center justify-center rounded-lg
     bg-primary text-primary-foreground shadow-sm hover:bg-primary/90
-    disabled:opacity-40 transition-all duration-150">
+    disabled:opacity-40 transition-all duration-150 ml-auto">
     <Send className="size-3" />
   </button>
 </div>

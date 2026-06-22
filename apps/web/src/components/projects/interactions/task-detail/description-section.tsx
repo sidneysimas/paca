@@ -187,14 +187,14 @@ export function DescriptionSection({
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+				<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
 					<span>Description</span>
 					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
 				{canEdit && (
 					<button
 						type="button"
-						className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
+						className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
 						onClick={() => setWriteWithAIOpen(true)}
 					>
 						<Sparkles className="size-3" />
@@ -205,7 +205,7 @@ export function DescriptionSection({
 
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper captures blur from BlockNote rich-text editor */}
 			<div
-				className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 overflow-hidden [&_.bn-editor]:min-h-20 [&_.bn-editor]:py-3 [&_.bn-editor]:text-[14px] [&_.bn-editor]:leading-relaxed"
+				className="rounded-xl border border-border/25 bg-card/50 hover:border-border/50 transition-all duration-200 overflow-hidden [&_.bn-editor]:min-h-20 [&_.bn-editor]:py-3 [&_.bn-editor]:text-base [&_.bn-editor]:leading-relaxed"
 				onBlur={handleBlur}
 			>
 				<BlockNoteView
@@ -248,7 +248,7 @@ export function DescriptionSection({
 
 					<div className="space-y-2 py-2">
 						{agents.length === 0 ? (
-							<p className="text-sm text-muted-foreground text-center py-4">
+							<p className="text-base text-muted-foreground text-center py-4">
 								No agents configured for this project.
 							</p>
 						) : (
@@ -268,10 +268,10 @@ export function DescriptionSection({
 										<Bot className="size-3.5" />
 									</div>
 									<div className="min-w-0">
-										<p className="text-sm font-medium leading-tight truncate">
+										<p className="text-base font-medium leading-tight truncate">
 											{agent.name}
 										</p>
-										<p className="text-[11px] text-muted-foreground/70 mt-0.5 truncate">
+										<p className="text-xs text-muted-foreground/70 mt-0.5 truncate">
 											@{agent.handle}
 										</p>
 									</div>
@@ -281,7 +281,7 @@ export function DescriptionSection({
 					</div>
 
 					{writeWithAIMutation.error && (
-						<p className="text-xs text-destructive">
+						<p className="text-sm text-destructive">
 							{writeWithAIMutation.error.message}
 						</p>
 					)}

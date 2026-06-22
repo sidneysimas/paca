@@ -94,7 +94,7 @@ interface FeatureBadgeProps {
 
 function FeatureBadge({ icon, label }: FeatureBadgeProps) {
 	return (
-		<Badge variant="secondary" className="gap-1.5 text-[10px] h-5">
+		<Badge variant="secondary" className="gap-1.5 text-xs h-5">
 			{icon}
 			<span>{label}</span>
 		</Badge>
@@ -153,14 +153,12 @@ function PluginCard({
 						<p className="font-medium text-sm truncate">
 							{plugin.display_name}
 						</p>
-						<Badge variant="outline" className="text-[11px]">
+						<Badge variant="outline" className="text-xs">
 							{plugin.version}
 						</Badge>
-						{isInstalled ? (
-							<Badge className="text-[11px]">Installed</Badge>
-						) : null}
+						{isInstalled ? <Badge className="text-xs">Installed</Badge> : null}
 						{upgradeAvailable ? (
-							<Badge variant="secondary" className="text-[11px] gap-1">
+							<Badge variant="secondary" className="text-xs gap-1">
 								<ArrowUpCircle className="size-3" />
 								Update available
 							</Badge>

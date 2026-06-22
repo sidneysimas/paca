@@ -280,7 +280,7 @@ export function RoadmapView({
 								type?.color ?? "oklch(var(--muted-foreground) / 0.25)",
 						}}
 					/>
-					<span className="min-w-0 truncate text-[12.5px] font-medium text-foreground/85">
+					<span className="min-w-0 truncate text-sm font-medium text-foreground/85">
 						{task.title}
 					</span>
 				</div>
@@ -308,10 +308,10 @@ export function RoadmapView({
 						boxShadow: group.color ? `0 0 6px ${group.color}40` : undefined,
 					}}
 				/>
-				<span className="text-[10.5px] font-bold uppercase tracking-[0.07em] text-foreground/65">
+				<span className="text-xs font-bold uppercase tracking-[0.07em] text-foreground/65">
 					{group.label}
 				</span>
-				<span className="rounded-full bg-muted/70 px-2 py-px text-[10px] font-bold tabular-nums text-muted-foreground/60">
+				<span className="rounded-full bg-muted/70 px-2 py-px text-xs font-bold tabular-nums text-muted-foreground/60">
 					{count}
 				</span>
 			</div>
@@ -343,7 +343,7 @@ export function RoadmapView({
 							style={{ width: LEFT_COL_W }}
 						>
 							<CalendarDays className="size-3 text-muted-foreground/45" />
-							<span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/55">
+							<span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/55">
 								Task
 							</span>
 						</div>
@@ -362,7 +362,7 @@ export function RoadmapView({
 									)}
 									style={{ left: m.px, width: m.widthPx }}
 								>
-									<span className="text-[11px] font-semibold text-muted-foreground/50 whitespace-nowrap">
+									<span className="text-xs font-semibold text-muted-foreground/50 whitespace-nowrap">
 										{m.label}
 									</span>
 								</div>
@@ -385,7 +385,7 @@ export function RoadmapView({
 					{filtered.length === 0 ? (
 						<div className="flex flex-col items-center py-20 text-muted-foreground/40">
 							<CalendarDays className="mb-2 size-7" />
-							<p className="text-[12px] font-medium">No tasks to display</p>
+							<p className="text-sm font-medium">No tasks to display</p>
 						</div>
 					) : (
 						groupDefs.map((group) => {
@@ -415,7 +415,7 @@ export function RoadmapView({
 								type="button"
 								onClick={pagination.onLoadMore}
 								disabled={pagination.isLoadingMore}
-								className="rounded-lg border border-border/40 px-4 py-1.5 text-[12px] font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-all duration-150 disabled:opacity-50"
+								className="rounded-lg border border-border/40 px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-all duration-150 disabled:opacity-50"
 							>
 								{pagination.isLoadingMore ? "Loading…" : "View more"}
 							</button>

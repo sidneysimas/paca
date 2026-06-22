@@ -171,7 +171,7 @@ export function TaskRow({
 						<Popover>
 							<PopoverTrigger
 								type="button"
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold leading-tight tracking-wide border truncate max-w-full hover:opacity-80 transition-opacity"
+								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border truncate max-w-full hover:opacity-80 transition-opacity"
 								style={
 									taskType
 										? {
@@ -189,7 +189,7 @@ export function TaskRow({
 								{taskType ? (
 									taskType.name
 								) : (
-									<span className="text-xs text-muted-foreground/50">—</span>
+									<span className="text-sm text-muted-foreground/50">—</span>
 								)}
 							</PopoverTrigger>
 							<PopoverContent
@@ -202,7 +202,7 @@ export function TaskRow({
 										<button
 											key={tt.id}
 											type="button"
-											className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+											className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 											onClick={() =>
 												onUpdateTaskField(task.id, { task_type_id: tt.id })
 											}
@@ -230,7 +230,7 @@ export function TaskRow({
 					>
 						{taskType ? (
 							<span
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold leading-tight tracking-wide border truncate max-w-full"
+								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border truncate max-w-full"
 								style={{
 									borderColor: taskType.color
 										? `${taskType.color}44`
@@ -244,7 +244,7 @@ export function TaskRow({
 								{taskType.name}
 							</span>
 						) : (
-							<span className="text-xs text-muted-foreground/50">—</span>
+							<span className="text-sm text-muted-foreground/50">—</span>
 						)}
 					</div>
 				);
@@ -269,16 +269,14 @@ export function TaskRow({
 												style={{ background: p.color }}
 											/>
 											<span
-												className="text-[11px] font-medium truncate"
+												className="text-xs font-medium truncate"
 												style={{ color: p.color }}
 											>
 												{p.label}
 											</span>
 										</>
 									) : (
-										<span className="text-[11px] text-muted-foreground/50">
-											—
-										</span>
+										<span className="text-xs text-muted-foreground/50">—</span>
 									);
 								})()}
 							</DropdownMenuTrigger>
@@ -320,14 +318,14 @@ export function TaskRow({
 										style={{ background: p.color }}
 									/>
 									<span
-										className="text-[11px] font-medium truncate"
+										className="text-xs font-medium truncate"
 										style={{ color: p.color }}
 									>
 										{p.label}
 									</span>
 								</>
 							) : (
-								<span className="text-[11px] text-muted-foreground/50">—</span>
+								<span className="text-xs text-muted-foreground/50">—</span>
 							);
 						})()}
 					</div>
@@ -343,7 +341,7 @@ export function TaskRow({
 						onKeyDown={(e) => e.stopPropagation()}
 					>
 						<DropdownMenu>
-							<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground tracking-wide hover:opacity-80 transition-opacity truncate max-w-full cursor-pointer">
+							<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tracking-wide hover:opacity-80 transition-opacity truncate max-w-full cursor-pointer">
 								{status ? (
 									<>
 										<span
@@ -356,9 +354,7 @@ export function TaskRow({
 										{status.name}
 									</>
 								) : (
-									<span className="text-[11px] text-muted-foreground/50">
-										—
-									</span>
+									<span className="text-xs text-muted-foreground/50">—</span>
 								)}
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="start">
@@ -388,7 +384,7 @@ export function TaskRow({
 						className={cn(col.className, responsiveClass, "items-center")}
 					>
 						{status ? (
-							<span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground tracking-wide">
+							<span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2.5 py-0.5 text-xs font-semibold text-muted-foreground tracking-wide">
 								<span
 									className="size-1.5 rounded-full shrink-0"
 									style={{
@@ -402,7 +398,7 @@ export function TaskRow({
 								{status.name}
 							</span>
 						) : (
-							<span className="text-[11px] text-muted-foreground/50">—</span>
+							<span className="text-xs text-muted-foreground/50">—</span>
 						)}
 					</div>
 				);
@@ -426,7 +422,7 @@ export function TaskRow({
 							>
 								<div
 									className={cn(
-										"flex size-6 items-center justify-center rounded-full text-[10px] font-bold ring-1",
+										"flex size-6 items-center justify-center rounded-full text-xs font-bold ring-1",
 										assignee
 											? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/20"
 											: "bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground ring-border/25",
@@ -447,7 +443,7 @@ export function TaskRow({
 							>
 								<button
 									type="button"
-									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
+									className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 									onClick={() =>
 										onUpdateTaskField(task.id, { assignee_id: null })
 									}
@@ -460,12 +456,12 @@ export function TaskRow({
 									<button
 										key={m.id}
 										type="button"
-										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 										onClick={() =>
 											onUpdateTaskField(task.id, { assignee_id: m.id })
 										}
 									>
-										<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[9px] font-bold">
+										<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
 											{(m.full_name || m.username).slice(0, 1).toUpperCase()}
 										</div>
 										<span className="flex-1 text-left truncate">
@@ -486,7 +482,7 @@ export function TaskRow({
 					>
 						<div
 							className={cn(
-								"flex size-6 items-center justify-center rounded-full text-[10px] font-bold ring-1",
+								"flex size-6 items-center justify-center rounded-full text-xs font-bold ring-1",
 								assignee
 									? "bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-primary/20"
 									: "bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground ring-border/25",
@@ -517,7 +513,7 @@ export function TaskRow({
 							"items-center justify-center",
 						)}
 					>
-						<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold ring-1 ring-border/25">
+						<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-xs font-bold ring-1 ring-border/25">
 							{reporter ? (
 								(reporter.full_name || reporter.username)
 									.slice(0, 1)
@@ -536,7 +532,7 @@ export function TaskRow({
 						key="start_date"
 						className={cn(col.className, responsiveClass, "items-center")}
 					>
-						<span className="text-[11px] text-muted-foreground/70 truncate">
+						<span className="text-xs text-muted-foreground/70 truncate">
 							{task.start_date ? formatDate(task.start_date) : "—"}
 						</span>
 					</div>
@@ -548,7 +544,7 @@ export function TaskRow({
 						key="due_date"
 						className={cn(col.className, responsiveClass, "items-center")}
 					>
-						<span className="text-[11px] text-muted-foreground/70 truncate">
+						<span className="text-xs text-muted-foreground/70 truncate">
 							{task.due_date ? formatDate(task.due_date) : "—"}
 						</span>
 					</div>
@@ -565,11 +561,11 @@ export function TaskRow({
 						)}
 					>
 						{task.story_points != null ? (
-							<span className="text-[11px] font-medium tabular-nums">
+							<span className="text-xs font-medium tabular-nums">
 								{task.story_points}
 							</span>
 						) : (
-							<span className="text-[11px] text-muted-foreground/50">—</span>
+							<span className="text-xs text-muted-foreground/50">—</span>
 						)}
 					</div>
 				);
@@ -580,7 +576,7 @@ export function TaskRow({
 						key="created"
 						className={cn(col.className, responsiveClass, "items-center")}
 					>
-						<span className="text-[11px] text-muted-foreground/50 truncate">
+						<span className="text-xs text-muted-foreground/50 truncate">
 							{formatDate(task.created_at)}
 						</span>
 					</div>
@@ -601,7 +597,7 @@ export function TaskRow({
 						<Popover>
 							<PopoverTrigger
 								type="button"
-								className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:opacity-80 transition-opacity truncate max-w-full"
+								className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:opacity-80 transition-opacity truncate max-w-full"
 							>
 								{epic ? (
 									<>
@@ -618,7 +614,7 @@ export function TaskRow({
 							>
 								<button
 									type="button"
-									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
+									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60 transition-colors duration-100"
 									onClick={() =>
 										onUpdateTaskField(task.id, { parent_task_id: null })
 									}
@@ -632,7 +628,7 @@ export function TaskRow({
 									<button
 										key={e.id}
 										type="button"
-										className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100"
+										className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
 										onClick={() =>
 											onUpdateTaskField(task.id, { parent_task_id: e.id })
 										}
@@ -653,12 +649,12 @@ export function TaskRow({
 						className={cn(col.className, responsiveClass, "items-center")}
 					>
 						{epic ? (
-							<span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 truncate max-w-full">
+							<span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 truncate max-w-full">
 								<Layers className="size-3 shrink-0 opacity-70" />
 								<span className="truncate">{epic.title}</span>
 							</span>
 						) : (
-							<span className="text-[11px] text-muted-foreground/40">—</span>
+							<span className="text-xs text-muted-foreground/40">—</span>
 						)}
 					</div>
 				);
@@ -672,31 +668,29 @@ export function TaskRow({
 
 				const renderValue = () => {
 					if (val === null || val === undefined || val === "")
-						return (
-							<span className="text-[11px] text-muted-foreground/40">—</span>
-						);
+						return <span className="text-xs text-muted-foreground/40">—</span>;
 					switch (cf.field_type) {
 						case "boolean":
 							return val ? (
 								<Check className="size-3.5 text-primary" />
 							) : (
-								<span className="text-[11px] text-muted-foreground/40">—</span>
+								<span className="text-xs text-muted-foreground/40">—</span>
 							);
 						case "number":
 							return (
-								<span className="text-[11px] font-medium text-foreground/80">
+								<span className="text-xs font-medium text-foreground/80">
 									{String(val)}
 								</span>
 							);
 						case "date":
 							return (
-								<span className="text-[11px] text-muted-foreground/70">
+								<span className="text-xs text-muted-foreground/70">
 									{formatDate(String(val))}
 								</span>
 							);
 						case "select":
 							return (
-								<span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary/80 truncate max-w-full">
+								<span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary/80 truncate max-w-full">
 									{String(val)}
 								</span>
 							);
@@ -709,7 +703,7 @@ export function TaskRow({
 									{arr.map((v) => (
 										<span
 											key={v}
-											className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary/80"
+											className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary/80"
 										>
 											{v}
 										</span>
@@ -721,7 +715,7 @@ export function TaskRow({
 							return <Link className="size-3.5 text-primary/60" />;
 						default:
 							return (
-								<span className="text-[11px] text-foreground/70 truncate max-w-full">
+								<span className="text-xs text-foreground/70 truncate max-w-full">
 									{String(val)}
 								</span>
 							);
@@ -756,7 +750,7 @@ export function TaskRow({
 			)}
 
 			{/* Task ID — separate fixed-width column left of title */}
-			<span className="w-20 shrink-0 font-[JetBrains_Mono,monospace] text-[10px] font-semibold text-muted-foreground/55 tracking-wide">
+			<span className="w-20 shrink-0 font-[JetBrains_Mono,monospace] text-xs font-semibold text-muted-foreground/55 tracking-wide">
 				{taskIdPrefix
 					? `${taskIdPrefix}-${task.task_number}`
 					: task.task_number > 0
@@ -765,7 +759,7 @@ export function TaskRow({
 			</span>
 
 			{/* Title */}
-			<span className="flex-1 text-[13px] font-medium text-foreground truncate">
+			<span className="flex-1 text-sm font-medium text-foreground truncate">
 				{task.title}
 			</span>
 

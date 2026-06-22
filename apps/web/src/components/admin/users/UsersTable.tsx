@@ -70,12 +70,12 @@ export function UsersTable({
 											{user.username}
 										</span>
 										{user.must_change_password ? (
-											<span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[0.65rem] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+											<span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
 												pwd reset
 											</span>
 										) : null}
 										{isSelf ? (
-											<span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-primary">
+											<span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
 												you
 											</span>
 										) : null}
@@ -87,7 +87,7 @@ export function UsersTable({
 									)}
 								</TableCell>
 								<TableCell className="px-5">
-									<span className="inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[0.68rem] font-medium leading-none text-foreground/80">
+									<span className="inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-xs font-medium leading-none text-foreground/80">
 										{user.role}
 									</span>
 								</TableCell>
