@@ -116,7 +116,7 @@ function TreeInlineRename({
 		<Input
 			autoFocus
 			value={value}
-			className="h-6 text-xs px-1.5 rounded border border-primary/30 bg-sidebar focus:ring-1 focus:ring-primary/25 flex-1 min-w-0"
+			className="h-6 text-sm px-1.5 rounded border border-primary/30 bg-sidebar focus:ring-1 focus:ring-primary/25 flex-1 min-w-0"
 			onChange={(e) => setValue(e.target.value)}
 			onFocus={(e) => e.target.select()}
 			onKeyDown={(e) => {
@@ -180,7 +180,7 @@ function DocsDocRow({
 			<button
 				type="button"
 				className={cn(
-					"flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer transition-all duration-150 text-xs",
+					"flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer transition-all duration-150 text-sm",
 					isActive
 						? "bg-primary/10 text-primary font-medium"
 						: "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -335,7 +335,7 @@ function DocsFolderNode({
 			>
 				<button
 					type="button"
-					className="flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 text-xs text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+					className="flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
 					onClick={() => {
 						if (!renaming) onToggle(folder.id);
 					}}
