@@ -251,7 +251,13 @@ Each WASM module instance is constrained by `wazero`'s resource controls:
 | DB connections | Plugins use the host's connection pool; max 5 concurrent queries per plugin |
 | Inbound HTTP request body | 10 MB per request to a plugin route; larger requests are rejected with `413` before reaching the plugin |
 
-Limits are configurable in the server config under `plugins.limits`.
+Limits are configurable via environment variables (see `services/api/.env.example`):
+
+| Variable | Default | Controls |
+|---|---|---|
+| `PLUGINS_MAX_CALL_DURATION` | `5s` | Max time for a single plugin function call |
+| `PLUGINS_MAX_MEMORY_PAGES` | `1024` (64 MiB) | Max WASM linear-memory pages per module instance |
+| `PLUGINS_MAX_REQUEST_BODY_BYTES` | `10485760` (10 MiB) | Max inbound HTTP request body / event payload size |
 
 ## Plugin Storage Location
 

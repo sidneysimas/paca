@@ -122,6 +122,25 @@ type PluginsConfig struct {
 	// MarketplaceTimeout is the HTTP timeout used when fetching marketplace
 	// metadata and artifacts.
 	MarketplaceTimeout time.Duration
+
+	// Limits holds resource limits enforced on plugin WASM execution.
+	Limits PluginLimitsConfig
+}
+
+// PluginLimitsConfig holds resource limits enforced on plugin WASM module
+// execution. Mirrors platform/plugin.ResourceLimits; see that type's field
+// docs for why each limit exists.
+type PluginLimitsConfig struct {
+	// MaxCallDuration is the maximum time allowed for a single plugin
+	// function call.
+	MaxCallDuration time.Duration
+	// MaxMemoryPages is the maximum number of 64-KiB WASM linear-memory pages
+	// a plugin module may allocate.
+	MaxMemoryPages uint32
+	// MaxRequestBodyBytes is the maximum size of an inbound HTTP request body
+	// that may be proxied to a plugin route, and of an event payload
+	// dispatched to a plugin. 0 means "no limit".
+	MaxRequestBodyBytes int64
 }
 
 // SecurityConfig holds secrets used by first-party and plugin features.

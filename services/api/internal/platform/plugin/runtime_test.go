@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -66,6 +68,14 @@ func buildPoisonFixture(t *testing.T) string {
 // plugin instances.
 func loadPoisonPlugin(t *testing.T, limits ResourceLimits) *Runtime {
 	t.Helper()
+	return loadPoisonPluginWithLogger(t, limits, slog.New(slog.NewTextHandler(io.Discard, nil)))
+}
+
+// loadPoisonPluginWithLogger is loadPoisonPlugin with an injectable logger, so
+// tests can assert on log output (e.g. the dispatchEvent size-limit warning)
+// without scraping stderr.
+func loadPoisonPluginWithLogger(t *testing.T, limits ResourceLimits, log *slog.Logger) *Runtime {
+	t.Helper()
 
 	wasmPath := buildPoisonFixture(t)
 	wasmBytes, err := os.ReadFile(wasmPath)
@@ -83,7 +93,6 @@ func loadPoisonPlugin(t *testing.T, limits ResourceLimits) *Runtime {
 	}
 
 	store := &Store{cfg: StoreConfig{Store: "local", WASMDir: dir}}
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	rt := NewRuntime(store, HostServices{}, limits, log)
 
 	p := plugindom.Plugin{
@@ -99,6 +108,15 @@ func loadPoisonPlugin(t *testing.T, limits ResourceLimits) *Runtime {
 	}
 	t.Cleanup(func() { rt.Unload(ctx, testPluginName) })
 	return rt
+}
+
+// instanceFor looks up the loaded poison-plugin instance directly, for tests
+// that need to call dispatchEvent (an unexported method) without going
+// through EmitEvent's topic-subscription filtering.
+func instanceFor(rt *Runtime, name string) *pluginInstance {
+	rt.mu.RLock()
+	defer rt.mu.RUnlock()
+	return rt.plugins[name]
 }
 
 // TestHandleRequest_OversizedPayload_RejectedWithoutTouchingPlugin pins the
@@ -144,6 +162,36 @@ func TestHandleRequest_AllocatorFailure_RecoveredByReset(t *testing.T) {
 		if _, err := rt.HandleRequest(ctx, testPluginName, []byte("hi")); err != nil {
 			t.Fatalf("call %d after the oversized request failed -- instance still poisoned: %v", i, err)
 		}
+	}
+}
+
+// TestDispatchEvent_OversizedPayload_RejectedWithoutTouchingPlugin mirrors
+// TestHandleRequest_OversizedPayload_RejectedWithoutTouchingPlugin for the
+// event-dispatch path: dispatchEvent must reject a payload over
+// ResourceLimits.MaxRequestBodyBytes before ever calling the plugin's malloc
+// export, rather than relying solely on the unconditional allocator reset to
+// recover afterward. A normal call right after must still succeed.
+func TestDispatchEvent_OversizedPayload_RejectedWithoutTouchingPlugin(t *testing.T) {
+	limits := DefaultResourceLimits()
+	limits.MaxRequestBodyBytes = 1024 // far smaller than the fixture's actual memory
+
+	var logBuf bytes.Buffer
+	rt := loadPoisonPluginWithLogger(t, limits, slog.New(slog.NewTextHandler(&logBuf, nil)))
+	inst := instanceFor(rt, testPluginName)
+	ctx := context.Background()
+
+	oversized := make([]byte, 2048)
+	rt.dispatchEvent(ctx, inst, "some.topic", oversized)
+
+	if !strings.Contains(logBuf.String(), "exceeds size limit") {
+		t.Fatalf("expected a size-limit warning to be logged, got: %s", logBuf.String())
+	}
+	if strings.Contains(logBuf.String(), "write event payload") {
+		t.Fatalf("dispatchEvent should reject before ever attempting to write into plugin memory, got: %s", logBuf.String())
+	}
+
+	if _, err := rt.HandleRequest(ctx, testPluginName, []byte("hello")); err != nil {
+		t.Fatalf("expected normal request to succeed after oversized event, got: %v", err)
 	}
 }
 

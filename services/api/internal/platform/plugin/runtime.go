@@ -30,14 +30,15 @@ type ResourceLimits struct {
 	// MaxMemoryPages is the maximum number of 64-KiB WASM linear-memory pages
 	// a plugin module may allocate.  0 means "use wazero default".
 	MaxMemoryPages uint32
-	// MaxRequestBodyBytes is the maximum size of an inbound HTTP request
-	// payload (as handed to HandleRequest, after JSON envelope encoding) that
-	// the host will attempt to write into a plugin's linear memory.  Plugin
-	// allocators are simple bump allocators with no bounds checking of their
-	// own; handing them a payload larger than the module's memory advances
-	// their internal cursor past the end of memory before the host's write
-	// fails, which would otherwise leave the plugin instance permanently
-	// unable to serve any further request.  0 means "no limit".
+	// MaxRequestBodyBytes is the maximum size of a payload that the host will
+	// attempt to write into a plugin's linear memory: an inbound HTTP request
+	// body (as handed to HandleRequest, after JSON envelope encoding) or an
+	// event payload (as handed to dispatchEvent).  Plugin allocators are
+	// simple bump allocators with no bounds checking of their own; handing
+	// them a payload larger than the module's memory advances their internal
+	// cursor past the end of memory before the host's write fails, which
+	// would otherwise leave the plugin instance permanently unable to serve
+	// any further request.  0 means "no limit".
 	MaxRequestBodyBytes int64
 }
 
@@ -353,6 +354,12 @@ func (r *Runtime) EmitEvent(ctx context.Context, topic string, payload any) {
 func (r *Runtime) dispatchEvent(ctx context.Context, inst *pluginInstance, topic string, data []byte) {
 	fn := inst.mod.ExportedFunction("HandleEvent")
 	if fn == nil {
+		return
+	}
+
+	if maxBytes := r.limits.MaxRequestBodyBytes; maxBytes > 0 && int64(len(data)) > maxBytes {
+		r.log.Warn("plugin: event payload exceeds size limit, dropping",
+			"name", inst.plugin.Name, "topic", topic, "size", len(data), "limit", maxBytes)
 		return
 	}
 

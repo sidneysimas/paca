@@ -82,6 +82,20 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("config: PLUGINS_MARKETPLACE_TIMEOUT: %w", err)
 	}
 
+	// Defaults here must match pluginrt.DefaultResourceLimits().
+	pluginMaxCallDuration, err := parseDuration(env("PLUGINS_MAX_CALL_DURATION", "5s"))
+	if err != nil {
+		return nil, fmt.Errorf("config: PLUGINS_MAX_CALL_DURATION: %w", err)
+	}
+	pluginMaxMemoryPages, err := parseUint32(env("PLUGINS_MAX_MEMORY_PAGES", "1024"))
+	if err != nil {
+		return nil, fmt.Errorf("config: PLUGINS_MAX_MEMORY_PAGES: %w", err)
+	}
+	pluginMaxRequestBodyBytes, err := parseInt64(env("PLUGINS_MAX_REQUEST_BODY_BYTES", "10485760"))
+	if err != nil {
+		return nil, fmt.Errorf("config: PLUGINS_MAX_REQUEST_BODY_BYTES: %w", err)
+	}
+
 	adminUser, err := requireEnv("ADMIN_USERNAME")
 	if err != nil {
 		errs = append(errs, err)
@@ -175,6 +189,11 @@ func Load() (*Config, error) {
 			S3Prefix:              env("PLUGINS_S3_PREFIX", "plugins"),
 			MarketplaceCatalogURL: env("PLUGINS_MARKETPLACE_CATALOG_URL", "https://raw.githubusercontent.com/Paca-AI/paca-plugins/master/catalog/plugins.json"),
 			MarketplaceTimeout:    marketplaceTimeout,
+			Limits: PluginLimitsConfig{
+				MaxCallDuration:     pluginMaxCallDuration,
+				MaxMemoryPages:      pluginMaxMemoryPages,
+				MaxRequestBodyBytes: pluginMaxRequestBodyBytes,
+			},
 		},
 		AIAgentURL: env("AI_AGENT_URL", "http://ai-agent:8080"),
 	}, nil
@@ -203,4 +222,20 @@ func parseDuration(s string) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid duration %q: %w", s, err)
 	}
 	return d, nil
+}
+
+func parseUint32(s string) (uint32, error) {
+	v, err := strconv.ParseUint(s, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid uint32 %q: %w", s, err)
+	}
+	return uint32(v), nil
+}
+
+func parseInt64(s string) (int64, error) {
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid int64 %q: %w", s, err)
+	}
+	return v, nil
 }

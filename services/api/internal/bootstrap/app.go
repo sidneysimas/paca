@@ -213,7 +213,11 @@ func New(cfg *config.Config) (*App, error) {
 			"ENCRYPTION_KEY": cfg.Security.EncryptionKey,
 			"PUBLIC_URL":     cfg.Server.PublicURL,
 		},
-	}, pluginrt.DefaultResourceLimits(), log)
+	}, pluginrt.ResourceLimits{
+		MaxCallDuration:     cfg.Plugins.Limits.MaxCallDuration,
+		MaxMemoryPages:      cfg.Plugins.Limits.MaxMemoryPages,
+		MaxRequestBodyBytes: cfg.Plugins.Limits.MaxRequestBodyBytes,
+	}, log)
 	marketplaceClient := pluginrt.NewMarketplaceClient(cfg.Plugins.MarketplaceCatalogURL, cfg.Plugins.MarketplaceTimeout)
 	installerHTTPClient := &http.Client{Timeout: cfg.Plugins.MarketplaceTimeout}
 	pluginInstaller := pluginrt.NewInstaller(cfg.Plugins.WASMDir, cfg.Plugins.FrontendDir, cfg.Plugins.MCPDir, installerHTTPClient, log)

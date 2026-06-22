@@ -46,6 +46,37 @@ func TestParseDuration(t *testing.T) {
 	}
 }
 
+func TestParseUint32(t *testing.T) {
+	v, err := parseUint32("1024")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v != 1024 {
+		t.Fatalf("expected 1024, got %d", v)
+	}
+
+	if _, err := parseUint32("not-a-uint"); err == nil {
+		t.Fatal("expected parse error")
+	}
+	if _, err := parseUint32("-1"); err == nil {
+		t.Fatal("expected parse error for negative value")
+	}
+}
+
+func TestParseInt64(t *testing.T) {
+	v, err := parseInt64("10485760")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v != 10485760 {
+		t.Fatalf("expected 10485760, got %d", v)
+	}
+
+	if _, err := parseInt64("not-an-int"); err == nil {
+		t.Fatal("expected parse error")
+	}
+}
+
 func TestLoad_Success(t *testing.T) {
 	t.Setenv("ENV", "test")
 	t.Setenv("PORT", "9090")
@@ -120,6 +151,65 @@ func TestLoad_InvalidBoolOrDuration(t *testing.T) {
 	t.Setenv("JWT_ACCESS_TTL", "invalid")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected duration parse error")
+	}
+}
+
+func TestLoad_PluginLimits_Defaults(t *testing.T) {
+	setLoadDefaults(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Plugins.Limits.MaxCallDuration != 5*time.Second {
+		t.Fatalf("expected default MaxCallDuration 5s, got %v", cfg.Plugins.Limits.MaxCallDuration)
+	}
+	if cfg.Plugins.Limits.MaxMemoryPages != 1024 {
+		t.Fatalf("expected default MaxMemoryPages 1024, got %d", cfg.Plugins.Limits.MaxMemoryPages)
+	}
+	if cfg.Plugins.Limits.MaxRequestBodyBytes != 10*1024*1024 {
+		t.Fatalf("expected default MaxRequestBodyBytes 10MiB, got %d", cfg.Plugins.Limits.MaxRequestBodyBytes)
+	}
+}
+
+func TestLoad_PluginLimits_Custom(t *testing.T) {
+	setLoadDefaults(t)
+	t.Setenv("PLUGINS_MAX_CALL_DURATION", "30s")
+	t.Setenv("PLUGINS_MAX_MEMORY_PAGES", "2048")
+	t.Setenv("PLUGINS_MAX_REQUEST_BODY_BYTES", "1048576")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Plugins.Limits.MaxCallDuration != 30*time.Second {
+		t.Fatalf("expected MaxCallDuration 30s, got %v", cfg.Plugins.Limits.MaxCallDuration)
+	}
+	if cfg.Plugins.Limits.MaxMemoryPages != 2048 {
+		t.Fatalf("expected MaxMemoryPages 2048, got %d", cfg.Plugins.Limits.MaxMemoryPages)
+	}
+	if cfg.Plugins.Limits.MaxRequestBodyBytes != 1048576 {
+		t.Fatalf("expected MaxRequestBodyBytes 1048576, got %d", cfg.Plugins.Limits.MaxRequestBodyBytes)
+	}
+}
+
+func TestLoad_PluginLimits_InvalidValues(t *testing.T) {
+	setLoadDefaults(t)
+	t.Setenv("PLUGINS_MAX_CALL_DURATION", "not-a-duration")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for invalid PLUGINS_MAX_CALL_DURATION")
+	}
+
+	setLoadDefaults(t)
+	t.Setenv("PLUGINS_MAX_MEMORY_PAGES", "not-a-uint")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for invalid PLUGINS_MAX_MEMORY_PAGES")
+	}
+
+	setLoadDefaults(t)
+	t.Setenv("PLUGINS_MAX_REQUEST_BODY_BYTES", "not-an-int")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected error for invalid PLUGINS_MAX_REQUEST_BODY_BYTES")
 	}
 }
 
