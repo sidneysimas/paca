@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ApiErrorCode, getApiErrorCode } from "@/lib/api-error";
-import { currentUserQueryOptions, login } from "@/lib/auth-api";
+import { login } from "@/lib/auth-api";
 
 const loginErrorMessages: Partial<Record<ApiErrorCode, string>> = {
 	[ApiErrorCode.InvalidCredentials]: "Invalid username or password.",
@@ -25,9 +25,10 @@ export function useLoginForm() {
 			setServerError(null);
 			try {
 				await login(value.username, value.password, value.rememberMe);
-				await queryClient.invalidateQueries({
-					queryKey: currentUserQueryOptions.queryKey,
-				});
+				// Invalidate the entire "auth" query namespace so both the required
+				// ("auth"/"me") and the optional ("auth"/"me-optional") caches are
+				// refreshed. Without this the sidebar keeps the previous user's data.
+				await queryClient.invalidateQueries({ queryKey: ["auth"] });
 				await navigate({ to: "/home" });
 			} catch (err: unknown) {
 				const code = getApiErrorCode(err);

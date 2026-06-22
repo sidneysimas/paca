@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiErrorCode } from "@/lib/api-error";
-import { currentUserQueryOptions, login } from "@/lib/auth-api";
+import { login } from "@/lib/auth-api";
 import { useLoginForm } from "./use-login-form";
 
 type SubmitPayload = {
@@ -91,8 +91,10 @@ describe("useLoginForm", () => {
 		});
 
 		expect(login).toHaveBeenCalledWith("alice", "password123", true);
+		// The login flow invalidates the entire "auth" namespace so both the
+		// "auth"/"me" and "auth"/"me-optional" caches are refreshed.
 		expect(mocks.invalidateQueriesMock).toHaveBeenCalledWith({
-			queryKey: currentUserQueryOptions.queryKey,
+			queryKey: ["auth"],
 		});
 		expect(mocks.navigateMock).toHaveBeenCalledWith({ to: "/home" });
 	});

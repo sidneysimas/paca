@@ -18,11 +18,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {
-	currentUserOptionalQueryOptions,
-	currentUserQueryOptions,
-	logout,
-} from "@/lib/auth-api";
+import { currentUserOptionalQueryOptions, logout } from "@/lib/auth-api";
 
 function getInitials(name: string): string {
 	return name
@@ -66,13 +62,11 @@ export function UserMenu() {
 		setIsLoggingOut(true);
 		try {
 			await logout();
-			await queryClient.cancelQueries({
-				queryKey: currentUserQueryOptions.queryKey,
-			});
-			queryClient.removeQueries({
-				queryKey: currentUserQueryOptions.queryKey,
-				exact: true,
-			});
+			// Clear ALL React Query caches so no stale data from the just-logged-out
+			// user (e.g. "auth"/"me-optional" used by the sidebar, permissions,
+			// projects, etc.) leaks into the next session. The login route will
+			// re-fetch everything from scratch.
+			queryClient.clear();
 			await navigate({ to: "/", replace: true });
 		} finally {
 			setIsLoggingOut(false);
