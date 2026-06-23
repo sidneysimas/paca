@@ -32,6 +32,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import {
 	allTasksQueryOptions,
 	bulkMoveViewTaskPositions,
@@ -505,6 +506,13 @@ export function InteractionLayout({
 		!activeViewConfig?.sort_by ||
 		activeViewConfig?.sort_by?.toLowerCase() === "manual";
 	const [searchQuery, setSearchQuery] = useState("");
+	// Debounced so search doesn't fire a request on every keystroke now that
+	// it's a server-side query (needed for correct pagination — see colBaseOpts).
+	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+	const debouncedSetSearchQuery = useDebouncedCallback(
+		(q: string) => setDebouncedSearchQuery(q),
+		300,
+	);
 	const [searchOpen, setSearchOpen] = useState(false);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -631,6 +639,7 @@ export function InteractionLayout({
 			sumField: activeViewConfig?.field_sum,
 			sortBy: activeViewConfig?.sort_by,
 			viewId: effectiveViewId,
+			search: debouncedSearchQuery || undefined,
 		}),
 		[
 			context,
@@ -642,6 +651,7 @@ export function InteractionLayout({
 			activeViewConfig?.field_sum,
 			activeViewConfig?.sort_by,
 			effectiveViewId,
+			debouncedSearchQuery,
 		],
 	);
 
@@ -708,6 +718,7 @@ export function InteractionLayout({
 			taskTypeIds: apiFilters.task_type_ids,
 			sortBy: activeViewConfig?.sort_by,
 			viewId: effectiveViewId,
+			search: debouncedSearchQuery || undefined,
 		}),
 		[
 			context,
@@ -716,6 +727,7 @@ export function InteractionLayout({
 			apiFilters,
 			activeViewConfig?.sort_by,
 			effectiveViewId,
+			debouncedSearchQuery,
 		],
 	);
 
@@ -1436,13 +1448,17 @@ export function InteractionLayout({
 							<input
 								ref={searchRef}
 								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
+								onChange={(e) => {
+									setSearchQuery(e.target.value);
+									debouncedSetSearchQuery(e.target.value);
+								}}
 								placeholder="Search tasks…"
 								className="w-36 bg-transparent text-xs font-medium outline-none placeholder:text-muted-foreground/50"
 								onKeyDown={(e) => {
 									if (e.key === "Escape") {
 										setSearchOpen(false);
 										setSearchQuery("");
+										setDebouncedSearchQuery("");
 									}
 								}}
 							/>
@@ -1451,6 +1467,7 @@ export function InteractionLayout({
 								onClick={() => {
 									setSearchOpen(false);
 									setSearchQuery("");
+									setDebouncedSearchQuery("");
 								}}
 								className="flex size-5 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground transition-all duration-150"
 							>
@@ -1524,7 +1541,6 @@ export function InteractionLayout({
 						viewConfig={activeViewConfig}
 						canCreate={canCreate}
 						canEdit={canEdit}
-						searchQuery={searchQuery}
 						tasksQueryKey={tasksListQueryKey}
 						columnPagination={columnPagination}
 						onCreateTask={handleCreateTask}
@@ -1550,14 +1566,12 @@ export function InteractionLayout({
 				) : activeView?.layout === "Roadmap" ? (
 					<RoadmapView
 						tasks={tasks}
-						taskIdPrefix={taskIdPrefix}
 						statuses={statuses}
 						taskTypes={creatableTaskTypes}
 						members={members}
 						sprints={sprints}
 						customFields={customFields}
 						columnBy={columnBy}
-						searchQuery={searchQuery}
 						canCreate={canCreate}
 						pagination={globalPagination}
 						onCreateTask={handleCreateTask}
@@ -1574,7 +1588,6 @@ export function InteractionLayout({
 						epics={epicTasks}
 						viewConfig={activeViewConfig}
 						canCreate={canCreate}
-						searchQuery={searchQuery}
 						columnPagination={columnPagination}
 						onCreateTask={handleCreateTask}
 						onTaskClick={handleTaskClick}

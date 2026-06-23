@@ -44,7 +44,6 @@ interface BoardViewProps {
 	viewConfig?: ViewConfig;
 	canCreate: boolean;
 	canEdit: boolean;
-	searchQuery: string;
 	tasksQueryKey: unknown[];
 	onCreateTask: (
 		statusId: string,
@@ -85,7 +84,6 @@ export function BoardView({
 	viewConfig,
 	canCreate,
 	canEdit,
-	searchQuery,
 	tasksQueryKey,
 	epics = [],
 	onCreateTask,
@@ -175,31 +173,10 @@ export function BoardView({
 		[swimlaneBy, viewCtx],
 	);
 
-	// ── Filtering ─────────────────────────────────────────────────────────────
-
-	const filteredTasks = useMemo(
-		() =>
-			tasks.filter((t) => {
-				if (searchQuery) {
-					const q = searchQuery.toLowerCase();
-					const taskId = taskIdPrefix
-						? `${taskIdPrefix}-${t.task_number}`
-						: `#${t.task_number}`;
-					if (
-						!t.title.toLowerCase().includes(q) &&
-						!taskId.toLowerCase().includes(q)
-					)
-						return false;
-				}
-				return true;
-			}),
-		[tasks, searchQuery, taskIdPrefix],
-	);
-
 	// ── Column tasks helper ───────────────────────────────────────────────────
 
 	const getColumnTasks = (colKey: string): Task[] =>
-		filteredTasks.filter((t) =>
+		tasks.filter((t) =>
 			getTaskColumnKeys(t, columnBy, viewCtx).includes(colKey),
 		);
 
@@ -448,7 +425,7 @@ export function BoardView({
 			// Build columns from unique task values (for number/text fields)
 			const seen = new Set<string>();
 			const dynamic: ColumnGroupDef[] = [];
-			for (const t of filteredTasks) {
+			for (const t of tasks) {
 				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
 					if (!seen.has(k)) {
 						seen.add(k);
@@ -474,7 +451,7 @@ export function BoardView({
 		);
 	}, [
 		columnDefs,
-		filteredTasks,
+		tasks,
 		columnBy,
 		viewCtx,
 		isStatusGrouping,

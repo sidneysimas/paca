@@ -425,6 +425,8 @@ export interface ListTasksOptions {
 	/** When provided for a manual-sort view, passed as view_id so the backend
 	 *  can JOIN view_task_positions and return tasks in saved position order. */
 	viewId?: string;
+	/** Free-text search matched server-side against title and "#<task_number>". */
+	search?: string;
 }
 
 function buildTaskQueryParams(opts: ListTasksOptions = {}) {
@@ -462,6 +464,7 @@ function buildTaskQueryParams(opts: ListTasksOptions = {}) {
 	if (opts.viewId) {
 		params.view_id = opts.viewId;
 	}
+	if (opts.search?.trim()) params.search = opts.search.trim();
 	return params;
 }
 
