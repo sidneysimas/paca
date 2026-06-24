@@ -4,7 +4,8 @@
 # Updates an existing Paca installation (created by install.sh, or set up
 # manually per deploy/README.md) to a new release: refreshes
 # docker-compose.yml and the Caddyfile, re-pins image versions in .env when a
-# specific version is requested, then pulls and restarts the stack.
+# specific version is requested, backfills any .env variables introduced
+# since the install was created, then pulls and restarts the stack.
 #
 # Run this from the directory that holds your docker-compose.yml and .env
 # (the directory install.sh created, or wherever you set things up manually).
@@ -118,6 +119,16 @@ set_env_var() {
     mv "$tmp" "$file"
 }
 
+# has_env_var FILE VAR
+has_env_var() {
+    grep -q "^${2}=" "$1" 2>/dev/null
+}
+
+# get_env_var FILE VAR
+get_env_var() {
+    grep "^${2}=" "$1" 2>/dev/null | head -1 | cut -d= -f2-
+}
+
 # ── Version / URL resolution ──────────────────────────────────────────────────
 
 PACA_VERSION="${PACA_VERSION:-latest}"
@@ -181,6 +192,7 @@ if [[ -f nginx/gateway.conf ]]; then
     heading "Gateway migration"
     warn "This installation predates the nginx → Caddy gateway migration."
     info "caddy/Caddyfile will be downloaded; nginx/ is no longer referenced by docker-compose.yml."
+    info "SITE_ADDRESS and GATEWAY_HTTPS_PORT will be added to .env so Caddy can serve HTTPS automatically."
     info "Once you've confirmed the upgraded stack works, the nginx/ directory can be removed."
 fi
 
@@ -211,21 +223,57 @@ fi
 download "${RELEASE_BASE}/Caddyfile" caddy/Caddyfile
 info "Downloaded the latest caddy/Caddyfile."
 
+ENV_BACKED_UP=0
+backup_env_once() {
+    if [[ "$ENV_BACKED_UP" == "0" ]]; then
+        cp .env ".env.bak.${TS}"
+        info "Backed up .env → .env.bak.${TS}"
+        ENV_BACKED_UP=1
+    fi
+}
+
 # Only re-pin image tags in .env when a specific version was requested.
 # Installs left on the default ":latest" floating tag are already upgraded
 # by the pull below — rewriting them here would silently switch a
 # deliberately-pinned install onto floating tags, or vice versa.
 if [[ "$PACA_VERSION" != "latest" ]]; then
-    cp .env ".env.bak.${TS}"
-    info "Backed up .env → .env.bak.${TS}"
-
+    backup_env_once
     for var in PACA_API_IMAGE PACA_WEB_IMAGE PACA_REALTIME_IMAGE PACA_AI_AGENT_IMAGE; do
         image_name="$(echo "$var" | sed -e 's/^PACA_//' -e 's/_IMAGE$//' | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')"
         set_env_var .env "$var" "pacaai/paca-${image_name}:${IMAGE_TAG}"
     done
     info "Pinned image versions in .env to ${IMAGE_TAG}."
 else
-    info "Using floating :latest images — no .env changes needed."
+    info "Using floating :latest images — no image version changes needed."
+fi
+
+# Backfill variables introduced by the nginx → Caddy gateway migration.
+# Installations from before that release have neither in .env. SITE_ADDRESS
+# defaults to the hostname already in PUBLIC_URL so Caddy requests a
+# certificate for the address Paca is actually reachable at, rather than
+# silently leaving the upgraded gateway on plain HTTP.
+GATEWAY_VARS_ADDED=0
+if ! has_env_var .env SITE_ADDRESS; then
+    backup_env_once
+    _PUBLIC_URL="$(get_env_var .env PUBLIC_URL)"
+    _SITE_ADDRESS="${_PUBLIC_URL#http://}"
+    _SITE_ADDRESS="${_SITE_ADDRESS#https://}"
+    _SITE_ADDRESS="${_SITE_ADDRESS%%/*}"
+    _SITE_ADDRESS="${_SITE_ADDRESS%%:*}"
+    _SITE_ADDRESS="${_SITE_ADDRESS:-localhost}"
+    set_env_var .env SITE_ADDRESS "$_SITE_ADDRESS"
+    info "Added SITE_ADDRESS=${_SITE_ADDRESS} to .env (derived from your existing PUBLIC_URL)."
+    GATEWAY_VARS_ADDED=1
+fi
+if ! has_env_var .env GATEWAY_HTTPS_PORT; then
+    backup_env_once
+    set_env_var .env GATEWAY_HTTPS_PORT "443"
+    info "Added GATEWAY_HTTPS_PORT=443 to .env."
+    GATEWAY_VARS_ADDED=1
+fi
+if [[ "$GATEWAY_VARS_ADDED" == "1" ]]; then
+    warn "Ports 80 and 443 must both be reachable from the internet for Let's Encrypt to succeed."
+    info "Already behind another TLS terminator (a load balancer, Cloudflare, etc.)? Set SITE_ADDRESS=:80 in .env to keep this gateway on plain HTTP."
 fi
 
 # ── Pull and restart ──────────────────────────────────────────────────────────
