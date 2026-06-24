@@ -17,11 +17,11 @@ Open `http://your-server-ip` when it finishes.
 Pulls pre-built images. No repository clone required.
 
 ```bash
-# Download compose file and nginx config
+# Download compose file and Caddyfile
 mkdir paca && cd paca
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml -o docker-compose.yml
-mkdir -p nginx
-curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/gateway.conf -o nginx/gateway.conf
+mkdir -p caddy
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/Caddyfile -o caddy/Caddyfile
 
 # Create an environment file
 cat > .env <<'EOF'
@@ -39,6 +39,14 @@ docker compose --env-file .env up -d
 ```
 
 Open `http://localhost` — log in with `admin` and the password you set.
+
+Want HTTPS? Set `SITE_ADDRESS` to a domain or IP address, with `PUBLIC_URL=https://…`
+and `COOKIE_SECURE=true` to match. A real domain with DNS pointed here gets a trusted
+Let's Encrypt certificate; an IP address or `localhost` gets one from Caddy's own local
+CA instead (browsers will show a trust warning, but the connection is still encrypted).
+The [install script](#option-1--install-script-recommended) enables this by default and
+prompts for the address. See
+[../../deploy/README.md](../../deploy/README.md#production-deployment) for details.
 
 ---
 
@@ -59,14 +67,18 @@ See [local-development.md](local-development.md) for details on the dev stack an
 
 ## Upgrading to a new version
 
-Pull the latest images and restart the stack. Run these commands from the directory where your `docker-compose.yml` lives:
+Run the upgrade script from the directory where your `docker-compose.yml` and `.env`
+live. It refreshes `docker-compose.yml` and the Caddyfile (backing up the old ones
+first), then pulls and restarts the stack:
 
 ```bash
-docker compose pull
-docker compose --env-file .env up -d
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/upgrade.sh -o upgrade.sh
+bash upgrade.sh
 ```
 
-Database migrations run automatically on API startup — no manual steps are required.
+Database migrations run automatically on API startup — no manual steps are required. See
+[../../deploy/README.md](../../deploy/README.md#upgrading-to-a-new-version) for pinning
+a specific version, passing through `--scale` flags, or upgrading manually.
 
 ---
 

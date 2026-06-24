@@ -19,7 +19,7 @@ Security reports may cover:
 - Unsafe AI agent actions or privilege escalation.
 - WASM plugin sandbox escapes or capability bypasses.
 - Supply chain or dependency risks.
-- Deployment misconfiguration risks (Docker Compose, nginx, environment variables).
+- Deployment misconfiguration risks (Docker Compose, Caddy, environment variables).
 - API injection risks (SQL injection, command injection, XSS).
 
 ## Supported Versions

@@ -14,14 +14,14 @@ COPY . .
 RUN bun run build
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
-FROM nginx:1.29-alpine
+FROM caddy:2-alpine
 
-# Replace the default nginx config with our SPA config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Replace the default Caddy config with our SPA config
+COPY Caddyfile /etc/caddy/Caddyfile
 
 # Copy built assets from the build stage
-COPY --from=builder /build/dist /usr/share/nginx/html
+COPY --from=builder /build/dist /srv
 
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

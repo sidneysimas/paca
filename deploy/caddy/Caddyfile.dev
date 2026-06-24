@@ -1,0 +1,80 @@
+# =============================================================================
+# Gateway Caddy configuration — DEVELOPMENT OVERRIDE
+# =============================================================================
+#
+# Identical to ../caddy/Caddyfile except the site address is hardcoded to
+# plain HTTP on :80 — the dev stack never performs ACME/HTTPS issuance.
+# Mounted by docker-compose.dev.yml; do not use in production.
+#
+# Caddy's reverse_proxy has no default read timeout (unlike nginx), so the
+# long-lived Vite HMR / WebSocket connections that used to require a dev-only
+# proxy_read_timeout override work unmodified — no other behavioral
+# differences remain between this file and the production config. Keep the
+# routing below in sync with ../caddy/Caddyfile.
+#
+# Single public entrypoint for the Paca stack:
+#
+#   /api/*         →  REST API service       (forwarded as-is, /api kept)
+#   /ws/*          →  Realtime service        (Socket.IO, /ws stripped)
+#   /storage/*     →  MinIO                   (/storage stripped)
+#   /plugins/*     →  Plugin frontend assets  (static files)
+#   /plugins-mcp/* →  Plugin MCP bundles      (static files)
+#   /*             →  Web application         (SPA with client-side routing;
+#                      Vite HMR WebSocket proxied automatically)
+# =============================================================================
+
+:80 {
+	encode gzip
+
+	log {
+		output stdout
+	}
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-XSS-Protection "0"
+		-Server
+	}
+
+	@notStorage not path /storage/*
+	request_body @notStorage {
+		max_size 10MB
+	}
+
+	handle_path /storage/* {
+		reverse_proxy minio:9000 {
+			header_up Host minio:9000
+		}
+	}
+
+	handle_path /ws/* {
+		reverse_proxy realtime:3001
+	}
+
+	handle_path /plugins/* {
+		root * /var/www/plugins
+
+		@wasm path *.wasm
+		header @wasm Content-Type "application/wasm"
+
+		header Cache-Control "public, max-age=900, immutable"
+		file_server
+	}
+
+	handle_path /plugins-mcp/* {
+		root * /var/www/plugins-mcp
+		header Cache-Control "public, max-age=900, immutable"
+		file_server
+	}
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

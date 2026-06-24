@@ -1,0 +1,12 @@
+:3000 {
+	root * /srv
+	header -Server
+
+	# Vite emits hashed filenames under /assets — cache aggressively
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# All other routes fall back to index.html for client-side routing
+	try_files {path} /index.html
+	file_server
+}

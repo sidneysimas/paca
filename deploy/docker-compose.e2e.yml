@@ -135,12 +135,12 @@ services:
       retries: 20
 
   gateway:
-    image: nginx:1.27-alpine
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
-      - ./nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Frontend plugin store — built JS bundles, served at /plugins/.
       # Layout: /var/www/plugins/<plugin-id>/assets/remoteEntry.js
       - ../plugins/local/frontend:/var/www/plugins:ro
@@ -188,7 +188,7 @@ services:
       INTERNAL_API_KEY: e2e-internal-api-key
       API_BASE_URL: http://api:8080
       # Gateway base URL — the MCP server uses this to resolve plugin MCP bundle
-      # URLs (e.g. /plugins-mcp/<id>/mcp.js).  The gateway (nginx) serves these
+      # URLs (e.g. /plugins-mcp/<id>/mcp.js).  The gateway (Caddy) serves these
       # files, not the API service.
       GATEWAY_BASE_URL: http://gateway
       # Must match AGENT_API_KEY in the api service.

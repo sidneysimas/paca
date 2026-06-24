@@ -66,7 +66,7 @@ services:
       STORAGE_PROVIDER: minio
       STORAGE_ENDPOINT: minio:9000
       # Public URL used to rewrite presigned URLs so browsers can reach MinIO
-      # through the nginx gateway instead of the internal Docker hostname.
+      # through the Caddy gateway instead of the internal Docker hostname.
       STORAGE_PUBLIC_URL: ${PUBLIC_HOST:-http://localhost}/storage
       STORAGE_REGION: us-east-1
       STORAGE_BUCKET: paca
@@ -135,7 +135,7 @@ services:
       PORT: "3001"
       NODE_ENV: development
       # Internal service-to-service URL — the realtime service calls the API
-      # directly, bypassing nginx, so no prefix stripping is needed.
+      # directly, bypassing Caddy, so no prefix stripping is needed.
       API_URL: http://api:8080
       REDIS_URL: redis://valkey:6379/0
       CORS_ORIGINS: ${PUBLIC_HOST:-http://localhost}
@@ -150,12 +150,12 @@ services:
         condition: service_started
   
   gateway:
-    image: nginx:1.27-alpine
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - "3000:80"
     volumes:
-      - ./nginx/gateway.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
       # Frontend plugin store — built JS bundles, served at /plugins/.
       # Layout: /var/www/plugins/<plugin-id>/assets/remoteEntry.js
       - ../plugins/local/frontend:/var/www/plugins:ro
@@ -209,7 +209,7 @@ services:
       INTERNAL_API_KEY: dev-internal-key-change-in-production
       API_BASE_URL: http://api:8080
       # Gateway base URL — the MCP server uses this to resolve plugin MCP bundle
-      # URLs (e.g. /plugins-mcp/<id>/mcp.js).  The gateway (nginx) serves these
+      # URLs (e.g. /plugins-mcp/<id>/mcp.js).  The gateway (Caddy) serves these
       # files, not the API service.
       GATEWAY_BASE_URL: http://gateway
       # API key for the built-in Paca MCP server.  Must match AGENT_API_KEY in

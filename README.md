@@ -177,8 +177,8 @@ The script walks you through configuration interactively and starts the full sta
 ```bash
 mkdir paca && cd paca
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml -o docker-compose.yml
-mkdir -p nginx
-curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/gateway.conf -o nginx/gateway.conf
+mkdir -p caddy
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/Caddyfile -o caddy/Caddyfile
 ```
 
 **2. Download the environment template**
@@ -250,14 +250,16 @@ docker compose --env-file .env up -d
 
 ### Upgrading to a new version
 
-From the directory where your `docker-compose.yml` lives:
+From the directory where your `docker-compose.yml` and `.env` live, run the upgrade
+script published with each release — it refreshes `docker-compose.yml` and the
+Caddyfile (with backups) and restarts the stack:
 
 ```bash
-docker compose pull
-docker compose --env-file .env up -d
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/upgrade.sh -o upgrade.sh
+bash upgrade.sh
 ```
 
-Database migrations run automatically on API startup.
+Database migrations run automatically on API startup. See [deploy/README.md](deploy/README.md#upgrading-to-a-new-version) for pinning a specific version or passing through `--scale` flags.
 
 ---
 

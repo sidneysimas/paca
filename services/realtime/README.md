@@ -43,7 +43,7 @@ bun run dev
 docker compose -f deploy/docker-compose.dev.yml up -d
 ```
 
-The service is reachable through the nginx gateway at `http://localhost/ws/`.
+The service is reachable through the Caddy gateway at `http://localhost/ws/`.
 
 ## Environment variables
 
@@ -62,7 +62,7 @@ The service is reachable through the nginx gateway at `http://localhost/ws/`.
 import { io } from "socket.io-client";
 
 const socket = io("http://localhost", {
-  path: "/ws/socket.io",   // nginx strips the /ws prefix
+  path: "/ws/socket.io",   // Caddy strips the /ws prefix
   withCredentials: true,   // sends the access_token cookie automatically
 });
 

@@ -14,7 +14,7 @@ _Goal: a working, self-hostable core that a small team can actually use._
 - ✅ Docker Compose single-command setup
 - ✅ Interactive install script for Linux servers
 - ✅ PostgreSQL + Valkey bundled by default
-- ✅ Nginx gateway with service routing
+- ✅ Caddy gateway with service routing
 - ✅ Environment-based configuration (`.env`)
 
 ### Core Platform

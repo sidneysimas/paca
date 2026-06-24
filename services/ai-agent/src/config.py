@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     internal_api_key: str = Field(min_length=1)
     api_base_url: str = "http://api:8080"
     # Gateway base URL — used by the MCP server to resolve plugin MCP bundle URLs.
-    # The gateway (nginx) serves /plugins-mcp/, not the API service, so this must
+    # The gateway (Caddy) serves /plugins-mcp/, not the API service, so this must
     # point to the gateway's internal address.
     gateway_base_url: str = "http://gateway"
 

@@ -9,16 +9,17 @@ name: cd
 #   <dockerhub-username>/paca-api:<tag>   — Go API service Docker image
 #   ghcr.io/paca-ai/paca-realtime:<tag>   — Node realtime service Docker image
 #   <dockerhub-username>/paca-realtime:<tag> — Node realtime service Docker image
-#   ghcr.io/paca-ai/paca-web:<tag>        — Web app Docker image (nginx)
-#   <dockerhub-username>/paca-web:<tag>   — Web app Docker image (nginx)
+#   ghcr.io/paca-ai/paca-web:<tag>        — Web app Docker image (Caddy)
+#   <dockerhub-username>/paca-web:<tag>   — Web app Docker image (Caddy)
 #   ghcr.io/paca-ai/paca-ai-agent:<tag>   — AI Agent service Docker image
 #   <dockerhub-username>/paca-ai-agent:<tag> — AI Agent service Docker image
 #   registry.npmjs.org @paca-ai/paca-mcp — MCP server npm package
 #   registry.npmjs.org @paca-ai/plugin-sdk-react — Plugin frontend SDK npm package
 #   GitHub Release assets:
 #     install.sh         — one-shot interactive install script
+#     upgrade.sh         — upgrades an existing installation in place
 #     docker-compose.yml — standalone compose (no source tree required)
-#     gateway.conf       — nginx gateway configuration
+#     Caddyfile          — Caddy gateway configuration
 
 on:
   release:
@@ -138,9 +139,9 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   # Web app image
   # ─────────────────────────────────────────────────────────────────────────────
-  # The pre-built image uses relative URLs that work with nginx /api proxy
-  # out of the box, since the API client now derives the base URL from
-  # window.location.origin at runtime.
+  # The pre-built image uses relative URLs that work with the Caddy /api
+  # proxy out of the box, since the API client now derives the base URL
+  # from window.location.origin at runtime.
   web-image:
     name: Build and push Web image
     runs-on: ubuntu-latest
@@ -313,10 +314,11 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   # Deployment assets → GitHub Release
   #
-  # Uploads three files so that users can run Paca without cloning the repo:
+  # Uploads four files so that users can run or upgrade Paca without cloning the repo:
   #   install.sh         — interactive setup wizard (download + configure + start)
+  #   upgrade.sh         — upgrades an existing installation in place
   #   docker-compose.yml — standalone compose referencing pre-built DockerHub images
-  #   gateway.conf       — nginx gateway configuration required by the compose file
+  #   Caddyfile          — Caddy gateway configuration required by the compose file
   #
   # End-users download and run:
   #   curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/install.sh -o install.sh
@@ -337,9 +339,10 @@ jobs:
         run: |
           # Rename files to the names end-users will download.
           cp deploy/docker-compose.prod.yml        docker-compose.yml
-          cp deploy/nginx/gateway.conf             gateway.conf
+          cp deploy/caddy/Caddyfile                Caddyfile
           cp scripts/install.sh                    install.sh
-          chmod +x install.sh
+          cp scripts/upgrade.sh                    upgrade.sh
+          chmod +x install.sh upgrade.sh
 
       - name: Upload assets to GitHub Release
         env:
@@ -347,6 +350,7 @@ jobs:
         run: |
           gh release upload "${{ github.event.release.tag_name }}" \
             install.sh \
+            upgrade.sh \
             docker-compose.yml \
-            gateway.conf \
+            Caddyfile \
             --clobber

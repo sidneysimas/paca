@@ -33,7 +33,7 @@
 // Client-side example (using socket.io-client):
 //
 //   const socket = io("http://localhost", {
-//     path: "/ws/socket.io",          // nginx strips the /ws prefix
+//     path: "/ws/socket.io",          // Caddy strips the /ws prefix
 //     withCredentials: true,          // send access_token cookie automatically
 //   });
 //   socket.emit("join", { projectId: "<uuid>" });

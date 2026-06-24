@@ -24,9 +24,9 @@ Service container definitions live with each service:
 ### Recommended: install script
 
 The easiest way to run Paca without cloning the repository is via the install script
-published with each release. It downloads the compose file and nginx config, walks you
-through configuration interactively (database, storage, AI agent), generates a `.env`
-with strong random secrets, and starts the stack.
+published with each release. It downloads the compose file and Caddyfile, walks you
+through configuration interactively (database, storage, networking/HTTPS, AI agent),
+generates a `.env` with strong random secrets, and starts the stack.
 
 ```bash
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/install.sh -o install.sh
@@ -41,6 +41,7 @@ The installer supports:
 | External PostgreSQL | Supply a `DATABASE_URL`; postgres container is suppressed |
 | Self-hosted MinIO | Starts a MinIO container for S3-compatible file storage (default) |
 | AWS S3 | Supply AWS credentials; MinIO container is suppressed |
+| HTTPS | Enabled by default — Let's Encrypt for a real domain, Caddy's local CA otherwise; can be disabled for plain HTTP |
 | AI Agent | Enabled by default; can be skipped to reduce resource usage |
 
 ### Manual setup
@@ -48,9 +49,9 @@ The installer supports:
 Download the two required files from the latest release:
 
 ```bash
-mkdir -p paca/nginx && cd paca
+mkdir -p paca/caddy && cd paca
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/gateway.conf      -o nginx/gateway.conf
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/Caddyfile         -o caddy/Caddyfile
 ```
 
 Download the example environment file and edit it:
@@ -82,6 +83,34 @@ Start the full stack (bundled PostgreSQL + MinIO):
 docker compose --env-file .env up -d
 ```
 
+**With HTTPS** — set `SITE_ADDRESS` to any concrete domain or IP address and Caddy
+handles certificates automatically, choosing the right kind for what you give it:
+
+```bash
+# In .env: set SITE_ADDRESS to your domain/IP, and PUBLIC_URL/COOKIE_SECURE to match.
+SITE_ADDRESS=paca.example.com
+PUBLIC_URL=https://paca.example.com
+COOKIE_SECURE=true
+```
+
+```bash
+docker compose --env-file .env up -d
+```
+
+- A real domain name with DNS already pointed here gets a trusted Let's Encrypt
+  certificate, renewed automatically. Ports 80 and 443 must both be reachable from the
+  internet for the ACME challenge to succeed.
+- An IP address, `localhost`, `*.localhost`, or anything else that isn't a publicly
+  resolvable domain gets a certificate from Caddy's own local certificate authority
+  instead — traffic is still encrypted, but browsers will show a trust warning since
+  that CA isn't publicly trusted.
+
+Either way, certificates persist in the `caddy_data` volume across restarts.
+
+Without `SITE_ADDRESS` (or set to a bare port like `:80`), the gateway serves plain
+HTTP — the simplest option, and the right one when another proxy or load balancer in
+front of this server already terminates TLS.
+
 **With external PostgreSQL** (suppress the bundled container):
 
 ```bash
@@ -110,7 +139,31 @@ docker compose --env-file .env up -d --scale postgres=0 --scale minio=0
 
 ### Upgrading to a new version
 
-Pull the latest images and restart the stack:
+**Recommended: upgrade script.** From the directory where your `docker-compose.yml` and
+`.env` live, run the same upgrade script published with each release. It backs up
+`docker-compose.yml`, `caddy/Caddyfile`, and `.env` before overwriting them, refreshes
+the compose file and Caddyfile, re-pins image versions when you request a specific
+release, then pulls and restarts the stack:
+
+```bash
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/upgrade.sh -o upgrade.sh
+bash upgrade.sh
+```
+
+Pin to a specific release instead of `latest`:
+
+```bash
+PACA_VERSION=v1.2.3 bash upgrade.sh
+```
+
+Pass through any `--scale` flags you used originally:
+
+```bash
+bash upgrade.sh --scale web=0 --scale minio=0
+```
+
+**Manual:** pull the latest images and restart the stack — this is enough when
+`docker-compose.yml` and the Caddyfile haven't changed shape since your last upgrade:
 
 ```bash
 docker compose pull
@@ -192,7 +245,7 @@ and use Docker Compose only for PostgreSQL and Valkey.
 
 | Service | Port | Notes |
 |---|---|---|
-| Gateway (nginx) | **3000** | Main entry point — `http://localhost:3000` |
+| Gateway (Caddy) | **3000** | Main entry point — `http://localhost:3000` |
 | PostgreSQL | 5432 | Local database for development |
 | Valkey | 6379 | Local cache / event streams |
 | API | 8080 (internal) | Routed via gateway at `/api/` |

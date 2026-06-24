@@ -27,7 +27,7 @@ paca/
     ├── docker-compose.dev.yml
     ├── docker-compose.prod.yml
     ├── docker-compose.e2e.yml
-    └── nginx/                  # Gateway configuration mounted into nginx container
+    └── caddy/                  # Gateway configuration mounted into the Caddy container
 ```
 
 ## Why This Shape
@@ -40,4 +40,4 @@ paca/
 - `plugins/local` is the on-disk plugin store — WASM modules and frontend bundles land here after installation.
 - `scripts` holds the install script and plugin management helpers used by the CLI and the Marketplace UI.
 - `deploy` keeps all environment and infrastructure assets in one place.
-- `deploy/nginx` holds gateway configuration that is mounted read-only into the nginx container at runtime, making it easy to review and modify without rebuilding images.
+- `deploy/caddy` holds gateway configuration that is mounted read-only into the Caddy container at runtime, making it easy to review and modify without rebuilding images.

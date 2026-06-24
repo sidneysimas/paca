@@ -26,7 +26,7 @@ docker compose -f deploy/docker-compose.dev.yml down -v
 
 | Service | Technology | Port | Hot-reload |
 |---|---|---|---|
-| Gateway (nginx) | nginx:1.27-alpine | **3000** (host) | — |
+| Gateway (Caddy) | caddy:2-alpine | **3000** (host) | — |
 | `apps/web` | React + TanStack Start + shadcn/ui | 3000 (internal) | Vite HMR |
 | `services/api` | Go + Gin | 8080 (internal) | [air](https://github.com/air-verse/air) |
 | `services/realtime` | Node.js + Socket.IO | 3001 (internal) | `bun --watch` |
@@ -36,7 +36,7 @@ docker compose -f deploy/docker-compose.dev.yml down -v
 | MinIO S3 API | minio/minio | 9000 | — |
 | MinIO Console | minio/minio | 9001 | http://localhost:9001 (user: `minioadmin`, pass: `minioadmin`) |
 
-The nginx gateway (port 3000) routes `/api/v1/…` to the API, socket traffic to realtime, and `/storage/…` to MinIO. `apps/web` is served at the root.
+The Caddy gateway (port 3000) routes `/api/v1/…` to the API, socket traffic to realtime, and `/storage/…` to MinIO. `apps/web` is served at the root.
 
 ---
 

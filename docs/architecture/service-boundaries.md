@@ -32,7 +32,7 @@ Responsible for end-to-end validation of the full running stack from a real brow
 
 Concerns:
 
-- Playwright test suites exercising cross-cutting flows spanning `apps/web`, `services/api`, and the nginx gateway;
+- Playwright test suites exercising cross-cutting flows spanning `apps/web`, `services/api`, and the Caddy gateway;
 - test categories: auth flows, form validation, security (injection/XSS rejection), session management, and UX correctness;
 - Page Object Models and shared fixtures to keep test logic stable as the UI evolves;
 - global setup that logs in once and persists browser auth state.

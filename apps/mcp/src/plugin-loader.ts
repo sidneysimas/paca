@@ -179,7 +179,7 @@ export async function loadPlugins(config: PacaConfig): Promise<PluginRegistry> {
 	for (const plugin of mcpPlugins) {
 		// biome-ignore lint/style/noNonNullAssertion: filtered above
 		const url = plugin.manifest.mcp!.remoteEntryUrl;
-		// Use gatewayURL when set — MCP bundles are served by the gateway (nginx),
+		// Use gatewayURL when set — MCP bundles are served by the gateway (Caddy),
 		// not the API service, so relative URLs must be resolved against the gateway.
 		const pluginBaseURL = config.gatewayURL ?? config.baseURL;
 		try {

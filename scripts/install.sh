@@ -185,7 +185,7 @@ heading "Installation directory"
 PACA_DIR="${PACA_DIR:-./paca}"
 ask PACA_DIR "Where should Paca be installed?" "$PACA_DIR"
 
-mkdir -p "${PACA_DIR}/nginx"
+mkdir -p "${PACA_DIR}/caddy"
 cd "${PACA_DIR}"
 info "Working directory: $(pwd)"
 
@@ -354,20 +354,48 @@ fi
 
 heading "Network"
 
-GATEWAY_PORT="80"
-ask GATEWAY_PORT "Gateway port (the port Paca will be accessible on)" "80"
+echo "  Caddy (the gateway) serves HTTPS by default: a trusted Let's Encrypt"
+echo "  certificate if you give it a domain name with DNS already pointed at"
+echo "  this server, or its own local certificate authority otherwise (an IP"
+echo "  address, etc.) — traffic is still encrypted, but browsers will show a"
+echo "  trust warning until you have a real domain. \"localhost\" is served"
+echo "  over plain HTTP instead, since it never needs (or can get) a certificate."
+echo ""
 
-# Derive a sensible default public URL from the port.
-if [[ "$GATEWAY_PORT" == "80" ]]; then
-    _DEFAULT_PUBLIC_URL="http://localhost"
-elif [[ "$GATEWAY_PORT" == "443" ]]; then
-    _DEFAULT_PUBLIC_URL="https://localhost"
+ADDRESS=""
+ask ADDRESS "Domain name (recommended) or IP address Paca will be accessible at" "localhost"
+
+GATEWAY_PORT="80"
+
+if [[ "$ADDRESS" == "localhost" ]]; then
+    USE_HTTPS="no"
+    info "Using localhost — serving over plain HTTP."
 else
-    _DEFAULT_PUBLIC_URL="http://localhost:${GATEWAY_PORT}"
+    USE_HTTPS="yes"
+    yes_no USE_HTTPS "Serve over HTTPS?" "y"
 fi
 
-PUBLIC_URL=""
-ask PUBLIC_URL "Public URL (full URL where Paca will be accessible, no trailing slash)" "$_DEFAULT_PUBLIC_URL"
+if [[ "$USE_HTTPS" == "yes" ]]; then
+    SITE_ADDRESS="$ADDRESS"
+    PUBLIC_URL="https://${ADDRESS}"
+
+    info "Caddy will obtain a certificate for ${ADDRESS} on first start — a trusted"
+    info "Let's Encrypt certificate if DNS resolves here, otherwise a local one."
+    warn "Ports 80 and 443 must both be reachable from the internet for Let's Encrypt to succeed."
+else
+    SITE_ADDRESS=":80"
+    ask GATEWAY_PORT "Gateway port (the port Paca will be accessible on)" "80"
+
+    # Derive a sensible default public URL from the port.
+    if [[ "$GATEWAY_PORT" == "80" ]]; then
+        _DEFAULT_PUBLIC_URL="http://${ADDRESS}"
+    else
+        _DEFAULT_PUBLIC_URL="http://${ADDRESS}:${GATEWAY_PORT}"
+    fi
+
+    ask PUBLIC_URL "Public URL (full URL where Paca will be accessible, no trailing slash)" "$_DEFAULT_PUBLIC_URL"
+fi
+
 PUBLIC_URL="${PUBLIC_URL%/}"  # strip trailing slash
 
 # Set COOKIE_SECURE based on whether the URL uses HTTPS.
@@ -390,7 +418,7 @@ heading "Web application"
 
 WEB_CHOICE=""
 ask_choice WEB_CHOICE "How do you want to serve the web app?" \
-    "Bundled container (recommended – nginx serves the built React SPA)" \
+    "Bundled container (recommended – Caddy serves the built React SPA)" \
     "External hosting (S3, CloudFront, Vercel, etc. – only API services run here)"
 
 SCALE_WEB=""
@@ -399,7 +427,7 @@ if [[ "$WEB_CHOICE" == *"External"* ]]; then
     echo ""
     warn "The web container will be skipped."
     warn "Build the SPA from source and deploy the dist/ folder to your CDN."
-    warn "Point your CDN's API proxy to: ${_DEFAULT_PUBLIC_URL:-http://localhost}/api"
+    warn "Point your CDN's API proxy to: ${PUBLIC_URL}/api"
     echo ""
     info "The gateway will still serve /api/, /ws/, and /storage/ routes."
 else
@@ -439,11 +467,11 @@ else
     download "${RELEASE_BASE}/docker-compose.yml" docker-compose.yml
 fi
 
-if [[ -f nginx/gateway.conf ]]; then
-    warn "nginx/gateway.conf already exists — skipping download."
+if [[ -f caddy/Caddyfile ]]; then
+    warn "caddy/Caddyfile already exists — skipping download."
 else
-    info "Downloading nginx/gateway.conf..."
-    download "${RELEASE_BASE}/gateway.conf" nginx/gateway.conf
+    info "Downloading caddy/Caddyfile..."
+    download "${RELEASE_BASE}/Caddyfile" caddy/Caddyfile
 fi
 
 # ── Generate .env ─────────────────────────────────────────────────────────────
@@ -484,6 +512,11 @@ PACA_AI_AGENT_IMAGE=pacaai/paca-ai-agent:${IMAGE_TAG}
 
 ENVIRONMENT=production
 GATEWAY_PORT=${GATEWAY_PORT}
+GATEWAY_HTTPS_PORT=443
+# Caddy site address. A domain or IP gets HTTPS automatically (a trusted
+# Let's Encrypt certificate for a real domain, Caddy's own local certificate
+# authority otherwise). Set to ":80" to disable HTTPS and serve plain HTTP.
+SITE_ADDRESS=${SITE_ADDRESS}
 
 # ── Public URL ────────────────────────────────────────────────────────────────
 PUBLIC_URL=${PUBLIC_URL}
@@ -548,6 +581,7 @@ echo ""
 echo -e "  ${BOLD}Directory   ${RESET}$(pwd)"
 echo -e "  ${BOLD}Version     ${RESET}${PACA_VERSION}"
 echo -e "  ${BOLD}Public URL  ${RESET}${PUBLIC_URL}"
+echo -e "  ${BOLD}HTTPS       ${RESET}$( [[ "$USE_HTTPS" == "yes" ]] && echo "Enabled (${SITE_ADDRESS})" || echo "Disabled (plain HTTP)" )"
 echo -e "  ${BOLD}Database    ${RESET}$( [[ -n "$SCALE_POSTGRES" ]] && echo "External PostgreSQL" || echo "Bundled PostgreSQL container" )"
 echo -e "  ${BOLD}Storage     ${RESET}$( [[ "$STORAGE_PROVIDER" == "s3" ]] && echo "AWS S3 (${STORAGE_BUCKET})" || echo "Self-hosted MinIO" )"
 echo -e "  ${BOLD}Web app     ${RESET}$( [[ -n "$SCALE_WEB" ]] && echo "External / CDN (container skipped)" || echo "Bundled container" )"

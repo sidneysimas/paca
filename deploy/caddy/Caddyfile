@@ -1,0 +1,137 @@
+# =============================================================================
+# Gateway Caddy configuration
+# =============================================================================
+#
+# Single public entrypoint for the Paca stack:
+#
+#   /api/*         →  REST API service       (forwarded as-is, /api kept)
+#   /ws/*          →  Realtime service        (Socket.IO, /ws stripped)
+#   /storage/*     →  MinIO                   (/storage stripped)
+#   /plugins/*     →  Plugin frontend assets  (static files)
+#   /plugins-mcp/* →  Plugin MCP bundles      (static files)
+#   /*             →  Web application         (SPA with client-side routing)
+#
+# This file is mounted at /etc/caddy/Caddyfile inside the gateway container.
+#
+# SITE_ADDRESS controls automatic HTTPS
+# ---------------------------------------
+#   - A bare port (the default, ":80") serves plain HTTP with no TLS at all.
+#     Caddy can't safely provision a certificate for an unbounded catch-all
+#     address, so use this only when something else terminates TLS in front
+#     of this gateway.
+#   - Any concrete address — a domain name, an IP address, "localhost", a
+#     "*.localhost" name, etc. — gets HTTPS automatically:
+#       • A real domain name with DNS already pointed here (e.g.
+#         "paca.example.com") gets a trusted Let's Encrypt certificate,
+#         renewed automatically. Ports 80 and 443 must both be reachable
+#         from the internet for the ACME challenge to succeed.
+#       • Anything else (an IP address, "localhost", "*.localhost", ...)
+#         gets a certificate from Caddy's own local certificate authority
+#         instead. Traffic is still encrypted, but browsers will show a
+#         trust warning since that CA isn't publicly trusted.
+#     Either way, certificates persist in the caddy_data volume so they
+#     survive container restarts/recreations.
+#   install.sh enables HTTPS by default and prompts for this address.
+# =============================================================================
+
+{$SITE_ADDRESS::80} {
+	encode gzip
+
+	log {
+		output stdout
+	}
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-XSS-Protection "0"
+		-Server
+	}
+
+	# Reject oversized request bodies at the gateway before they reach
+	# upstreams. Object storage uploads (handled below) are exempt.
+	@notStorage not path /storage/*
+	request_body @notStorage {
+		max_size 10MB
+	}
+
+	# -- Object storage (MinIO) ------------------------------------------------
+	#
+	# The Host header is rewritten to the internal MinIO address so that AWS
+	# Signature V4 validation succeeds: MinIO re-derives the HMAC using the
+	# Host it receives, which must match the host that was used when the
+	# presigned URL was generated (minio:9000).
+	#
+	# The API rewrites presigned URL hosts from "minio:9000" to
+	# STORAGE_PUBLIC_URL (e.g. "http://localhost/storage") before returning
+	# them to clients, so browsers always receive routable URLs.
+	handle_path /storage/* {
+		reverse_proxy minio:9000 {
+			header_up Host minio:9000
+		}
+	}
+
+	# -- Realtime service (Socket.IO) ------------------------------------------
+	#
+	# WebSocket upgrade requests are detected and proxied automatically.
+	#
+	# Client-side connection:
+	#   io("http://localhost", { path: "/ws/socket.io", withCredentials: true })
+	handle_path /ws/* {
+		reverse_proxy realtime:3001
+	}
+
+	# -- Local plugin frontend assets -------------------------------------------
+	#
+	# Serves statically-built micro-frontend bundles for locally installed
+	# plugins. Only plugins/local/frontend is mounted here (plugins/local/backend
+	# is mounted exclusively to the API container), so WASM binaries and SQL
+	# migrations are never reachable over HTTP.
+	#
+	# Set remoteEntryUrl in each plugin's plugin.json to:
+	#   /plugins/<plugin-id>/assets/remoteEntry.js
+	handle_path /plugins/* {
+		root * /var/www/plugins
+
+		@wasm path *.wasm
+		header @wasm Content-Type "application/wasm"
+
+		# Fingerprinted assets can be cached immutably for a long time.
+		header Cache-Control "public, max-age=900, immutable"
+		file_server
+	}
+
+	# -- MCP plugin bundles -------------------------------------------------------
+	#
+	# Self-contained ESM bundles loaded at runtime by the MCP server. Kept on a
+	# separate path from frontend assets so WASM/CSS concerns from the block
+	# above don't bleed into MCP serving.
+	#
+	# Set remoteEntryUrl in each plugin's plugin.json mcp section to an
+	# absolute URL, for example:
+	#   ${PUBLIC_URL}/plugins-mcp/<plugin-id>/mcp.js
+	handle_path /plugins-mcp/* {
+		root * /var/www/plugins-mcp
+		header Cache-Control "public, max-age=900, immutable"
+		file_server
+	}
+
+	# -- API routes ---------------------------------------------------------------
+	#
+	# Forwards the /api prefix as-is to the upstream:
+	#   /api/v1/users  →  /api/v1/users
+	#   /api/healthz   →  /api/healthz
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# -- Web application (SPA) -----------------------------------------------------
+	#
+	# WebSocket upgrades are detected and proxied automatically, so Vite HMR
+	# and any future realtime traffic through this path work unmodified.
+	handle {
+		reverse_proxy web:3000
+	}
+}
