@@ -4,11 +4,40 @@ from unittest.mock import patch
 
 import pytest
 
-from src.agent.builder import build_mcp_config, build_skills
-from src.models.agent import AgentMCPServerRow, AgentSkillRow
-
+from src.agent.builder import build_llm, build_mcp_config, build_skills
+from src.models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 # ─── Fixtures / helpers ───────────────────────────────────────────────────────
+
+
+def _agent_config(
+    provider: str = "anthropic",
+    model: str = "claude-sonnet-4-6",
+    base_url: str = "",
+) -> AgentConfig:
+    return AgentConfig(
+        agent_id="agent-1",
+        project_id="proj-1",
+        system_prompt=None,
+        task_trigger_prompt="",
+        doc_comment_trigger_prompt="",
+        chat_trigger_prompt="",
+        description_write_trigger_prompt="",
+        llm_provider=provider,
+        llm_model=model,
+        llm_api_key_secret_ref="secret-ref",
+        llm_base_url=base_url,
+        max_iterations=10,
+        can_clone_repos=False,
+    )
+
+
+@pytest.fixture
+def catalog():
+    """Stub Paca's known-provider catalog so tests don't depend on data/llm_models.json."""
+    with patch("src.agent.builder.llm_catalog.load") as m:
+        m.return_value = {"anthropic": {}, "openai": {}}
+        yield m
 
 
 def _skill(
@@ -60,6 +89,63 @@ def with_paca_key():
         m.gateway_base_url = "http://gateway"
         m.dev_mcp_path = ""
         yield m
+
+
+# ─── build_llm ────────────────────────────────────────────────────────────────
+
+
+def test_known_provider_with_base_url_uses_native_routing(catalog):
+    config = _agent_config(
+        provider="anthropic", model="claude-sonnet-4-6", base_url="https://api.anthropic.com"
+    )
+    llm = build_llm(config)
+    assert llm.model == "anthropic/claude-sonnet-4-6"
+
+
+def test_custom_literal_provider_does_not_collide_with_litellm_builtin(catalog):
+    # Regression test for #221: litellm has its own built-in "custom" provider
+    # with an incompatible non-chat wire format. A user typing "custom" into the
+    # freeform provider field (the obvious choice for "a custom provider") must
+    # still get routed through the OpenAI-compatible passthrough, not litellm's
+    # native "custom" handler.
+    config = _agent_config(
+        provider="custom", model="llama-3.1-70b", base_url="http://self-hosted:8000/v1"
+    )
+    llm = build_llm(config)
+    assert llm.model == "openai/llama-3.1-70b"
+
+
+def test_unknown_freeform_provider_routes_through_openai_passthrough(catalog):
+    config = _agent_config(
+        provider="my-vllm-box", model="mixtral", base_url="http://10.0.0.5:8000/v1"
+    )
+    llm = build_llm(config)
+    assert llm.model == "openai/mixtral"
+
+
+def test_model_already_openai_prefixed_is_not_double_prefixed(catalog):
+    config = _agent_config(
+        provider="custom",
+        model="openai/already-prefixed",
+        base_url="http://self-hosted:8000/v1",
+    )
+    llm = build_llm(config)
+    assert llm.model == "openai/already-prefixed"
+
+
+def test_no_base_url_uses_raw_provider_string(catalog):
+    config = _agent_config(provider="custom", model="some-model", base_url="")
+    llm = build_llm(config)
+    assert llm.model == "custom/some-model"
+
+
+def test_llm_uses_configured_base_url_and_stream(catalog):
+    config = _agent_config(
+        provider="custom", model="some-model", base_url="http://self-hosted:8000/v1"
+    )
+    llm = build_llm(config)
+    assert llm.base_url == "http://self-hosted:8000/v1"
+    assert llm.stream is True
 
 
 # ─── build_skills ─────────────────────────────────────────────────────────────

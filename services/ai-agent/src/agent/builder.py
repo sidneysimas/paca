@@ -8,6 +8,7 @@ from openhands.sdk import LLM
 from openhands.sdk.context import KeywordTrigger, Skill
 from pydantic import SecretStr
 
+from .. import llm_catalog
 from ..config import settings
 from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
@@ -16,14 +17,16 @@ logger = logging.getLogger(__name__)
 
 def build_llm(agent_config: AgentConfig) -> LLM:
     """Construct an OpenHands SDK LLM instance from agent configuration."""
-    import litellm  # noqa: PLC0415
-
     provider = agent_config.llm_provider
     llm_base_url = agent_config.llm_base_url or None
 
-    # For providers not natively known to LiteLLM, route through the OpenAI-compatible
-    # client by prefixing with "openai/" — LiteLLM uses base_url to reach the endpoint.
-    if llm_base_url and provider not in litellm.provider_list:
+    # For providers outside our own catalog (freeform "Custom…" entries), route
+    # through the OpenAI-compatible client by prefixing with "openai/". Checking
+    # against our catalog rather than litellm.provider_list matters: litellm
+    # reserves names like "custom"/"vllm"/"huggingface" for its own non-chat,
+    # non-OpenAI-compatible handlers, and a user typing one of those by
+    # coincidence would otherwise get silently misrouted into them.
+    if llm_base_url and provider not in llm_catalog.load():
         model_str = (
             agent_config.llm_model
             if agent_config.llm_model.startswith("openai/")
